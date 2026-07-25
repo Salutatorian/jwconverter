@@ -8,7 +8,8 @@ import { FileQueue } from "../components/FileQueue";
 import { FormatPicker } from "../components/FormatPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import { QualityPicker } from "../components/QualityPicker";
-import { UpdateControls } from "../components/UpdateControls";
+import { SettingsGearButton } from "../components/SettingsGearButton";
+import { SettingsPanel } from "../components/SettingsPanel";
 import { useBatchConversion } from "../hooks/useBatchConversion";
 import { useFileQueue } from "../hooks/useFileQueue";
 import { useUpdater } from "../hooks/useUpdater";
@@ -43,10 +44,13 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
   const [destination, setDestination] = useState<string | null>(null);
   const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const queue = useFileQueue();
   const batch = useBatchConversion(queue.patchByJobOrPath);
   const updater = useUpdater();
+  const updateAvailable =
+    updater.status === "available" || updater.status === "downloading";
 
   useEffect(() => {
     let cancelled = false;
@@ -214,7 +218,7 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
           className="mt-0.5 h-8 w-auto select-none"
           draggable={false}
         />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold tracking-tight text-[var(--text)]">
             JW Converter
           </h1>
@@ -227,9 +231,34 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
               </span>
             ) : null}
           </p>
+          {updateAvailable && !settingsOpen ? (
+            <button
+              type="button"
+              className="mt-1 text-xs font-medium text-[var(--accent)]"
+              onClick={() => {
+                setSettingsOpen(true);
+              }}
+            >
+              Update available — open Settings
+            </button>
+          ) : null}
         </div>
-        <UpdateControls updater={updater} />
+        <SettingsGearButton
+          updateAvailable={updateAvailable}
+          onClick={() => {
+            setSettingsOpen(true);
+          }}
+        />
       </header>
+
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+        }}
+        appInfo={appInfo}
+        updater={updater}
+      />
 
       <DropZone
         disabled={queue.isAnalyzing || batch.isBusy}

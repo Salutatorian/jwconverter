@@ -6,11 +6,11 @@ Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe 
 
 ## Download
 
-**[Download JW Converter for Windows (v0.1.3)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.3)**
+**[Download JW Converter for Windows (v0.1.4)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.4)**
 
 Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted audio files are not deleted.
 
-From **v0.1.2** onward, the app checks GitHub Releases on launch (and every few hours) and shows an **Update** button when a newer version is available — you choose when to install.
+From **v0.1.2** onward, the app checks GitHub Releases on launch (and every few hours). Open the gear **Settings** panel to update, or jump to GitHub / Releases / Issues.
 
 ![JW Converter UI](docs/assets/jw-converter-ui.png)
 
@@ -31,7 +31,7 @@ Windows installer with bundled FFmpeg and an uninstall option.
 
 ## Status
 
-**v0.1.3** — uninstall warns and wipes all JW Converter app data; click-to-install auto-updater from v0.1.2; Windows NSIS packaging with bundled FFmpeg/FFprobe.
+**v0.1.4** — Settings gear (updates, GitHub links, about); uninstall wipe from v0.1.3; click-to-install updater from v0.1.2.
 
 Working:
 
@@ -47,6 +47,7 @@ Working:
 - Default destination: Downloads
 - Overwrite policy: Rename (default) / Skip / Replace
 - Windows NSIS installer with app icons and bundled FFmpeg/FFprobe
+- In-app Settings gear: updates, GitHub / Releases / Issues, about
 - In-app update check + **Update** button (install only when you click)
 
 See `docs/ffmpeg-licensing.md` before redistributing the installer.

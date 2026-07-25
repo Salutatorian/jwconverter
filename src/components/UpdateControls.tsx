@@ -17,9 +17,9 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
   const isBusy = status === "checking" || status === "downloading";
 
   return (
-    <div className="ml-auto flex min-w-0 flex-col items-end gap-1.5">
+    <div className="flex flex-col gap-2">
       {status === "available" || status === "downloading" ? (
-        <p className="max-w-xs text-right text-xs text-[var(--text-muted)]">
+        <p className="text-xs text-[var(--text-muted)]">
           {status === "downloading"
             ? `Downloading v${availableVersion ?? ""}${
                 downloadPercent != null ? ` · ${downloadPercent}%` : ""
@@ -29,7 +29,7 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
       ) : null}
 
       {status === "error" && error ? (
-        <p className="max-w-xs text-right text-xs text-red-300" role="alert">
+        <p className="text-xs text-red-300" role="alert">
           Update check failed: {error}
         </p>
       ) : null}
@@ -38,7 +38,15 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
         <p className="text-xs text-[var(--text-faint)]">You're up to date</p>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2">
+      {status === "idle" || status === "checking" ? (
+        <p className="text-xs text-[var(--text-faint)]">
+          {status === "checking"
+            ? "Checking GitHub Releases…"
+            : "Checks on launch and every few hours."}
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           className="btn btn-secondary"
