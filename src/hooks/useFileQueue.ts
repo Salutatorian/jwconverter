@@ -134,16 +134,28 @@ export function useFileQueue() {
         const path = paths[i];
         const jobId = jobIds[i];
         const index = next.findIndex((item) => item.path === path);
-        if (index >= 0) {
-          next[index] = {
-            ...next[index],
-            jobId,
-            status: "queued",
-            percent: 0,
-            error: null,
-            outputPath: null,
-          };
+        if (index < 0) {
+          continue;
         }
+        const item = next[index];
+        // Only attach the job id. Never rewind progress if events already arrived.
+        const keepProgress =
+          item.status === "converting" ||
+          item.status === "verifying" ||
+          item.status === "completed" ||
+          item.status === "skipped" ||
+          item.status === "failed" ||
+          item.status === "cancelled";
+        next[index] = keepProgress
+          ? { ...item, jobId }
+          : {
+              ...item,
+              jobId,
+              status: "queued",
+              percent: 0,
+              error: null,
+              outputPath: null,
+            };
       }
       return next;
     });

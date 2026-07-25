@@ -205,7 +205,7 @@ button:focus-visible,
   box-shadow: 0 0 0 2px var(--surface);
 }
 
-.settings-overlay {
+.modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -214,15 +214,15 @@ button:focus-visible,
   padding: 1.25rem;
 }
 
-.settings-backdrop {
+.modal-backdrop {
   position: absolute;
   inset: 0;
   border: 0;
-  background: rgba(6, 8, 12, 0.62);
+  background: rgba(8, 10, 14, 0.72);
   cursor: default;
 }
 
-.settings-panel {
+.modal-card {
   position: relative;
   z-index: 1;
   width: min(100%, 26rem);
@@ -230,11 +230,25 @@ button:focus-visible,
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  gap: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 1.1rem 1.15rem;
 }
 
-.settings-section {
+.modal-section {
   padding-top: 1rem;
   border-top: 1px solid var(--border);
+}
+
+.whats-new-list {
+  margin: 0.65rem 0 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-muted);
 }

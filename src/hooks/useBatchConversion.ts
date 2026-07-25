@@ -1,5 +1,5 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   cancelBatch,
   startBatch,
@@ -46,6 +46,7 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
   const [batch, setBatch] = useState<BatchEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const busyRef = useRef(false);
 
   useEffect(() => {
     let unlistenConversion: UnlistenFn | undefined;
@@ -74,8 +75,11 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
     listen<BatchEvent>("batch-event", (event) => {
       const payload = event.payload;
       setBatch(payload);
-      setIsBusy(payload.status === "running");
+      const running = payload.status === "running";
+      busyRef.current = running;
+      setIsBusy(running);
       if (payload.status === "completed" || payload.status === "cancelled") {
+        busyRef.current = false;
         setIsBusy(false);
       }
     })
@@ -101,13 +105,22 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
       qualityPreset: QualityPreset;
       assignJobIds: (paths: string[], jobIds: string[]) => void;
     }) => {
-      const convertible = args.items.filter((item) => item.info);
+      if (busyRef.current) {
+        return;
+      }
+
+      const convertible = args.items.filter(
+        (item) =>
+          item.info != null &&
+          (item.status === "ready" || item.status === "failed"),
+      );
       if (convertible.length === 0) {
         setError("No ready files to convert.");
         return;
       }
 
       setError(null);
+      busyRef.current = true;
       setIsBusy(true);
 
       const requests: ConversionRequest[] = convertible.map((item) => ({
@@ -127,6 +140,7 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
           result.jobIds,
         );
       } catch (caught) {
+        busyRef.current = false;
         setIsBusy(false);
         setError(caught instanceof Error ? caught.message : String(caught));
       }

@@ -30,7 +30,13 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
 
       {status === "error" && error ? (
         <p className="text-xs text-red-300" role="alert">
-          Update check failed: {error}
+          Update failed: {error}
+        </p>
+      ) : null}
+
+      {status === "available" && error ? (
+        <p className="text-xs text-red-300" role="alert">
+          Last update attempt failed: {error}
         </p>
       ) : null}
 
@@ -41,7 +47,7 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
       {status === "idle" || status === "checking" ? (
         <p className="text-xs text-[var(--text-faint)]">
           {status === "checking"
-            ? "Checking GitHub Releases…"
+            ? "Checking for updates…"
             : "Checks on launch and every few hours."}
         </p>
       ) : null}
@@ -55,7 +61,7 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
             void checkForUpdates();
           }}
         >
-          {status === "checking" ? "Checking…" : "Check for updates"}
+          {status === "checking" ? "Checking for updates…" : "Check for updates"}
         </button>
         <button
           type="button"

@@ -1,19 +1,28 @@
 import { useEffect, useState } from "react";
+import { WhatsNewModal } from "./components/WhatsNewModal";
 import { getAppInfo } from "./lib/tauri";
+import {
+  pendingWhatsNew,
+  setSeenWhatsNewVersion,
+  type WhatsNewEntry,
+} from "./lib/whatsNew";
 import type { AppInfo } from "./types/conversion";
 import { ConverterView } from "./views/ConverterView";
 
 function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [ipcError, setIpcError] = useState<string | null>(null);
+  const [whatsNew, setWhatsNew] = useState<WhatsNewEntry | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     getAppInfo()
       .then((info) => {
-        if (!cancelled) {
-          setAppInfo(info);
+        if (cancelled) {
+          return;
         }
+        setAppInfo(info);
+        setWhatsNew(pendingWhatsNew(info.version));
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -25,6 +34,13 @@ function App() {
     };
   }, []);
 
+  function dismissWhatsNew() {
+    if (appInfo) {
+      setSeenWhatsNewVersion(appInfo.version);
+    }
+    setWhatsNew(null);
+  }
+
   return (
     <main className="min-h-screen">
       {ipcError ? (
@@ -33,6 +49,9 @@ function App() {
         </p>
       ) : null}
       <ConverterView appInfo={appInfo} />
+      {whatsNew ? (
+        <WhatsNewModal entry={whatsNew} onDismiss={dismissWhatsNew} />
+      ) : null}
     </main>
   );
 }

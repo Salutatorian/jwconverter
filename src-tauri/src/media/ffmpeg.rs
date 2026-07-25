@@ -40,6 +40,8 @@ pub fn start_conversion(
         .arg("-hide_banner")
         .arg("-nostdin")
         .arg("-y")
+        .arg("-protocol_whitelist")
+        .arg("file,pipe,fd")
         .arg("-i")
         .arg(source)
         .arg("-vn");

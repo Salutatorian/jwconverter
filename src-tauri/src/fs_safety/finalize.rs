@@ -48,21 +48,13 @@ pub fn finalize_output_with_policy(
         });
     }
 
-    if final_path.exists() {
-        if !allow_replace {
-            return Err(AppError::OutputExists {
-                detail: format!(
-                    "Destination already exists unexpectedly: {}",
-                    final_path.display()
-                ),
-            });
-        }
-        std::fs::remove_file(final_path).map_err(|error| AppError::DestinationUnavailable {
+    if final_path.exists() && !allow_replace {
+        return Err(AppError::OutputExists {
             detail: format!(
-                "Could not remove existing output file {}: {error}",
+                "Destination already exists unexpectedly: {}",
                 final_path.display()
             ),
-        })?;
+        });
     }
 
     if let Some(parent) = final_path.parent() {
@@ -73,17 +65,55 @@ pub fn finalize_output_with_policy(
         }
     }
 
-    match std::fs::rename(temp_path, final_path) {
-        Ok(()) => Ok(()),
-        Err(_) => {
-            // Cross-volume fallback.
-            std::fs::copy(temp_path, final_path).map_err(|error| {
-                AppError::DestinationUnavailable {
-                    detail: format!("Could not write output file: {error}"),
-                }
-            })?;
-            cleanup_temp(temp_path);
+    // Safe replace: move existing aside first, then promote temp. Restore on failure.
+    let backup = if final_path.exists() {
+        let backup = final_path.with_file_name(format!(
+            "{}.jwbak-{}",
+            final_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("output"),
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::rename(final_path, &backup).map_err(|error| AppError::DestinationUnavailable {
+            detail: format!(
+                "Could not move existing output aside {}: {error}",
+                final_path.display()
+            ),
+        })?;
+        Some(backup)
+    } else {
+        None
+    };
+
+    let promote = || -> Result<(), AppError> {
+        match std::fs::rename(temp_path, final_path) {
+            Ok(()) => Ok(()),
+            Err(_) => {
+                // Cross-volume fallback.
+                std::fs::copy(temp_path, final_path).map_err(|error| {
+                    AppError::DestinationUnavailable {
+                        detail: format!("Could not write output file: {error}"),
+                    }
+                })?;
+                cleanup_temp(temp_path);
+                Ok(())
+            }
+        }
+    };
+
+    match promote() {
+        Ok(()) => {
+            if let Some(backup) = backup {
+                let _ = std::fs::remove_file(backup);
+            }
             Ok(())
+        }
+        Err(error) => {
+            if let Some(backup) = backup {
+                let _ = std::fs::rename(&backup, final_path);
+            }
+            Err(error)
         }
     }
 }

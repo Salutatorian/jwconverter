@@ -908,12 +908,11 @@ Section Uninstall
  DeleteRegKey /ifempty HKLM "${MANUKEY}"
 
  SetShellVarContext current
- ; Bundle id folders (Tauri / WebView2 app data)
+ ; Wipe only known app-data / WebView2 folders (bundle id). Never RmDir the
+ ; product-name install tree here — that can be $LOCALAPPDATA\JW Converter and
+ ; would delete the whole install folder contents beyond settings/cache.
  RmDir /r "$APPDATA\${BUNDLEID}"
  RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
- RmDir /r "$APPDATA\${PRODUCTNAME}"
- RmDir /r "$LOCALAPPDATA\${PRODUCTNAME}"
- ; Common WebView2 / EBWebView leftovers under the bundle id
  RmDir /r "$LOCALAPPDATA\${BUNDLEID}\EBWebView"
  RmDir /r "$APPDATA\${BUNDLEID}\EBWebView"
  ${EndIf}

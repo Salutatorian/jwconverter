@@ -43,20 +43,7 @@ pub fn run_job(
 ) -> Result<ConversionResult, AppError> {
     let source = PathBuf::from(&job.source_path);
     let destination_root = PathBuf::from(&job.destination_dir);
-    let destination_dir = match &job.relative_subdir {
-        Some(subdir) if !subdir.trim().is_empty() => {
-            let mut dir = destination_root.clone();
-            for part in subdir.split(['/', '\\']) {
-                let part = part.trim();
-                if part.is_empty() || part == "." || part == ".." {
-                    continue;
-                }
-                dir.push(part);
-            }
-            dir
-        }
-        _ => destination_root,
-    };
+    let destination_dir = resolve_destination_dir(&destination_root, job.relative_subdir.as_deref())?;
 
     validate_source(&source)?;
     ensure_destination_dir(&destination_dir)?;
@@ -87,6 +74,14 @@ pub fn run_job(
         }
         OverwritePolicy::Replace => primary_path.clone(),
     };
+
+    // Never allow writing over the source file (especially Replace same-folder same-format).
+    if paths_equal_file(&source, &final_path) {
+        return Err(AppError::DestinationUnavailable {
+            detail: "Output path matches the source file. Choose a different destination or format."
+                .to_string(),
+        });
+    }
 
     let allow_replace = matches!(job.overwrite_policy, OverwritePolicy::Replace);
 
@@ -194,6 +189,59 @@ fn validate_source(path: &Path) -> Result<(), AppError> {
         });
     }
     Ok(())
+}
+
+/// Build destination folder from root + relative subdir without allowing path escape.
+fn resolve_destination_dir(
+    destination_root: &Path,
+    relative_subdir: Option<&str>,
+) -> Result<PathBuf, AppError> {
+    let Some(subdir) = relative_subdir.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok(destination_root.to_path_buf());
+    };
+
+    let mut dir = destination_root.to_path_buf();
+    for part in subdir.split(['/', '\\']) {
+        let part = part.trim();
+        if part.is_empty() || part == "." || part == ".." {
+            continue;
+        }
+        // Reject drive prefixes / absolute segments (e.g. "C:" resets PathBuf on Windows).
+        if part.contains(':') || part.starts_with('\\') || Path::new(part).is_absolute() {
+            return Err(AppError::DestinationUnavailable {
+                detail: format!("Invalid relative folder segment: {part}"),
+            });
+        }
+        dir.push(part);
+    }
+
+    // Soft containment check without requiring the path to exist yet.
+    let root = destination_root
+        .components()
+        .collect::<Vec<_>>();
+    let resolved = dir.components().collect::<Vec<_>>();
+    if resolved.len() < root.len() || resolved[..root.len()] != root[..] {
+        return Err(AppError::DestinationUnavailable {
+            detail: "Resolved output folder escaped the destination root.".to_string(),
+        });
+    }
+
+    Ok(dir)
+}
+
+fn paths_equal_file(a: &Path, b: &Path) -> bool {
+    if a == b {
+        return true;
+    }
+    match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
+        (Ok(ca), Ok(cb)) => ca == cb,
+        _ => {
+            // Compare normalized string forms when either path does not exist yet.
+            let na = a.to_string_lossy().replace('/', "\\").to_lowercase();
+            let nb = b.to_string_lossy().replace('/', "\\").to_lowercase();
+            na == nb
+        }
+    }
 }
 
 fn validate_destination_dir(path: &Path) -> Result<(), AppError> {
@@ -311,6 +359,28 @@ mod tests {
             .filter_map(|entry| entry.ok())
             .filter(|entry| entry.path().is_file())
             .count()
+    }
+
+    #[test]
+    fn resolve_destination_dir_rejects_drive_prefix() {
+        let root = PathBuf::from(r"D:\Music\Out");
+        let err = resolve_destination_dir(&root, Some(r"C:\Windows"))
+            .expect_err("drive prefix must fail");
+        assert!(err.to_string().contains("Invalid relative folder"));
+    }
+
+    #[test]
+    fn resolve_destination_dir_keeps_nested_relative() {
+        let root = PathBuf::from(r"D:\Music\Out");
+        let resolved = resolve_destination_dir(&root, Some(r"Album\Disc 1")).expect("ok");
+        assert_eq!(resolved, root.join("Album").join("Disc 1"));
+    }
+
+    #[test]
+    fn paths_equal_file_matches_identical_paths() {
+        let a = PathBuf::from(r"C:\music\song.wav");
+        let b = PathBuf::from(r"C:\music\song.wav");
+        assert!(paths_equal_file(&a, &b));
     }
 
     #[test]

@@ -67,6 +67,8 @@ fn run_ffprobe(ffprobe: &Path, input: &Path) -> Result<ProbeOutput, AppError> {
     command.args([
         "-v",
         "error",
+        "-protocol_whitelist",
+        "file,pipe,fd",
         "-print_format",
         "json",
         "-show_format",

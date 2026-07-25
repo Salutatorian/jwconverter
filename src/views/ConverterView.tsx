@@ -108,7 +108,9 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
   const convertibleItems = useMemo(
     () =>
       queue.items.filter(
-        (item) => item.info != null && item.status !== "analyzing",
+        (item) =>
+          item.info != null &&
+          (item.status === "ready" || item.status === "failed"),
       ),
     [queue.items],
   );

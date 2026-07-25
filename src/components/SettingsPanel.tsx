@@ -20,7 +20,6 @@ async function openExternal(url: string) {
   try {
     await openUrl(url);
   } catch {
-    // Fallback for rare opener failures.
     window.open(url, "_blank", "noopener,noreferrer");
   }
 }
@@ -57,15 +56,15 @@ export function SettingsPanel({
   }
 
   return (
-    <div className="settings-overlay" role="presentation">
+    <div className="modal-overlay" role="presentation">
       <button
         type="button"
-        className="settings-backdrop"
+        className="modal-backdrop"
         aria-label="Close settings"
         onClick={onClose}
       />
       <section
-        className="settings-panel panel"
+        className="modal-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -89,14 +88,14 @@ export function SettingsPanel({
           </button>
         </div>
 
-        <div className="settings-section">
+        <div className="modal-section">
           <h3 className="panel-title">Updates</h3>
           <div className="mt-3">
             <UpdateControls updater={updater} />
           </div>
         </div>
 
-        <div className="settings-section">
+        <div className="modal-section">
           <h3 className="panel-title">Links</h3>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -132,7 +131,7 @@ export function SettingsPanel({
           </p>
         </div>
 
-        <div className="settings-section">
+        <div className="modal-section">
           <h3 className="panel-title">About</h3>
           <p className="mt-3 text-sm text-[var(--text-muted)]">
             JW Converter

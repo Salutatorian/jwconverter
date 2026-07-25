@@ -98,7 +98,7 @@ pub fn cancel_conversion(state: State<'_, AppState>, job_id: String) -> Result<(
     if state.request_cancel(&job_id) {
         return Ok(());
     }
-    queue::cancel_current_job(&state)
+    Err(format!("No active conversion found for job {job_id}."))
 }
 
 #[tauri::command]
