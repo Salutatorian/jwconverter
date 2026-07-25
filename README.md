@@ -4,6 +4,12 @@ Local-first Windows audio conversion utility.
 
 Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe (wired in later milestones).
 
+## Download
+
+**[Download JW Converter for Windows (v0.1.0)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.0)**
+
+Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder.
+
 ![JW Converter UI](docs/assets/jw-converter-ui.png)
 
 ## Reddit blurb (for sharing this screenshot)
