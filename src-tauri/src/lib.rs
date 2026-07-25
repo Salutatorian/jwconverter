@@ -15,6 +15,7 @@ use commands::convert::{
     cancel_batch, cancel_conversion, is_batch_running, start_batch, start_conversion,
 };
 use commands::discover::discover_audio_paths;
+use commands::preflight::preflight_batch;
 use commands::system::get_default_paths;
 use state::AppState;
 
@@ -32,6 +33,7 @@ pub fn run() {
             get_media_tools_info,
             get_default_paths,
             discover_audio_paths,
+            preflight_batch,
             start_conversion,
             start_batch,
             cancel_conversion,

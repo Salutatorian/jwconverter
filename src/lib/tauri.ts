@@ -53,6 +53,46 @@ export interface ConversionRequest {
   preserveCover: boolean;
 }
 
+export type PreflightWarningKind = "lossyToLossless" | "bitDepthUpsample";
+
+export interface PreflightWarning {
+  kind: PreflightWarningKind;
+  count: number;
+  message: string;
+}
+
+export interface PreflightReport {
+  fileCount: number;
+  skippedExisting: number;
+  sourceBytes: number;
+  estimatedOutputBytes: number;
+  freeBytes: number | null;
+  requiredBytes: number;
+  diskBlocked: boolean;
+  warnings: PreflightWarning[];
+}
+
+export interface PreflightBatchRequest {
+  destinationDir: string;
+  outputFormat: OutputFormat;
+  qualityPreset: QualityPreset;
+  bitDepthPreset: BitDepthPreset;
+  overwritePolicy: OverwritePolicy;
+  items: Array<{
+    sourcePath: string;
+    relativeSubdir: string | null;
+    durationSeconds: number | null;
+    sampleRate: number | null;
+    channels: number | null;
+    fileSizeBytes: number | null;
+    codec: string | null;
+    format: string | null;
+    bitDepth: number | null;
+    bitsPerRawSample: number | null;
+    sampleFormat: string | null;
+  }>;
+}
+
 export interface BatchStartResult {
   batchId: string;
   jobIds: string[];
@@ -66,6 +106,12 @@ export async function startBatch(
   requests: ConversionRequest[],
 ): Promise<BatchStartResult> {
   return invoke<BatchStartResult>("start_batch", { requests });
+}
+
+export async function preflightBatch(
+  request: PreflightBatchRequest,
+): Promise<PreflightReport> {
+  return invoke<PreflightReport>("preflight_batch", { request });
 }
 
 export async function cancelConversion(jobId: string): Promise<void> {

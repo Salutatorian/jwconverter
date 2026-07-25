@@ -2,6 +2,7 @@
 
 pub mod job;
 pub mod planner;
+pub mod preflight;
 pub mod queue;
 pub mod runner;
 pub mod verify;

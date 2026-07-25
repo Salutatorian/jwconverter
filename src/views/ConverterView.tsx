@@ -9,13 +9,14 @@ import { FileQueue } from "../components/FileQueue";
 import { FormatPicker } from "../components/FormatPicker";
 import { MetadataPicker } from "../components/MetadataPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
+import { PreflightModal } from "../components/PreflightModal";
 import { QualityPicker } from "../components/QualityPicker";
 import { SettingsGearButton } from "../components/SettingsGearButton";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { useBatchConversion } from "../hooks/useBatchConversion";
 import { useFileQueue } from "../hooks/useFileQueue";
 import { useUpdater } from "../hooks/useUpdater";
-import { getDefaultPaths } from "../lib/tauri";
+import { getDefaultPaths, preflightBatch, type PreflightReport } from "../lib/tauri";
 import {
   AUDIO_EXTENSIONS,
   isLossyFormat,
@@ -54,6 +55,9 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
   const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [preflightReport, setPreflightReport] =
+    useState<PreflightReport | null>(null);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
 
   const queue = useFileQueue();
   const batch = useBatchConversion(queue.patchByJobOrPath);
@@ -206,7 +210,7 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
     }
   }
 
-  async function handleConvert() {
+  async function startConvert() {
     if (!destination) {
       return;
     }
@@ -221,6 +225,52 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
       preserveCover: preserveCover && supportsEmbeddedCover(format),
       assignJobIds: queue.assignJobIds,
     });
+  }
+
+  async function handleConvert() {
+    if (!destination) {
+      return;
+    }
+
+    setPreflightError(null);
+    try {
+      const report = await preflightBatch({
+        destinationDir: destination,
+        outputFormat: format,
+        qualityPreset,
+        bitDepthPreset,
+        overwritePolicy,
+        items: convertibleItems.map((item) => ({
+          sourcePath: item.path,
+          relativeSubdir: item.relativeSubdir,
+          durationSeconds: item.info?.durationSeconds ?? null,
+          sampleRate: item.info?.sampleRate ?? null,
+          channels: item.info?.channels ?? null,
+          fileSizeBytes: item.info?.fileSizeBytes ?? null,
+          codec: item.info?.codec ?? null,
+          format: item.info?.format ?? null,
+          bitDepth: item.info?.bitDepth ?? null,
+          bitsPerRawSample: item.info?.bitsPerRawSample ?? null,
+          sampleFormat: item.info?.sampleFormat ?? null,
+        })),
+      });
+
+      if (report.diskBlocked || report.warnings.length > 0) {
+        setPreflightReport(report);
+        return;
+      }
+
+      await startConvert();
+    } catch (error) {
+      setPreflightError(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  async function handlePreflightContinue() {
+    setPreflightReport(null);
+    await startConvert();
   }
 
   return (
@@ -326,6 +376,15 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
         </p>
       ) : null}
 
+      {preflightError ? (
+        <p
+          className="rounded-[var(--radius)] border border-red-400/30 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]"
+          role="alert"
+        >
+          {preflightError}
+        </p>
+      ) : null}
+
       <FileQueue
         items={queue.items}
         disabled={batch.isBusy}
@@ -411,6 +470,22 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
           void batch.cancel();
         }}
       />
+
+      {preflightReport ? (
+        <PreflightModal
+          report={preflightReport}
+          onCancel={() => {
+            setPreflightReport(null);
+          }}
+          onContinue={
+            preflightReport.diskBlocked
+              ? undefined
+              : () => {
+                  void handlePreflightContinue();
+                }
+          }
+        />
+      ) : null}
     </div>
   );
 }

@@ -7,6 +7,15 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.1.9",
+    changes: [
+      "Before Convert: honesty warnings for lossy→lossless and bit-depth upsampling",
+      "Rough batch size estimate (source vs ~output) and destination free space",
+      "Hard block when estimated output won't fit on the destination drive",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.1.8",
     changes: [
       "Preserve tags (title, artist, album, and more) when converting — on by default",
