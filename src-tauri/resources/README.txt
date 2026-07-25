@@ -25,6 +25,9 @@ Use Windows Settings → Apps → Installed apps → JW Converter → Uninstall,
 or run "Uninstall JW Converter.exe" from the installation folder
 (also available in the Start Menu under JW Converter).
 
+Uninstall shows a warning and permanently removes JW Converter app data
+(settings/cache) from this PC. Your converted audio files are not deleted.
+
 Support
 -------
 Project: https://github.com/Salutatorian/jwconverter

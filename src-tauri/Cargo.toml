@@ -1,6 +1,6 @@
 [package]
 name = "jwconverter"
-version = "0.1.2"
+version = "0.1.3"
 description = "JW Converter — local Windows audio conversion"
 authors = ["JW"]
 edition = "2021"

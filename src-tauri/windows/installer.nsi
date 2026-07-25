@@ -434,12 +434,13 @@ Function OpenReadme
 FunctionEnd
 
 ; Uninstaller Pages
-; 1. Confirm uninstall page
+; 1. Confirm uninstall page — warn and wipe all app data (except during updater /UPDATE mode)
 Var DeleteAppDataCheckbox
 Var DeleteAppDataCheckboxState
 !define /ifndef WS_EX_LAYOUTRTL 0x00400000
+!define /ifndef BST_CHECKED 0x0001
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW un.ConfirmShow
-Function un.ConfirmShow ; Add add a `Delete app data` check box
+Function un.ConfirmShow ; Add a checked, locked "wipe app data" notice
  ; $1 inner dialog HWND
  ; $2 window DPI
  ; $3 style
@@ -458,19 +459,26 @@ Function un.ConfirmShow ; Add add a `Delete app data` check box
  ${EndIf}
  IntOp $5 100 * $2
  IntOp $6 400 * $2
- IntOp $7 25 * $2
+ IntOp $7 40 * $2
  IntOp $4 $4 / 96
  IntOp $5 $5 / 96
  IntOp $6 $6 / 96
  IntOp $7 $7 / 96
- System::Call 'user32::CreateWindowEx(i r3, w "${__NSD_CheckBox_CLASS}", w "$(deleteAppData)", i ${__NSD_CheckBox_STYLE}, i r4, i r5, i r6, i r7, p r1, i0, i0, i0) i .s'
+ System::Call 'user32::CreateWindowEx(i r3, w "${__NSD_CheckBox_CLASS}", w "Permanently delete all JW Converter app data from this PC (settings/cache). Your converted music files are NOT deleted.", i ${__NSD_CheckBox_STYLE}, i r4, i r5, i r6, i r7, p r1, i0, i0, i0) i .s'
  Pop $DeleteAppDataCheckbox
  SendMessage $HWNDPARENT ${WM_GETFONT} 0 0 $1
  SendMessage $DeleteAppDataCheckbox ${WM_SETFONT} $1 1
+ ; Default ON and locked — uninstall always wipes app leftovers.
+ SendMessage $DeleteAppDataCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
+ EnableWindow $DeleteAppDataCheckbox 0
+ StrCpy $DeleteAppDataCheckboxState 1
 FunctionEnd
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE un.ConfirmLeave
 Function un.ConfirmLeave
- SendMessage $DeleteAppDataCheckbox ${BM_GETCHECK} 0 0 $DeleteAppDataCheckboxState
+ StrCpy $DeleteAppDataCheckboxState 1
+ MessageBox MB_ICONEXCLAMATION|MB_OKCANCEL "Uninstall JW Converter?$\r$\n$\r$\nThis permanently removes the app and all JW Converter app data (settings/cache) from this computer.$\r$\n$\r$\nYour converted audio files in Downloads or other folders are NOT deleted." IDOK leave_ok
+ Abort
+ leave_ok:
 FunctionEnd
 !define MUI_PAGE_CUSTOMFUNCTION_PRE un.SkipIfPassive
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -879,10 +887,11 @@ Section Uninstall
  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
  ${EndIf}
 
- ; Delete app data if the checkbox is selected
- ; and if not updating
- ${If} $DeleteAppDataCheckboxState = 1
- ${AndIf} $UpdateMode <> 1
+ ; Always wipe JW Converter app data on a real uninstall (not during updater /UPDATE).
+ ; Interactive uninstall already warned the user on the confirm page.
+ ${If} $UpdateMode <> 1
+ StrCpy $DeleteAppDataCheckboxState 1
+
  ; Clear the install location $INSTDIR from registry
  DeleteRegKey SHCTX "${MANUPRODUCTKEY}"
  DeleteRegKey /ifempty SHCTX "${MANUKEY}"
@@ -892,9 +901,21 @@ Section Uninstall
  DeleteRegKey /ifempty HKCU "${MANUPRODUCTKEY}"
  DeleteRegKey /ifempty HKCU "${MANUKEY}"
 
+ ; Also clear machine/user manufacturer keys if present under the other hive
+ DeleteRegKey HKCU "${MANUPRODUCTKEY}"
+ DeleteRegKey /ifempty HKCU "${MANUKEY}"
+ DeleteRegKey HKLM "${MANUPRODUCTKEY}"
+ DeleteRegKey /ifempty HKLM "${MANUKEY}"
+
  SetShellVarContext current
+ ; Bundle id folders (Tauri / WebView2 app data)
  RmDir /r "$APPDATA\${BUNDLEID}"
  RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
+ RmDir /r "$APPDATA\${PRODUCTNAME}"
+ RmDir /r "$LOCALAPPDATA\${PRODUCTNAME}"
+ ; Common WebView2 / EBWebView leftovers under the bundle id
+ RmDir /r "$LOCALAPPDATA\${BUNDLEID}\EBWebView"
+ RmDir /r "$APPDATA\${BUNDLEID}\EBWebView"
  ${EndIf}
 
  !ifmacrodef NSIS_HOOK_POSTUNINSTALL
