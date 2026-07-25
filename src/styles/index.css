@@ -184,6 +184,11 @@ button:focus-visible,
     background 120ms ease;
 }
 
+.settings-gear svg {
+  display: block;
+  flex-shrink: 0;
+}
+
 .settings-gear:hover {
   border-color: var(--border-strong);
   color: var(--text);

@@ -6,7 +6,7 @@ Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe 
 
 ## Download
 
-**[Download JW Converter for Windows (v0.1.4)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.4)**
+**[Download JW Converter for Windows (v0.1.5)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.5)**
 
 Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted audio files are not deleted.
 
@@ -31,7 +31,7 @@ Windows installer with bundled FFmpeg and an uninstall option.
 
 ## Status
 
-**v0.1.4** — Settings gear (updates, GitHub links, about); uninstall wipe from v0.1.3; click-to-install updater from v0.1.2.
+**v0.1.5** — cleaner Settings gear icon; Settings panel from v0.1.4; uninstall wipe from v0.1.3; click-to-install updater from v0.1.2.
 
 Working:
 
