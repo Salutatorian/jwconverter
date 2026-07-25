@@ -27,6 +27,9 @@ tests/fixtures/generated/
 # Accidental npm stdout dumps
 src-tauri/2
 
+# Local MSVC debug leftovers
+*.pdb
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
