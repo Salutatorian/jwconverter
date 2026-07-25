@@ -7,6 +7,15 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.2.0",
+    changes: [
+      "Images mode: convert JPEG, PNG, WebP, TIFF (and common RAW inputs)",
+      "Audio / Images switch — separate pipelines, same local-first safety",
+      "Bundled ImageMagick with locked-down policy.xml",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.1.15",
     changes: [
       "Audio foundation complete for the 0.1 line (next major: images in 0.2)",

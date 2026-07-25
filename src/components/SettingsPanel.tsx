@@ -145,9 +145,9 @@ export function SettingsPanel({
             telemetry. Sources are never modified.
           </p>
           <p className="mt-3 text-sm text-[var(--text-muted)]">
-            Uses FFmpeg / FFprobe (Gyan full build, GPL). See the bundled
-            THIRD_PARTY_FFMPEG.txt in the install folder for build identity and
-            source offer.
+            Uses FFmpeg / FFprobe (Gyan full build, GPL) for audio and
+            ImageMagick for images. See THIRD_PARTY_*.txt in the install folder
+            for build identity and source offers.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button

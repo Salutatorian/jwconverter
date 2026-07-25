@@ -1,38 +1,30 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useEffect, useMemo, useState } from "react";
-import { BitDepthPicker } from "../components/BitDepthPicker";
 import { ConversionProgress } from "../components/ConversionProgress";
 import { DestinationPicker } from "../components/DestinationPicker";
 import { DropZone } from "../components/DropZone";
-import { FileQueue } from "../components/FileQueue";
-import { FormatPicker } from "../components/FormatPicker";
-import { MetadataPicker } from "../components/MetadataPicker";
+import { ImageFileQueue } from "../components/ImageFileQueue";
 import { OverwritePicker } from "../components/OverwritePicker";
-import { PreflightModal } from "../components/PreflightModal";
-import { QualityPicker } from "../components/QualityPicker";
 import { SettingsGearButton } from "../components/SettingsGearButton";
 import { SettingsPanel } from "../components/SettingsPanel";
-import { useBatchConversion } from "../hooks/useBatchConversion";
-import { useFileQueue } from "../hooks/useFileQueue";
+import { useImageBatchConversion } from "../hooks/useImageBatchConversion";
+import { useImageFileQueue } from "../hooks/useImageFileQueue";
 import { useUpdater } from "../hooks/useUpdater";
-import { getDefaultPaths, preflightBatch, type PreflightReport } from "../lib/tauri";
+import { getDefaultPaths } from "../lib/tauri";
+import type { AppInfo, OverwritePolicy } from "../types/conversion";
 import {
-  AUDIO_EXTENSIONS,
-  isLossyFormat,
-  isPcmFormat,
-  supportsEmbeddedCover,
-  type AppInfo,
-  type BitDepthPreset,
-  type Mp3EncodingMode,
-  type OutputFormat,
-  type OverwritePolicy,
-  type QualityPreset,
-} from "../types/conversion";
+  IMAGE_EXTENSIONS,
+  IMAGE_OUTPUT_FORMATS,
+  IMAGE_QUALITY_PRESETS,
+  isLossyImageFormat,
+  type ImageOutputFormat,
+  type ImageQualityPreset,
+} from "../types/image";
 
-type ConverterViewProps = {
+type ImageConverterViewProps = {
   appInfo: AppInfo | null;
-  onSwitchToImages: () => void;
+  onSwitchToAudio: () => void;
 };
 
 function parentDir(path: string): string | null {
@@ -44,27 +36,22 @@ function parentDir(path: string): string | null {
   return normalized.slice(0, index);
 }
 
-export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps) {
-  const [format, setFormat] = useState<OutputFormat>("flac");
-  const [qualityPreset, setQualityPreset] = useState<QualityPreset>("medium");
-  const [mp3EncodingMode, setMp3EncodingMode] =
-    useState<Mp3EncodingMode>("cbr");
-  const [bitDepthPreset, setBitDepthPreset] =
-    useState<BitDepthPreset>("original");
-  const [preserveTags, setPreserveTags] = useState(true);
-  const [preserveCover, setPreserveCover] = useState(true);
+export function ImageConverterView({
+  appInfo,
+  onSwitchToAudio,
+}: ImageConverterViewProps) {
+  const [format, setFormat] = useState<ImageOutputFormat>("jpeg");
+  const [qualityPreset, setQualityPreset] =
+    useState<ImageQualityPreset>("medium");
   const [overwritePolicy, setOverwritePolicy] =
     useState<OverwritePolicy>("rename");
   const [destination, setDestination] = useState<string | null>(null);
   const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preflightReport, setPreflightReport] =
-    useState<PreflightReport | null>(null);
-  const [preflightError, setPreflightError] = useState<string | null>(null);
 
-  const queue = useFileQueue();
-  const batch = useBatchConversion(queue.patchByJobOrPath);
+  const queue = useImageFileQueue();
+  const batch = useImageBatchConversion(queue.patchByJobOrPath);
   const updater = useUpdater();
   const updateAvailable =
     updater.status === "available" || updater.status === "downloading";
@@ -173,19 +160,17 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
     const selected = await open({
       multiple: true,
       directory: false,
-      title: "Choose audio files",
+      title: "Choose images",
       filters: [
         {
-          name: "Audio",
-          extensions: [...AUDIO_EXTENSIONS],
+          name: "Images",
+          extensions: [...IMAGE_EXTENSIONS],
         },
       ],
     });
-
     if (selected == null) {
       return;
     }
-
     const paths = Array.isArray(selected) ? selected : [selected];
     await queue.addPaths(paths, true);
   }
@@ -194,9 +179,8 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
     const selected = await open({
       multiple: false,
       directory: true,
-      title: "Choose a music folder",
+      title: "Choose a photos folder",
     });
-
     if (typeof selected === "string" && selected.length > 0) {
       await queue.addPaths([selected], true);
     }
@@ -208,13 +192,12 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
       directory: true,
       title: "Choose output folder",
     });
-
     if (typeof selected === "string" && selected.length > 0) {
       setDestination(selected);
     }
   }
 
-  async function startConvert() {
+  async function handleConvert() {
     if (!destination) {
       return;
     }
@@ -224,59 +207,8 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
       outputFormat: format,
       overwritePolicy,
       qualityPreset,
-      mp3EncodingMode,
-      bitDepthPreset,
-      preserveTags,
-      preserveCover: preserveCover && supportsEmbeddedCover(format),
       assignJobIds: queue.assignJobIds,
     });
-  }
-
-  async function handleConvert() {
-    if (!destination) {
-      return;
-    }
-
-    setPreflightError(null);
-    try {
-      const report = await preflightBatch({
-        destinationDir: destination,
-        outputFormat: format,
-        qualityPreset,
-        mp3EncodingMode,
-        bitDepthPreset,
-        overwritePolicy,
-        items: convertibleItems.map((item) => ({
-          sourcePath: item.path,
-          relativeSubdir: item.relativeSubdir,
-          durationSeconds: item.info?.durationSeconds ?? null,
-          sampleRate: item.info?.sampleRate ?? null,
-          channels: item.info?.channels ?? null,
-          fileSizeBytes: item.info?.fileSizeBytes ?? null,
-          codec: item.info?.codec ?? null,
-          format: item.info?.format ?? null,
-          bitDepth: item.info?.bitDepth ?? null,
-          bitsPerRawSample: item.info?.bitsPerRawSample ?? null,
-          sampleFormat: item.info?.sampleFormat ?? null,
-        })),
-      });
-
-      if (report.diskBlocked || report.warnings.length > 0) {
-        setPreflightReport(report);
-        return;
-      }
-
-      await startConvert();
-    } catch (error) {
-      setPreflightError(
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-  }
-
-  async function handlePreflightContinue() {
-    setPreflightReport(null);
-    await startConvert();
   }
 
   return (
@@ -293,7 +225,7 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
             JW Converter
           </h1>
           <p className="text-sm text-[var(--text-muted)]">
-            Local audio conversion
+            Local image conversion
             {appInfo ? (
               <span className="text-[var(--text-faint)]">
                 {" "}
@@ -303,28 +235,17 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button type="button" className="chip" disabled aria-pressed>
-              Audio
+              Images
             </button>
             <button
               type="button"
               className="chip"
-              onClick={onSwitchToImages}
+              onClick={onSwitchToAudio}
               disabled={batch.isBusy}
             >
-              Images
+              Audio
             </button>
           </div>
-          {updateAvailable && !settingsOpen ? (
-            <button
-              type="button"
-              className="mt-1 text-xs font-medium text-[var(--accent)]"
-              onClick={() => {
-                setSettingsOpen(true);
-              }}
-            >
-              Update available — open Settings
-            </button>
-          ) : null}
         </div>
         <SettingsGearButton
           updateAvailable={updateAvailable}
@@ -358,7 +279,7 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
             void handleChooseFiles();
           }}
         >
-          {queue.isAnalyzing ? "Analyzing…" : "Choose files"}
+          {queue.isAnalyzing ? "Analyzing…" : "Choose images"}
         </button>
         <button
           type="button"
@@ -395,16 +316,7 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
         </p>
       ) : null}
 
-      {preflightError ? (
-        <p
-          className="rounded-[var(--radius)] border border-red-400/30 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]"
-          role="alert"
-        >
-          {preflightError}
-        </p>
-      ) : null}
-
-      <FileQueue
+      <ImageFileQueue
         items={queue.items}
         disabled={batch.isBusy}
         onRemove={queue.removeItem}
@@ -417,36 +329,44 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
       />
 
       <div className="grid gap-3">
-        <FormatPicker
-          value={format}
-          disabled={batch.isBusy}
-          onChange={setFormat}
-        />
-        {isLossyFormat(format) ? (
-          <QualityPicker
-            format={format}
-            value={qualityPreset}
-            mp3EncodingMode={mp3EncodingMode}
-            disabled={batch.isBusy}
-            onChange={setQualityPreset}
-            onMp3EncodingModeChange={setMp3EncodingMode}
-          />
+        <section aria-label="Output format" className="panel">
+          <h2 className="panel-title">Format</h2>
+          <div className="chip-row">
+            {IMAGE_OUTPUT_FORMATS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className="chip"
+                disabled={batch.isBusy}
+                aria-pressed={format === item.value}
+                onClick={() => setFormat(item.value)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {isLossyImageFormat(format) ? (
+          <section aria-label="Quality" className="panel">
+            <h2 className="panel-title">Quality</h2>
+            <div className="chip-row">
+              {IMAGE_QUALITY_PRESETS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  className="chip"
+                  disabled={batch.isBusy}
+                  aria-pressed={qualityPreset === item.value}
+                  onClick={() => setQualityPreset(item.value)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </section>
         ) : null}
-        {isPcmFormat(format) ? (
-          <BitDepthPicker
-            value={bitDepthPreset}
-            disabled={batch.isBusy}
-            onChange={setBitDepthPreset}
-          />
-        ) : null}
-        <MetadataPicker
-          preserveTags={preserveTags}
-          preserveCover={preserveCover}
-          coverSupported={supportsEmbeddedCover(format)}
-          disabled={batch.isBusy}
-          onPreserveTagsChange={setPreserveTags}
-          onPreserveCoverChange={setPreserveCover}
-        />
+
         <OverwritePicker
           value={overwritePolicy}
           disabled={batch.isBusy}
@@ -492,22 +412,6 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
           void batch.cancel();
         }}
       />
-
-      {preflightReport ? (
-        <PreflightModal
-          report={preflightReport}
-          onCancel={() => {
-            setPreflightReport(null);
-          }}
-          onContinue={
-            preflightReport.diskBlocked
-              ? undefined
-              : () => {
-                  void handlePreflightContinue();
-                }
-          }
-        />
-      ) : null}
     </div>
   );
 }

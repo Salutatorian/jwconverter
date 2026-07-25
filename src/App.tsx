@@ -8,11 +8,15 @@ import {
 } from "./lib/whatsNew";
 import type { AppInfo } from "./types/conversion";
 import { ConverterView } from "./views/ConverterView";
+import { ImageConverterView } from "./views/ImageConverterView";
+
+type MediaMode = "audio" | "images";
 
 function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [ipcError, setIpcError] = useState<string | null>(null);
   const [whatsNew, setWhatsNew] = useState<WhatsNewEntry | null>(null);
+  const [mode, setMode] = useState<MediaMode>("audio");
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +52,21 @@ function App() {
           Could not reach the Rust backend: {ipcError}
         </p>
       ) : null}
-      <ConverterView appInfo={appInfo} />
+      {mode === "audio" ? (
+        <ConverterView
+          appInfo={appInfo}
+          onSwitchToImages={() => {
+            setMode("images");
+          }}
+        />
+      ) : (
+        <ImageConverterView
+          appInfo={appInfo}
+          onSwitchToAudio={() => {
+            setMode("audio");
+          }}
+        />
+      )}
       {whatsNew ? (
         <WhatsNewModal entry={whatsNew} onDismiss={dismissWhatsNew} />
       ) : null}

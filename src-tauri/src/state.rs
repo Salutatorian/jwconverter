@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
+use crate::engine::image_queue::ImageQueueState;
 use crate::engine::queue::QueueState;
 use crate::engine::runner::ActiveProcess;
 use crate::media::ffmpeg;
@@ -12,6 +13,7 @@ use crate::media::ffmpeg;
 pub struct AppState {
     pub active: Mutex<HashMap<String, ActiveProcess>>,
     pub queue: Mutex<QueueState>,
+    pub image_queue: Mutex<ImageQueueState>,
 }
 
 impl AppState {

@@ -1,0 +1,21 @@
+# ImageMagick — third-party notice (JW Converter)
+
+This product bundles **ImageMagick** (`magick.exe`) for local image analysis and conversion.
+ImageMagick is Copyright © ImageMagick Studio LLC. See LICENSE.txt / NOTICE.txt beside the
+bundled binaries.
+
+## Exact build shipped
+
+- Identity: **ImageMagick 7.1.2-27 portable Q16 x64**
+- Origin: https://github.com/ImageMagick/ImageMagick/releases
+- License: ImageMagick License (see bundled LICENSE.txt)
+- Config: JW Converter installs a locked-down `policy.xml` (no HTTP/HTTPS/URL/scripting delegates)
+
+## Source
+
+- https://imagemagick.org/
+- https://github.com/ImageMagick/ImageMagick
+
+## More detail
+
+Repository documentation: `docs/ffmpeg-licensing.md` (audio) and this notice for images.

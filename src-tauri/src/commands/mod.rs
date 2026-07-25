@@ -5,5 +5,7 @@ pub mod analyze;
 pub mod app_info;
 pub mod convert;
 pub mod discover;
+pub mod image_convert;
+pub mod image_discover;
 pub mod preflight;
 pub mod system;

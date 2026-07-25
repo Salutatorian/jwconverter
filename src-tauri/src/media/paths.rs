@@ -103,6 +103,39 @@ pub fn media_tool_status() -> MediaToolStatus {
     }
 }
 
+#[cfg(windows)]
+const MAGICK_NAME: &str = "magick.exe";
+#[cfg(not(windows))]
+const MAGICK_NAME: &str = "magick";
+
+pub fn resolve_magick() -> Option<PathBuf> {
+    if let Ok(path) = std::env::var("CONVERTER_MAGICK") {
+        let path = PathBuf::from(path);
+        if path.is_file() {
+            return Some(path);
+        }
+        return None;
+    }
+
+    for dir in candidate_binary_dirs() {
+        let nested = dir.join("imagemagick").join(MAGICK_NAME);
+        if nested.is_file() {
+            return Some(nested);
+        }
+        let candidate = dir.join(MAGICK_NAME);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    if let Some(path) = which_on_path(MAGICK_NAME) {
+        return Some(path);
+    }
+
+    None
+}
+
 fn candidate_binary_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
 
@@ -116,6 +149,7 @@ fn candidate_binary_dirs() -> Vec<PathBuf> {
             dirs.push(parent.join("binaries"));
             dirs.push(parent.join("resources"));
             dirs.push(parent.join("resources").join("binaries"));
+            dirs.push(parent.join("resources").join("imagemagick"));
         }
     }
 

@@ -16,9 +16,9 @@ Notes
 -----
 - Originals are never modified.
 - Folder imports keep relative folder structure in the output.
-- FFmpeg/FFprobe are bundled for offline use. The install folder includes
-  THIRD_PARTY_FFMPEG.txt (build identity, GPL notice, source offer). More detail:
-  https://github.com/Salutatorian/jwconverter/blob/master/docs/ffmpeg-licensing.md
+- FFmpeg/FFprobe are bundled for offline audio. ImageMagick is bundled for images.
+  See THIRD_PARTY_FFMPEG.txt and THIRD_PARTY_IMAGEMAGICK.txt in the install folder.
+  More detail: https://github.com/Salutatorian/jwconverter/blob/master/docs/ffmpeg-licensing.md
 
 Uninstall
 ---------

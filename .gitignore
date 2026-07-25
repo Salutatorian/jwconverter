@@ -15,9 +15,11 @@ dist-ssr
 # Rust / Tauri
 src-tauri/target
 
-# Local media binaries (do not commit unknown FFmpeg builds)
+# Local media binaries (do not commit unknown FFmpeg / ImageMagick builds)
 src-tauri/binaries/*.exe
 src-tauri/binaries/*.dll
+src-tauri/binaries/imagemagick/
+src-tauri/resources/imagemagick/
 
 # Conversion artifacts / personal test media
 tmp/

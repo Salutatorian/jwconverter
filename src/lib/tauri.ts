@@ -124,3 +124,35 @@ export async function cancelConversion(jobId: string): Promise<void> {
 export async function cancelBatch(): Promise<void> {
   return invoke("cancel_batch");
 }
+
+export interface ImageConversionRequest {
+  sourcePath: string;
+  destinationDir: string;
+  outputFormat: import("../types/image").ImageOutputFormat;
+  relativeSubdir: string | null;
+  overwritePolicy: OverwritePolicy;
+  qualityPreset: import("../types/image").ImageQualityPreset;
+}
+
+export async function discoverImagePaths(
+  paths: string[],
+  recursive = true,
+): Promise<import("../types/image").DiscoveredImage[]> {
+  return invoke("discover_image_paths", { paths, recursive });
+}
+
+export async function analyzeImage(
+  path: string,
+): Promise<import("../types/image").ImageInfo> {
+  return invoke("analyze_image", { path });
+}
+
+export async function startImageBatch(
+  requests: ImageConversionRequest[],
+): Promise<BatchStartResult> {
+  return invoke<BatchStartResult>("start_image_batch", { requests });
+}
+
+export async function cancelImageBatch(): Promise<void> {
+  return invoke("cancel_image_batch");
+}
