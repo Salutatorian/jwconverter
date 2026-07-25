@@ -27,6 +27,15 @@ pub enum OverwritePolicy {
     Replace,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum QualityPreset {
+    Low,
+    #[default]
+    Medium,
+    High,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConversionJob {
@@ -40,10 +49,12 @@ pub struct ConversionJob {
     pub output_format: OutputFormat,
     #[serde(default)]
     pub overwrite_policy: OverwritePolicy,
+    #[serde(default)]
+    pub quality_preset: QualityPreset,
     pub status: JobStatus,
 }
 
-/// Supported output formats. Quality presets stay fixed for now.
+/// Supported output formats.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum OutputFormat {
@@ -55,4 +66,13 @@ pub enum OutputFormat {
     Ogg,
     Alac,
     Aiff,
+}
+
+impl OutputFormat {
+    pub fn is_lossy(self) -> bool {
+        matches!(
+            self,
+            OutputFormat::Mp3 | OutputFormat::Aac | OutputFormat::Opus | OutputFormat::Ogg
+        )
+    }
 }

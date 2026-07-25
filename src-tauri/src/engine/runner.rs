@@ -61,7 +61,7 @@ pub fn run_job(
     validate_source(&source)?;
     ensure_destination_dir(&destination_dir)?;
 
-    let plan = planner::plan_for(job.output_format);
+    let plan = planner::plan_for(job.output_format, job.quality_preset);
     let stem = source
         .file_stem()
         .and_then(|s| s.to_str())
@@ -248,7 +248,7 @@ fn assert_source_still_exists(path: &Path) -> Result<(), AppError> {
 
 #[allow(dead_code)]
 pub fn plan_for_format(format: OutputFormat) -> EncoderPlan {
-    planner::plan_for(format)
+    planner::plan_for(format, crate::engine::job::QualityPreset::Medium)
 }
 
 #[cfg(test)]
@@ -292,6 +292,7 @@ mod tests {
             relative_subdir: None,
             output_format: format,
             overwrite_policy: policy,
+            quality_preset: crate::engine::job::QualityPreset::Medium,
             status: JobStatus::Queued,
         }
     }
