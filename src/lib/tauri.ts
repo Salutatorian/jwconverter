@@ -6,6 +6,7 @@ import type {
   OutputFormat,
   OverwritePolicy,
   QualityPreset,
+  BitDepthPreset,
 } from "../types/conversion";
 
 /** Typed wrappers around Tauri commands. Keep invoke strings in one place. */
@@ -47,6 +48,7 @@ export interface ConversionRequest {
   relativeSubdir: string | null;
   overwritePolicy: OverwritePolicy;
   qualityPreset: QualityPreset;
+  bitDepthPreset: BitDepthPreset;
 }
 
 export interface BatchStartResult {

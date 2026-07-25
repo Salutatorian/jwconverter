@@ -1,3 +1,4 @@
+import { formatSourceSummary } from "../lib/format";
 import type { QueueFileItem } from "../types/conversion";
 
 type FileQueueProps = {
@@ -71,9 +72,7 @@ export function FileQueue({
               <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                 {statusLabel(item)}
                 {item.relativeSubdir ? ` · ${item.relativeSubdir}` : ""}
-                {item.info?.durationSeconds != null
-                  ? ` · ${Math.round(item.info.durationSeconds)}s`
-                  : ""}
+                {item.info ? ` · ${formatSourceSummary(item.info)}` : ""}
               </p>
               {item.error ? (
                 <p className="mt-1 text-xs text-[var(--danger)]">{item.error}</p>

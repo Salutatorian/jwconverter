@@ -91,6 +91,7 @@ export function useConversion() {
         relativeSubdir: null,
         overwritePolicy: "rename",
         qualityPreset: "medium",
+        bitDepthPreset: "original",
       };
 
       try {

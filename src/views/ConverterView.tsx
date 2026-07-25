@@ -1,6 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useEffect, useMemo, useState } from "react";
+import { BitDepthPicker } from "../components/BitDepthPicker";
 import { ConversionProgress } from "../components/ConversionProgress";
 import { DestinationPicker } from "../components/DestinationPicker";
 import { DropZone } from "../components/DropZone";
@@ -17,7 +18,9 @@ import { getDefaultPaths } from "../lib/tauri";
 import {
   AUDIO_EXTENSIONS,
   isLossyFormat,
+  isPcmFormat,
   type AppInfo,
+  type BitDepthPreset,
   type OutputFormat,
   type OverwritePolicy,
   type QualityPreset,
@@ -39,6 +42,8 @@ function parentDir(path: string): string | null {
 export function ConverterView({ appInfo }: ConverterViewProps) {
   const [format, setFormat] = useState<OutputFormat>("flac");
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>("medium");
+  const [bitDepthPreset, setBitDepthPreset] =
+    useState<BitDepthPreset>("original");
   const [overwritePolicy, setOverwritePolicy] =
     useState<OverwritePolicy>("rename");
   const [destination, setDestination] = useState<string | null>(null);
@@ -207,6 +212,7 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
       outputFormat: format,
       overwritePolicy,
       qualityPreset,
+      bitDepthPreset,
       assignJobIds: queue.assignJobIds,
     });
   }
@@ -337,6 +343,13 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
             value={qualityPreset}
             disabled={batch.isBusy}
             onChange={setQualityPreset}
+          />
+        ) : null}
+        {isPcmFormat(format) ? (
+          <BitDepthPicker
+            value={bitDepthPreset}
+            disabled={batch.isBusy}
+            onChange={setBitDepthPreset}
           />
         ) : null}
         <OverwritePicker

@@ -36,6 +36,20 @@ pub enum QualityPreset {
     High,
 }
 
+/// PCM bit depth for WAV / AIFF. Ignored for other formats.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum BitDepthPreset {
+    #[default]
+    Original,
+    #[serde(rename = "16")]
+    Bit16,
+    #[serde(rename = "24")]
+    Bit24,
+    #[serde(rename = "float32")]
+    Float32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConversionJob {
@@ -51,6 +65,8 @@ pub struct ConversionJob {
     pub overwrite_policy: OverwritePolicy,
     #[serde(default)]
     pub quality_preset: QualityPreset,
+    #[serde(default)]
+    pub bit_depth_preset: BitDepthPreset,
     pub status: JobStatus,
 }
 

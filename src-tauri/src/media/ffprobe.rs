@@ -20,6 +20,11 @@ pub struct AudioInfo {
     pub sample_rate: Option<u32>,
     pub channels: Option<u32>,
     pub file_size_bytes: Option<u64>,
+    pub bit_depth: Option<u32>,
+    pub sample_format: Option<String>,
+    pub bitrate: Option<u64>,
+    pub channel_layout: Option<String>,
+    pub bits_per_raw_sample: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -33,6 +38,7 @@ struct ProbeFormat {
     format_name: Option<String>,
     duration: Option<String>,
     size: Option<String>,
+    bit_rate: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -41,6 +47,11 @@ struct ProbeStream {
     codec_name: Option<String>,
     sample_rate: Option<String>,
     channels: Option<u32>,
+    sample_fmt: Option<String>,
+    bits_per_raw_sample: Option<String>,
+    bits_per_sample: Option<u32>,
+    bit_rate: Option<String>,
+    channel_layout: Option<String>,
 }
 
 /// Probe a local audio file with FFprobe and return display-ready metadata.
@@ -156,6 +167,28 @@ fn parse_probe_output(path: &Path, probe: &ProbeOutput) -> Result<AudioInfo, App
         .and_then(|value| value.parse::<u64>().ok())
         .or_else(|| std::fs::metadata(path).ok().map(|meta| meta.len()));
 
+    let bits_per_raw_sample = audio_stream
+        .bits_per_raw_sample
+        .as_ref()
+        .and_then(|value| value.parse::<u32>().ok())
+        .or(audio_stream.bits_per_sample);
+
+    let sample_format = audio_stream.sample_fmt.clone();
+    let bit_depth = bits_per_raw_sample.or_else(|| infer_bit_depth(sample_format.as_deref()));
+
+    let bitrate = audio_stream
+        .bit_rate
+        .as_ref()
+        .and_then(|value| value.parse::<u64>().ok())
+        .or_else(|| {
+            probe
+                .format
+                .as_ref()
+                .and_then(|format| format.bit_rate.as_ref())
+                .and_then(|value| value.parse::<u64>().ok())
+        })
+        .filter(|value| *value > 0);
+
     Ok(AudioInfo {
         path: path.to_string_lossy().into_owned(),
         filename,
@@ -165,7 +198,31 @@ fn parse_probe_output(path: &Path, probe: &ProbeOutput) -> Result<AudioInfo, App
         sample_rate,
         channels: audio_stream.channels,
         file_size_bytes,
+        bit_depth,
+        sample_format,
+        bitrate,
+        channel_layout: audio_stream.channel_layout.clone(),
+        bits_per_raw_sample,
     })
+}
+
+fn infer_bit_depth(sample_fmt: Option<&str>) -> Option<u32> {
+    let fmt = sample_fmt?.to_ascii_lowercase();
+    if fmt.contains("f64") || fmt.contains("dbl") {
+        Some(64)
+    } else if fmt.contains("f32") || fmt.contains("flt") {
+        Some(32)
+    } else if fmt.contains("s32") {
+        Some(32)
+    } else if fmt.contains("s24") {
+        Some(24)
+    } else if fmt.contains("s16") {
+        Some(16)
+    } else if fmt.contains("u8") {
+        Some(8)
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]
@@ -191,6 +248,7 @@ mod tests {
         assert_eq!(info.codec.as_deref(), Some("pcm_s16le"));
         assert_eq!(info.sample_rate, Some(44100));
         assert_eq!(info.channels, Some(1));
+        assert_eq!(info.bit_depth, Some(16));
         assert!(info
             .duration_seconds
             .is_some_and(|d| (1.5..2.5).contains(&d)));

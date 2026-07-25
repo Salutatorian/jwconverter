@@ -89,15 +89,24 @@ pub fn finalize_output_with_policy(
     let promote = || -> Result<(), AppError> {
         match std::fs::rename(temp_path, final_path) {
             Ok(()) => Ok(()),
-            Err(_) => {
-                // Cross-volume fallback.
-                std::fs::copy(temp_path, final_path).map_err(|error| {
-                    AppError::DestinationUnavailable {
-                        detail: format!("Could not write output file: {error}"),
+            Err(rename_error) => {
+                // Cross-volume fallback. Clean partial destination if copy fails.
+                match std::fs::copy(temp_path, final_path) {
+                    Ok(_) => {
+                        cleanup_temp(temp_path);
+                        Ok(())
                     }
-                })?;
-                cleanup_temp(temp_path);
-                Ok(())
+                    Err(copy_error) => {
+                        if final_path.exists() {
+                            let _ = std::fs::remove_file(final_path);
+                        }
+                        Err(AppError::DestinationUnavailable {
+                            detail: format!(
+                                "Could not write output file (rename: {rename_error}; copy: {copy_error})"
+                            ),
+                        })
+                    }
+                }
             }
         }
     };
@@ -111,7 +120,17 @@ pub fn finalize_output_with_policy(
         }
         Err(error) => {
             if let Some(backup) = backup {
-                let _ = std::fs::rename(&backup, final_path);
+                if final_path.exists() {
+                    let _ = std::fs::remove_file(final_path);
+                }
+                if let Err(restore_error) = std::fs::rename(&backup, final_path) {
+                    return Err(AppError::DestinationUnavailable {
+                        detail: format!(
+                            "{error} Original kept at {}. Restore failed: {restore_error}",
+                            backup.display()
+                        ),
+                    });
+                }
             }
             Err(error)
         }
@@ -171,6 +190,26 @@ mod tests {
         let content = std::fs::read(&final_path).expect("read final");
         assert_eq!(content, b"new content");
         assert!(!temp_path.exists());
+
+        let _ = std::fs::remove_file(&final_path);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn finalize_restore_after_failed_promote_removes_partial() {
+        let dir = test_dir();
+        let final_path = dir.join("song.flac");
+        std::fs::write(&final_path, b"old content").expect("write old final");
+
+        // Marker name passes is_our_temp_file, but the path does not exist → promote fails.
+        let missing_temp =
+            dir.join(format!("song.jwconverting-{}.flac", uuid::Uuid::new_v4()));
+
+        let err = finalize_output_with_policy(&missing_temp, &final_path, true)
+            .expect_err("promote should fail");
+        assert!(!err.to_string().is_empty());
+        let content = std::fs::read(&final_path).expect("read restored");
+        assert_eq!(content, b"old content");
 
         let _ = std::fs::remove_file(&final_path);
         let _ = std::fs::remove_dir_all(&dir);

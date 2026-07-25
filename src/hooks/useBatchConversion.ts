@@ -10,6 +10,7 @@ import type {
   OutputFormat,
   OverwritePolicy,
   QualityPreset,
+  BitDepthPreset,
   QueueFileItem,
 } from "../types/conversion";
 
@@ -103,6 +104,7 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
       outputFormat: OutputFormat;
       overwritePolicy: OverwritePolicy;
       qualityPreset: QualityPreset;
+      bitDepthPreset: BitDepthPreset;
       assignJobIds: (paths: string[], jobIds: string[]) => void;
     }) => {
       if (busyRef.current) {
@@ -131,6 +133,7 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
         relativeSubdir: item.relativeSubdir,
         overwritePolicy: args.overwritePolicy,
         qualityPreset: args.qualityPreset,
+        bitDepthPreset: args.bitDepthPreset,
       }));
 
       try {

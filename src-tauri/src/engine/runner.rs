@@ -48,7 +48,28 @@ pub fn run_job(
     validate_source(&source)?;
     ensure_destination_dir(&destination_dir)?;
 
-    let plan = planner::plan_for(job.output_format, job.quality_preset);
+    let source_hints = if matches!(
+        job.output_format,
+        OutputFormat::Wav | OutputFormat::Aiff
+    ) {
+        match crate::media::ffprobe::analyze(&job.source_path) {
+            Ok(info) => Some(planner::SourcePcmHints {
+                sample_format: info.sample_format,
+                bits_per_raw_sample: info.bits_per_raw_sample,
+                bit_depth: info.bit_depth,
+            }),
+            Err(_) => None,
+        }
+    } else {
+        None
+    };
+
+    let plan = planner::plan_for(
+        job.output_format,
+        job.quality_preset,
+        job.bit_depth_preset,
+        source_hints.as_ref(),
+    );
     let stem = source
         .file_stem()
         .and_then(|s| s.to_str())
@@ -294,7 +315,12 @@ fn assert_source_still_exists(path: &Path) -> Result<(), AppError> {
 
 #[allow(dead_code)]
 pub fn plan_for_format(format: OutputFormat) -> EncoderPlan {
-    planner::plan_for(format, crate::engine::job::QualityPreset::Medium)
+    planner::plan_for(
+        format,
+        crate::engine::job::QualityPreset::Medium,
+        crate::engine::job::BitDepthPreset::Original,
+        None,
+    )
 }
 
 #[cfg(test)]
@@ -337,6 +363,7 @@ mod tests {
             output_format: format,
             overwrite_policy: policy,
             quality_preset: crate::engine::job::QualityPreset::Medium,
+            bit_depth_preset: crate::engine::job::BitDepthPreset::Original,
             status: JobStatus::Queued,
         }
     }

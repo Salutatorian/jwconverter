@@ -7,6 +7,18 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.1.7",
+    changes: [
+      "WAV / AIFF bit depth: Original (default), 16-bit, 24-bit, 32-bit float",
+      "Richer source details in the file list (bit depth, rate, channels, bitrate, size)",
+      "Content Security Policy enabled",
+    ],
+    debugs: [
+      "Hardened Replace rollback when a copy partially fails",
+      "Safer restore of the previous file if promote fails",
+    ],
+  },
+  {
     version: "0.1.6",
     changes: [
       "Solid Settings panel (no see-through background or heavy shadow)",
