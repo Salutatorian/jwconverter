@@ -48,8 +48,7 @@ pub fn verify_output(
         });
     }
 
-    if let (Some(expected), Some(actual)) =
-        (context.source_duration_seconds, info.duration_seconds)
+    if let (Some(expected), Some(actual)) = (context.source_duration_seconds, info.duration_seconds)
     {
         if expected > 0.05 {
             let delta = (expected - actual).abs();
@@ -79,17 +78,13 @@ fn codec_matches(plan: &EncoderPlan, codec: Option<&str>) -> bool {
         return false;
     };
     match plan.format {
-        crate::engine::job::OutputFormat::Wav => {
-            codec == "pcm_s16le" || codec.starts_with("pcm_")
-        }
+        crate::engine::job::OutputFormat::Wav => codec == "pcm_s16le" || codec.starts_with("pcm_"),
         crate::engine::job::OutputFormat::Flac => codec == "flac",
         crate::engine::job::OutputFormat::Mp3 => codec == "mp3",
         crate::engine::job::OutputFormat::Aac => codec == "aac",
         crate::engine::job::OutputFormat::Opus => codec == "opus",
         crate::engine::job::OutputFormat::Ogg => codec == "vorbis",
         crate::engine::job::OutputFormat::Alac => codec == "alac",
-        crate::engine::job::OutputFormat::Aiff => {
-            codec == "pcm_s16be" || codec.starts_with("pcm_")
-        }
+        crate::engine::job::OutputFormat::Aiff => codec == "pcm_s16be" || codec.starts_with("pcm_"),
     }
 }

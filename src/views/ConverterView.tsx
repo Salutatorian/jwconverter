@@ -8,8 +8,10 @@ import { FileQueue } from "../components/FileQueue";
 import { FormatPicker } from "../components/FormatPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import { QualityPicker } from "../components/QualityPicker";
+import { UpdateControls } from "../components/UpdateControls";
 import { useBatchConversion } from "../hooks/useBatchConversion";
 import { useFileQueue } from "../hooks/useFileQueue";
+import { useUpdater } from "../hooks/useUpdater";
 import { getDefaultPaths } from "../lib/tauri";
 import {
   AUDIO_EXTENSIONS,
@@ -44,6 +46,7 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
 
   const queue = useFileQueue();
   const batch = useBatchConversion(queue.patchByJobOrPath);
+  const updater = useUpdater();
 
   useEffect(() => {
     let cancelled = false;
@@ -204,11 +207,11 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
 
   return (
     <div className="app-shell">
-      <header className="flex items-center gap-3.5">
+      <header className="flex items-start gap-3.5">
         <img
           src="/jwc-logo.png"
           alt=""
-          className="h-8 w-auto select-none"
+          className="mt-0.5 h-8 w-auto select-none"
           draggable={false}
         />
         <div className="min-w-0">
@@ -225,6 +228,7 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
             ) : null}
           </p>
         </div>
+        <UpdateControls updater={updater} />
       </header>
 
       <DropZone

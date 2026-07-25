@@ -21,8 +21,9 @@ pub struct FfmpegRunResult {
 
 pub fn resolve_ffmpeg_required() -> Result<PathBuf, AppError> {
     resolve_ffmpeg().ok_or_else(|| AppError::MediaToolMissing {
-        detail: "FFmpeg was not found. Place ffmpeg.exe in src-tauri/binaries/ or set CONVERTER_FFMPEG."
-            .to_string(),
+        detail:
+            "FFmpeg was not found. Place ffmpeg.exe in src-tauri/binaries/ or set CONVERTER_FFMPEG."
+                .to_string(),
     })
 }
 
@@ -168,10 +169,7 @@ where
     };
 
     let _ = stderr_thread.join();
-    let stderr_text = stderr_tail
-        .lock()
-        .map(|s| s.clone())
-        .unwrap_or_default();
+    let stderr_text = stderr_tail.lock().map(|s| s.clone()).unwrap_or_default();
 
     if cancel_flag.load(Ordering::SeqCst) {
         return Ok(FfmpegRunResult {

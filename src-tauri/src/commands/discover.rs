@@ -55,9 +55,8 @@ fn scan_directory(
     recursive: bool,
     out: &mut Vec<DiscoveredAudio>,
 ) -> Result<(), String> {
-    let entries = std::fs::read_dir(current).map_err(|error| {
-        format!("Could not read folder {}: {error}", current.display())
-    })?;
+    let entries = std::fs::read_dir(current)
+        .map_err(|error| format!("Could not read folder {}: {error}", current.display()))?;
 
     for entry in entries.flatten() {
         let path = entry.path();

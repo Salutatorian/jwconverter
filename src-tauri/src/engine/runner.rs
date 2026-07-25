@@ -209,10 +209,7 @@ fn validate_destination_dir(path: &Path) -> Result<(), AppError> {
     }
 
     // Quick writability probe.
-    let probe = path.join(format!(
-        ".jwconverter-write-test-{}",
-        std::process::id()
-    ));
+    let probe = path.join(format!(".jwconverter-write-test-{}", std::process::id()));
     match std::fs::write(&probe, b"ok") {
         Ok(()) => {
             let _ = std::fs::remove_file(&probe);
@@ -240,8 +237,9 @@ fn assert_source_still_exists(path: &Path) -> Result<(), AppError> {
         Ok(())
     } else {
         Err(AppError::SourceMissing {
-            detail: "Source file disappeared during conversion. Output was not trusted as complete."
-                .to_string(),
+            detail:
+                "Source file disappeared during conversion. Output was not trusted as complete."
+                    .to_string(),
         })
     }
 }
@@ -271,10 +269,8 @@ mod tests {
     }
 
     fn test_out_dir() -> PathBuf {
-        let out_dir = std::env::temp_dir().join(format!(
-            "jwconverter-test-{}",
-            uuid::Uuid::new_v4()
-        ));
+        let out_dir =
+            std::env::temp_dir().join(format!("jwconverter-test-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&out_dir).expect("create out dir");
         out_dir
     }
@@ -327,7 +323,12 @@ mod tests {
         let source_bytes = std::fs::read(&fixture).expect("read source");
         let source_meta = std::fs::metadata(&fixture).expect("source meta");
 
-        let job = test_job(&fixture, &out_dir, OutputFormat::Flac, OverwritePolicy::Rename);
+        let job = test_job(
+            &fixture,
+            &out_dir,
+            OutputFormat::Flac,
+            OverwritePolicy::Rename,
+        );
         let (active, callbacks) = active_and_callbacks();
 
         let result = run_job(&job, Some(2.0), &active, &callbacks).expect("convert");
@@ -360,7 +361,12 @@ mod tests {
         let existing_content = b"existing flac placeholder";
         std::fs::write(&primary, existing_content).expect("write existing primary");
 
-        let job = test_job(&fixture, &out_dir, OutputFormat::Flac, OverwritePolicy::Skip);
+        let job = test_job(
+            &fixture,
+            &out_dir,
+            OutputFormat::Flac,
+            OverwritePolicy::Skip,
+        );
         let (active, callbacks) = active_and_callbacks();
 
         let result = run_job(&job, Some(2.0), &active, &callbacks).expect("skip");
@@ -386,7 +392,12 @@ mod tests {
         let existing_content = b"existing flac placeholder";
         std::fs::write(&primary, existing_content).expect("write existing primary");
 
-        let job = test_job(&fixture, &out_dir, OutputFormat::Flac, OverwritePolicy::Rename);
+        let job = test_job(
+            &fixture,
+            &out_dir,
+            OutputFormat::Flac,
+            OverwritePolicy::Rename,
+        );
         let (active, callbacks) = active_and_callbacks();
 
         let result = run_job(&job, Some(2.0), &active, &callbacks).expect("rename");
@@ -422,7 +433,12 @@ mod tests {
         let source_bytes = std::fs::read(&fixture).expect("read source");
         let source_meta = std::fs::metadata(&fixture).expect("source meta");
 
-        let job = test_job(&fixture, &out_dir, OutputFormat::Flac, OverwritePolicy::Replace);
+        let job = test_job(
+            &fixture,
+            &out_dir,
+            OutputFormat::Flac,
+            OverwritePolicy::Replace,
+        );
         let (active, callbacks) = active_and_callbacks();
 
         let result = run_job(&job, Some(2.0), &active, &callbacks).expect("replace");

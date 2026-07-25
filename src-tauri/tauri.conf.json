@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "JW Converter",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "identifier": "com.jw.jwconverter",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -28,6 +28,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
     "publisher": "JW",
     "copyright": "Copyright © JW",
     "category": "Utility",
@@ -56,6 +57,17 @@
         "template": "windows/installer.nsi",
         "installerHooks": "windows/hooks.nsh",
         "startMenuFolder": "JW Converter"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJEMkE0MTc3QjgyNjE0QjMKUldTekZDYTRkMEVxdmY2ZFppTVd0YzBMblQzeWZMKzE0Mk81NDBxdnFXVjFPTmV3Tk1ZZEhsMHYK",
+      "endpoints": [
+        "https://github.com/Salutatorian/jwconverter/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

@@ -133,10 +133,7 @@ mod tests {
         let final_path = dir.join("song.flac");
         std::fs::write(&final_path, b"old content").expect("write old final");
 
-        let temp_path = dir.join(format!(
-            "song.jwconverting-{}.flac",
-            uuid::Uuid::new_v4()
-        ));
+        let temp_path = dir.join(format!("song.jwconverting-{}.flac", uuid::Uuid::new_v4()));
         std::fs::write(&temp_path, b"new content").expect("write temp");
 
         finalize_output_with_policy(&temp_path, &final_path, true).expect("finalize replace");

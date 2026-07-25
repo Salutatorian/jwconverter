@@ -82,9 +82,11 @@ fn run_ffprobe(ffprobe: &Path, input: &Path) -> Result<ProbeOutput, AppError> {
         command.creation_flags(CREATE_NO_WINDOW);
     }
 
-    let output = command.output().map_err(|error| AppError::MediaToolMissing {
-        detail: format!("Failed to start FFprobe: {error}"),
-    })?;
+    let output = command
+        .output()
+        .map_err(|error| AppError::MediaToolMissing {
+            detail: format!("Failed to start FFprobe: {error}"),
+        })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -187,7 +189,9 @@ mod tests {
         assert_eq!(info.codec.as_deref(), Some("pcm_s16le"));
         assert_eq!(info.sample_rate, Some(44100));
         assert_eq!(info.channels, Some(1));
-        assert!(info.duration_seconds.is_some_and(|d| (1.5..2.5).contains(&d)));
+        assert!(info
+            .duration_seconds
+            .is_some_and(|d| (1.5..2.5).contains(&d)));
         assert!(info.file_size_bytes.is_some_and(|n| n > 0));
     }
 }
