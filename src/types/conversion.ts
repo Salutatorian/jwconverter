@@ -12,8 +12,16 @@ export type JobStatus =
   | "cancelled"
   | "skipped";
 
-/** Formats for early milestones. More come later. */
-export type OutputFormat = "wav" | "flac" | "mp3";
+/** Supported output formats. */
+export type OutputFormat =
+  | "wav"
+  | "flac"
+  | "mp3"
+  | "aac"
+  | "opus"
+  | "ogg"
+  | "alac"
+  | "aiff";
 
 export type OverwritePolicy = "rename" | "skip" | "replace";
 
@@ -61,6 +69,11 @@ export const OUTPUT_FORMATS: ReadonlyArray<{
   { value: "flac", label: "FLAC", enabled: true },
   { value: "wav", label: "WAV", enabled: true },
   { value: "mp3", label: "MP3", enabled: true },
+  { value: "aac", label: "AAC / M4A", enabled: true },
+  { value: "opus", label: "Opus", enabled: true },
+  { value: "ogg", label: "OGG", enabled: true },
+  { value: "alac", label: "ALAC", enabled: true },
+  { value: "aiff", label: "AIFF", enabled: true },
 ];
 
 export const OVERWRITE_POLICIES: ReadonlyArray<{

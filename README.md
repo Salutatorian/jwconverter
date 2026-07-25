@@ -6,7 +6,7 @@ Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe 
 
 ## Status
 
-**v0.1.0 overwrite** — foundation + analysis + safe conversion + batch + recursive folder import.
+**v0.1.0 formats** — foundation + analysis + safe conversion + batch + folders + overwrite + more formats.
 
 Working:
 
@@ -14,7 +14,7 @@ Working:
 - Choose / drop folders (recursive scan)
 - Preserve relative folder structure in output
 - Analyze with FFprobe (local)
-- Convert to FLAC / WAV / MP3 via FFmpeg
+- Convert to FLAC / WAV / MP3 / AAC (M4A) / Opus / OGG / ALAC / AIFF
 - Sequential batch queue
 - Temp output → verify → finalize (source never modified)
 - Per-file + overall progress, cancel queue
@@ -24,7 +24,6 @@ Working:
 Not yet implemented:
 
 - Quality presets / advanced controls
-- More output formats (AAC, Opus, etc.)
 - Production-bundled media binaries (installer packaging)
 
 ## Development (Windows)

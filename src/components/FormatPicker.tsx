@@ -46,7 +46,8 @@ export function FormatPicker({
         })}
       </div>
       <p className="mt-3 text-xs text-[var(--text-muted)]">
-        MP3 uses 192 kbps for now. Quality presets come later.
+        Lossy defaults: MP3/AAC 192 kbps, Opus 160 kbps, OGG ~q5. Quality
+        presets come later. AAC and ALAC both write .m4a.
       </p>
     </section>
   );
