@@ -28,6 +28,12 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "publisher": "JW",
+    "copyright": "Copyright © JW",
+    "category": "Utility",
+    "shortDescription": "Local-first Windows audio converter",
+    "longDescription": "Convert audio files locally with FFmpeg. Supports batch conversion, folder import, quality presets, and safe overwrite policies.",
+    "licenseFile": "windows/LICENSE.txt",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,13 +41,21 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": [
+      "resources/README.txt"
+    ],
     "externalBin": [
       "binaries/ffmpeg",
       "binaries/ffprobe"
     ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "both",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "template": "windows/installer.nsi",
+        "installerHooks": "windows/hooks.nsh",
+        "startMenuFolder": "JW Converter"
       }
     }
   }

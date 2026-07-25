@@ -1,0 +1,29 @@
+JW CONVERTER — END-USER LICENSE AGREEMENT
+
+Copyright (c) JW. All rights reserved.
+
+By installing or using JW Converter (“the Software”), you agree to the following terms.
+
+1. LICENSE
+You may install and use the Software on Windows computers for personal or internal use.
+
+2. LOCAL PROCESSING
+The Software converts and analyzes audio on your computer. It does not require an account
+and does not upload your media as part of normal operation.
+
+3. NO WARRANTY
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM USE OF THE SOFTWARE.
+
+4. THIRD-PARTY COMPONENTS (FFMPEG / FFPROBE)
+JW Converter may bundle FFmpeg and FFprobe binaries. Those tools are separate software
+with their own licenses (commonly GPL and/or LGPL depending on the build). Redistribution
+and use of those binaries is governed by their license terms, not solely by this EULA.
+See the documentation shipped with the Software (docs/ffmpeg-licensing.md in the source
+repository) for attribution and compliance notes.
+
+5. ACCEPTANCE
+Clicking “I Agree” or installing the Software indicates that you accept this agreement.
+If you do not agree, do not install or use the Software.

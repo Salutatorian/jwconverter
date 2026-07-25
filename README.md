@@ -4,6 +4,23 @@ Local-first Windows audio conversion utility.
 
 Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe (wired in later milestones).
 
+![JW Converter UI](docs/assets/jw-converter-ui.png)
+
+## Reddit blurb (for sharing this screenshot)
+
+```text
+Made a local-first Windows audio converter — JW Converter.
+
+Drop files or whole folders (structure is preserved). Pick an output
+format (FLAC / WAV / MP3 / AAC / Opus / OGG / ALAC / AIFF), set quality
+for lossy formats (Low / Medium / High), and choose what happens if the
+output already exists (Rename / Skip / Replace).
+
+Everything runs on your PC — no accounts, no cloud upload, no telemetry.
+Sources are never modified (temp → verify → finalize). Ships as a normal
+Windows installer with bundled FFmpeg and an uninstall option.
+```
+
 ## Status
 
 **v0.1.0 packaging** — full converter features plus Windows NSIS installer packaging with JWC icons and bundled FFmpeg/FFprobe.
@@ -59,6 +76,14 @@ npm run tauri build
 Installer output (typical):
 
 `src-tauri/target/release/bundle/nsis/JW Converter_*_x64-setup.exe`
+
+The NSIS setup includes:
+
+- License agreement (I Agree)
+- Current user / all users install mode
+- Choose install folder
+- Finish options: Launch JW Converter + View README
+- Uninstall via Windows Apps settings, Start Menu → JW Converter → Uninstall, or `Uninstall JW Converter.exe` in the install folder
 
 Typecheck:
 
