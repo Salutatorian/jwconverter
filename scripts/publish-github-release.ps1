@@ -14,10 +14,10 @@ $setupPath = Join-Path $nsisDir $setupName
 $sigPath = "$setupPath.sig"
 
 if (-not (Test-Path $setupPath)) {
-  throw "Missing installer: $setupPath — run a signed tauri build first."
+  throw "Missing installer: $setupPath - run a signed tauri build first."
 }
 if (-not (Test-Path $sigPath)) {
-  throw "Missing signature: $sigPath — set TAURI_SIGNING_PRIVATE_KEY* and rebuild."
+  throw "Missing signature: $sigPath - set TAURI_SIGNING_PRIVATE_KEY* and rebuild."
 }
 
 $signature = (Get-Content -Raw $sigPath).Trim()
