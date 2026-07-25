@@ -31,7 +31,9 @@ export function FormatPicker({
           );
         })}
       </div>
-      <p className="panel-hint">AAC and ALAC both write .m4a files.</p>
+      <p className="panel-hint">
+        M4A and ALAC write .m4a · AAC writes raw .aac (ADTS)
+      </p>
     </section>
   );
 }

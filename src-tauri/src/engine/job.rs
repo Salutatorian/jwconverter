@@ -87,6 +87,9 @@ pub enum OutputFormat {
     Wav,
     Flac,
     Mp3,
+    /// AAC in an M4A/MP4 container (`.m4a`).
+    M4a,
+    /// Raw AAC ADTS bitstream (`.aac`).
     Aac,
     Opus,
     Ogg,
@@ -98,7 +101,11 @@ impl OutputFormat {
     pub fn is_lossy(self) -> bool {
         matches!(
             self,
-            OutputFormat::Mp3 | OutputFormat::Aac | OutputFormat::Opus | OutputFormat::Ogg
+            OutputFormat::Mp3
+                | OutputFormat::M4a
+                | OutputFormat::Aac
+                | OutputFormat::Opus
+                | OutputFormat::Ogg
         )
     }
 
@@ -108,7 +115,7 @@ impl OutputFormat {
             self,
             OutputFormat::Mp3
                 | OutputFormat::Flac
-                | OutputFormat::Aac
+                | OutputFormat::M4a
                 | OutputFormat::Alac
                 | OutputFormat::Ogg
                 | OutputFormat::Opus

@@ -81,7 +81,9 @@ fn codec_matches(plan: &EncoderPlan, codec: Option<&str>) -> bool {
         crate::engine::job::OutputFormat::Wav => codec == "pcm_s16le" || codec.starts_with("pcm_"),
         crate::engine::job::OutputFormat::Flac => codec == "flac",
         crate::engine::job::OutputFormat::Mp3 => codec == "mp3",
-        crate::engine::job::OutputFormat::Aac => codec == "aac",
+        crate::engine::job::OutputFormat::Aac | crate::engine::job::OutputFormat::M4a => {
+            codec == "aac"
+        }
         crate::engine::job::OutputFormat::Opus => codec == "opus",
         crate::engine::job::OutputFormat::Ogg => codec == "vorbis",
         crate::engine::job::OutputFormat::Alac => codec == "alac",

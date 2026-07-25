@@ -7,6 +7,15 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.1.10",
+    changes: [
+      "Separate outputs: M4A (AAC) vs AAC (ADTS raw .aac)",
+      "Clearer format labels (ALAC M4A, OGG Vorbis, and more)",
+      "Broader input extensions for folder import and file picker",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.1.9",
     changes: [
       "Before Convert: honesty warnings for lossy→lossless and bit-depth upsampling",

@@ -6,7 +6,7 @@ Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe 
 
 ## Download
 
-**[Download JW Converter for Windows (v0.1.9)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.9)**
+**[Download JW Converter for Windows (v0.1.10)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.10)**
 
 Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted audio files are not deleted.
 
@@ -20,7 +20,7 @@ From **v0.1.2** onward, the app checks for updates on launch (and every few hour
 Made a local-first Windows audio converter — JW Converter.
 
 Drop files or whole folders (structure is preserved). Pick an output
-format (FLAC / WAV / MP3 / AAC / Opus / OGG / ALAC / AIFF), set quality
+format (FLAC / WAV / MP3 / M4A / AAC / Opus / OGG / ALAC / AIFF), set quality
 for lossy formats (Low / Medium / High), and choose what happens if the
 output already exists (Rename / Skip / Replace).
 
@@ -31,6 +31,7 @@ Windows installer with bundled FFmpeg and an uninstall option.
 
 ## Status
 
+**v0.1.10** — M4A vs raw AAC, clearer format labels, broader input extensions.
 **v0.1.9** — Preflight: quality honesty warnings, size estimate, disk space hard gate.
 **v0.1.8** — Preserve tags and embedded cover art (format-aware; defaults on).
 **v0.1.7** — WAV/AIFF bit depth (Original default), richer probe info, Replace/CSP hardening.
@@ -41,7 +42,7 @@ Working:
 - Choose / drop folders (recursive scan)
 - Preserve relative folder structure in output
 - Analyze with FFprobe (local)
-- Convert to FLAC / WAV / MP3 / AAC (M4A) / Opus / OGG / ALAC / AIFF
+- Convert to FLAC / WAV / MP3 / M4A (AAC) / AAC (ADTS) / Opus / OGG / ALAC / AIFF
 - Quality presets (Low / Medium / High) for lossy formats
 - Sequential batch queue
 - Temp output → verify → finalize (source never modified)

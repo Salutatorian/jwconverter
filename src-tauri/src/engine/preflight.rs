@@ -288,7 +288,7 @@ fn estimate_output_bytes(
             let pcm = duration * f64::from(rate) * f64::from(ch) * f64::from(bytes_per_sample);
             Some((pcm * 0.60) as u64)
         }
-        OutputFormat::Mp3 | OutputFormat::Aac | OutputFormat::Opus | OutputFormat::Ogg => {
+        OutputFormat::Mp3 | OutputFormat::M4a | OutputFormat::Aac | OutputFormat::Opus | OutputFormat::Ogg => {
             let bps = lossy_bitrate_bps(plan.format, plan.quality)?;
             Some(((duration * f64::from(bps)) / 8.0) as u64)
         }
@@ -333,9 +333,9 @@ fn lossy_bitrate_bps(format: OutputFormat, quality: QualityPreset) -> Option<u32
         (OutputFormat::Mp3, QualityPreset::Low) => 128,
         (OutputFormat::Mp3, QualityPreset::Medium) => 192,
         (OutputFormat::Mp3, QualityPreset::High) => 320,
-        (OutputFormat::Aac, QualityPreset::Low) => 128,
-        (OutputFormat::Aac, QualityPreset::Medium) => 192,
-        (OutputFormat::Aac, QualityPreset::High) => 256,
+        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::Low) => 128,
+        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::Medium) => 192,
+        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::High) => 256,
         (OutputFormat::Opus, QualityPreset::Low) => 96,
         (OutputFormat::Opus, QualityPreset::Medium) => 160,
         (OutputFormat::Opus, QualityPreset::High) => 192,

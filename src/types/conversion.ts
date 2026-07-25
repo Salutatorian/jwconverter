@@ -17,6 +17,7 @@ export type OutputFormat =
   | "wav"
   | "flac"
   | "mp3"
+  | "m4a"
   | "aac"
   | "opus"
   | "ogg"
@@ -32,6 +33,7 @@ export type BitDepthPreset = "original" | "16" | "24" | "float32";
 
 export const LOSSY_FORMATS: ReadonlySet<OutputFormat> = new Set([
   "mp3",
+  "m4a",
   "aac",
   "opus",
   "ogg",
@@ -51,7 +53,7 @@ export function supportsEmbeddedCover(format: OutputFormat): boolean {
   return (
     format === "mp3" ||
     format === "flac" ||
-    format === "aac" ||
+    format === "m4a" ||
     format === "alac" ||
     format === "ogg" ||
     format === "opus"
@@ -107,10 +109,11 @@ export const OUTPUT_FORMATS: ReadonlyArray<{
   { value: "flac", label: "FLAC", enabled: true },
   { value: "wav", label: "WAV", enabled: true },
   { value: "mp3", label: "MP3", enabled: true },
-  { value: "aac", label: "AAC / M4A", enabled: true },
+  { value: "m4a", label: "M4A (AAC)", enabled: true },
+  { value: "aac", label: "AAC (ADTS)", enabled: true },
   { value: "opus", label: "Opus", enabled: true },
-  { value: "ogg", label: "OGG", enabled: true },
-  { value: "alac", label: "ALAC", enabled: true },
+  { value: "ogg", label: "OGG (Vorbis)", enabled: true },
+  { value: "alac", label: "ALAC (M4A)", enabled: true },
   { value: "aiff", label: "AIFF", enabled: true },
 ];
 
@@ -147,6 +150,7 @@ export const AUDIO_EXTENSIONS = [
   "flac",
   "mp3",
   "m4a",
+  "m4b",
   "aac",
   "ogg",
   "opus",
@@ -154,6 +158,30 @@ export const AUDIO_EXTENSIONS = [
   "aif",
   "wma",
   "caf",
+  "mp4",
+  "m4v",
+  "mov",
+  "webm",
+  "weba",
+  "mka",
+  "mkv",
+  "wv",
+  "ape",
+  "tak",
+  "ac3",
+  "eac3",
+  "dts",
+  "mp2",
+  "mp1",
+  "amr",
+  "3gp",
+  "3g2",
+  "ra",
+  "ram",
+  "mpc",
+  "tta",
+  "dsf",
+  "dff",
 ] as const;
 
 export function isAudioPath(path: string): boolean {

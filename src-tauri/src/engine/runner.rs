@@ -570,7 +570,8 @@ mod tests {
         };
 
         let cases = [
-            (OutputFormat::Aac, "m4a"),
+            (OutputFormat::M4a, "m4a"),
+            (OutputFormat::Aac, "aac"),
             (OutputFormat::Opus, "opus"),
             (OutputFormat::Ogg, "ogg"),
             (OutputFormat::Alac, "m4a"),

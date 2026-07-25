@@ -41,18 +41,23 @@ impl EncoderPlan {
                     bitrate.to_string(),
                 ]
             }
-            OutputFormat::Aac => {
+            OutputFormat::M4a | OutputFormat::Aac => {
                 let bitrate = match self.quality {
                     QualityPreset::Low => "128k",
                     QualityPreset::Medium => "192k",
                     QualityPreset::High => "256k",
                 };
-                vec![
+                let mut args = vec![
                     "-c:a".to_string(),
                     "aac".to_string(),
                     "-b:a".to_string(),
                     bitrate.to_string(),
-                ]
+                ];
+                if matches!(self.format, OutputFormat::Aac) {
+                    args.insert(0, "-f".to_string());
+                    args.insert(1, "adts".to_string());
+                }
+                args
             }
             OutputFormat::Opus => {
                 let bitrate = match self.quality {
@@ -146,13 +151,21 @@ pub fn plan_for(
             audio_codec: "libmp3lame".to_string(),
             extension: "mp3",
         },
-        OutputFormat::Aac => EncoderPlan {
+        OutputFormat::M4a => EncoderPlan {
             format,
             quality,
             bit_depth,
             container: "m4a",
             audio_codec: "aac".to_string(),
             extension: "m4a",
+        },
+        OutputFormat::Aac => EncoderPlan {
+            format,
+            quality,
+            bit_depth,
+            container: "adts",
+            audio_codec: "aac".to_string(),
+            extension: "aac",
         },
         OutputFormat::Opus => EncoderPlan {
             format,
@@ -310,6 +323,36 @@ mod tests {
             None,
         );
         assert_eq!(plan.audio_codec, "pcm_f32be");
+    }
+
+    #[test]
+    fn medium_m4a_uses_aac_in_m4a_container() {
+        let plan = plan_for(
+            OutputFormat::M4a,
+            QualityPreset::Medium,
+            BitDepthPreset::Original,
+            None,
+        );
+        assert_eq!(plan.extension, "m4a");
+        assert_eq!(
+            plan.ffmpeg_audio_args(),
+            vec!["-c:a", "aac", "-b:a", "192k"]
+        );
+    }
+
+    #[test]
+    fn raw_aac_forces_adts() {
+        let plan = plan_for(
+            OutputFormat::Aac,
+            QualityPreset::Medium,
+            BitDepthPreset::Original,
+            None,
+        );
+        assert_eq!(plan.extension, "aac");
+        assert_eq!(
+            plan.ffmpeg_audio_args(),
+            vec!["-f", "adts", "-c:a", "aac", "-b:a", "192k"]
+        );
     }
 
     #[test]

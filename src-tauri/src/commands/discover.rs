@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 const AUDIO_EXTENSIONS: &[&str] = &[
-    "wav", "flac", "mp3", "m4a", "aac", "ogg", "opus", "aiff", "aif", "wma", "caf",
+    "wav", "flac", "mp3", "m4a", "m4b", "aac", "ogg", "opus", "aiff", "aif", "wma", "caf",
+    "mp4", "m4v", "mov", "webm", "weba", "mka", "mkv", "wv", "ape", "tak", "ac3", "eac3",
+    "dts", "mp2", "mp1", "amr", "3gp", "3g2", "ra", "ram", "mpc", "tta", "dsf", "dff",
 ];
 
 #[derive(Debug, Clone, Serialize)]
