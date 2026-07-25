@@ -109,11 +109,13 @@ fn candidate_binary_dirs() -> Vec<PathBuf> {
     // Dev / source tree: src-tauri/binaries
     dirs.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("binaries"));
 
-    // Next to the running executable (future bundled layout)
+    // Next to the running executable (NSIS / externalBin layout)
     if let Ok(exe) = std::env::current_exe() {
         if let Some(parent) = exe.parent() {
-            dirs.push(parent.join("binaries"));
             dirs.push(parent.to_path_buf());
+            dirs.push(parent.join("binaries"));
+            dirs.push(parent.join("resources"));
+            dirs.push(parent.join("resources").join("binaries"));
         }
     }
 

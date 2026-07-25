@@ -6,7 +6,7 @@ Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe 
 
 ## Status
 
-**v0.1.0 quality** — foundation through formats, plus Low/Medium/High quality presets for lossy outputs.
+**v0.1.0 packaging** — full converter features plus Windows NSIS installer packaging with JWC icons and bundled FFmpeg/FFprobe.
 
 Working:
 
@@ -21,10 +21,9 @@ Working:
 - Per-file + overall progress, cancel queue
 - Default destination: Downloads
 - Overwrite policy: Rename (default) / Skip / Replace
+- Windows NSIS installer with app icons and bundled FFmpeg/FFprobe
 
-Not yet implemented:
-
-- Production-bundled media binaries (installer packaging)
+See `docs/ffmpeg-licensing.md` before redistributing the installer.
 
 ## Development (Windows)
 
@@ -44,9 +43,22 @@ npm run tauri dev
 
 ### FFmpeg / FFprobe binaries
 
-Place `ffprobe.exe` (and later `ffmpeg.exe`) in `src-tauri/binaries/`.
+Place `ffmpeg.exe` and `ffprobe.exe` in `src-tauri/binaries/` (gitignored).
 
-These are **not committed**. Before public redistribution, document the exact build, license (LGPL/GPL), and attribution. Do not ship an unknown build.
+For release packaging, also create target-triple copies (see `src-tauri/binaries/README.md`).
+
+Licensing notes: `docs/ffmpeg-licensing.md`.
+
+### Release installer (Windows)
+
+```powershell
+# Requires binaries with target-triple names in src-tauri/binaries/
+npm run tauri build
+```
+
+Installer output (typical):
+
+`src-tauri/target/release/bundle/nsis/JW Converter_*_x64-setup.exe`
 
 Typecheck:
 

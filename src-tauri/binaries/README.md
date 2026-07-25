@@ -1,11 +1,21 @@
-# Bundled FFmpeg / FFprobe binaries (local development)
+# Bundled FFmpeg / FFprobe binaries (local + packaging)
 
-Place here:
+Place here (gitignored):
 
-- ffprobe.exe
-- ffmpeg.exe (needed for conversion phase)
+- `ffmpeg.exe`
+- `ffprobe.exe`
 
-These `.exe` files are gitignored.
+For Tauri release packaging (`externalBin`), also provide target-triple copies:
 
-Before public redistribution, record the exact build source, enabled codecs,
-and license obligations in docs/ffmpeg-licensing.md.
+- `ffmpeg-x86_64-pc-windows-msvc.exe`
+- `ffprobe-x86_64-pc-windows-msvc.exe`
+
+You can duplicate the plain names:
+
+```powershell
+$t = "x86_64-pc-windows-msvc"
+Copy-Item ffmpeg.exe "ffmpeg-$t.exe"
+Copy-Item ffprobe.exe "ffprobe-$t.exe"
+```
+
+Before public redistribution, read `docs/ffmpeg-licensing.md` and document the exact build + license.
