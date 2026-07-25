@@ -36,6 +36,15 @@ pub enum QualityPreset {
     High,
 }
 
+/// MP3 only. Ignored for other formats.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Mp3EncodingMode {
+    #[default]
+    Cbr,
+    Vbr,
+}
+
 /// PCM bit depth for WAV / AIFF. Ignored for other formats.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -65,6 +74,9 @@ pub struct ConversionJob {
     pub overwrite_policy: OverwritePolicy,
     #[serde(default)]
     pub quality_preset: QualityPreset,
+    /// MP3 CBR vs VBR. Ignored unless `output_format` is MP3.
+    #[serde(default)]
+    pub mp3_encoding_mode: Mp3EncodingMode,
     #[serde(default)]
     pub bit_depth_preset: BitDepthPreset,
     /// Keep container tags / chapters from the source when possible.

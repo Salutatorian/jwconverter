@@ -2,7 +2,8 @@ use serde::Deserialize;
 use tauri::{AppHandle, State};
 
 use crate::engine::job::{
-    BitDepthPreset, ConversionJob, JobStatus, OutputFormat, OverwritePolicy, QualityPreset,
+    BitDepthPreset, ConversionJob, JobStatus, Mp3EncodingMode, OutputFormat, OverwritePolicy,
+    QualityPreset,
 };
 use crate::engine::queue::{self, QueueItem};
 use crate::state::AppState;
@@ -20,6 +21,8 @@ pub struct ConversionRequest {
     pub overwrite_policy: OverwritePolicy,
     #[serde(default)]
     pub quality_preset: QualityPreset,
+    #[serde(default)]
+    pub mp3_encoding_mode: Mp3EncodingMode,
     #[serde(default)]
     pub bit_depth_preset: BitDepthPreset,
     #[serde(default = "default_true")]
@@ -64,6 +67,7 @@ fn build_queue_item(request: ConversionRequest) -> Result<QueueItem, String> {
             output_format: request.output_format,
             overwrite_policy: request.overwrite_policy,
             quality_preset: request.quality_preset,
+            mp3_encoding_mode: request.mp3_encoding_mode,
             bit_depth_preset: request.bit_depth_preset,
             preserve_tags: request.preserve_tags,
             preserve_cover: request.preserve_cover,

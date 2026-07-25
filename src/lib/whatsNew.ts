@@ -7,6 +7,14 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.1.11",
+    changes: [
+      "MP3 encoding mode: CBR or VBR (V5 / V2 / V0)",
+      "Quality presets show concrete bitrates or VBR grades",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.1.10",
     changes: [
       "Separate outputs: M4A (AAC) vs AAC (ADTS raw .aac)",

@@ -91,6 +91,7 @@ export function useConversion() {
         relativeSubdir: null,
         overwritePolicy: "rename",
         qualityPreset: "medium",
+        mp3EncodingMode: "cbr",
         bitDepthPreset: "original",
         preserveTags: true,
         preserveCover: true,

@@ -7,6 +7,7 @@ import type {
   OverwritePolicy,
   QualityPreset,
   BitDepthPreset,
+  Mp3EncodingMode,
 } from "../types/conversion";
 
 /** Typed wrappers around Tauri commands. Keep invoke strings in one place. */
@@ -48,6 +49,7 @@ export interface ConversionRequest {
   relativeSubdir: string | null;
   overwritePolicy: OverwritePolicy;
   qualityPreset: QualityPreset;
+  mp3EncodingMode: Mp3EncodingMode;
   bitDepthPreset: BitDepthPreset;
   preserveTags: boolean;
   preserveCover: boolean;
@@ -76,6 +78,7 @@ export interface PreflightBatchRequest {
   destinationDir: string;
   outputFormat: OutputFormat;
   qualityPreset: QualityPreset;
+  mp3EncodingMode: Mp3EncodingMode;
   bitDepthPreset: BitDepthPreset;
   overwritePolicy: OverwritePolicy;
   items: Array<{

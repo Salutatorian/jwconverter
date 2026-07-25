@@ -69,6 +69,7 @@ pub fn run_job(
         job.quality_preset,
         job.bit_depth_preset,
         source_hints.as_ref(),
+        job.mp3_encoding_mode,
     );
     let stem = source
         .file_stem()
@@ -326,6 +327,7 @@ pub fn plan_for_format(format: OutputFormat) -> EncoderPlan {
         crate::engine::job::QualityPreset::Medium,
         crate::engine::job::BitDepthPreset::Original,
         None,
+        crate::engine::job::Mp3EncodingMode::Cbr,
     )
 }
 
@@ -369,6 +371,7 @@ mod tests {
             output_format: format,
             overwrite_policy: policy,
             quality_preset: crate::engine::job::QualityPreset::Medium,
+            mp3_encoding_mode: crate::engine::job::Mp3EncodingMode::Cbr,
             bit_depth_preset: crate::engine::job::BitDepthPreset::Original,
             preserve_tags: true,
             preserve_cover: true,

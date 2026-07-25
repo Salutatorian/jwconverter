@@ -11,6 +11,7 @@ import type {
   OverwritePolicy,
   QualityPreset,
   BitDepthPreset,
+  Mp3EncodingMode,
   QueueFileItem,
 } from "../types/conversion";
 
@@ -104,6 +105,7 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
       outputFormat: OutputFormat;
       overwritePolicy: OverwritePolicy;
       qualityPreset: QualityPreset;
+      mp3EncodingMode: Mp3EncodingMode;
       bitDepthPreset: BitDepthPreset;
       preserveTags: boolean;
       preserveCover: boolean;
@@ -135,6 +137,7 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
         relativeSubdir: item.relativeSubdir,
         overwritePolicy: args.overwritePolicy,
         qualityPreset: args.qualityPreset,
+        mp3EncodingMode: args.mp3EncodingMode,
         bitDepthPreset: args.bitDepthPreset,
         preserveTags: args.preserveTags,
         preserveCover: args.preserveCover,

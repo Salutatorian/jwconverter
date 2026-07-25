@@ -1,7 +1,9 @@
 use serde::Deserialize;
 use tauri::command;
 
-use crate::engine::job::{BitDepthPreset, OutputFormat, OverwritePolicy, QualityPreset};
+use crate::engine::job::{
+    BitDepthPreset, Mp3EncodingMode, OutputFormat, OverwritePolicy, QualityPreset,
+};
 use crate::engine::preflight::{
     self, PreflightItem, PreflightReport, PreflightRequest as EnginePreflightRequest,
 };
@@ -31,6 +33,8 @@ pub struct PreflightBatchRequest {
     #[serde(default)]
     pub quality_preset: QualityPreset,
     #[serde(default)]
+    pub mp3_encoding_mode: Mp3EncodingMode,
+    #[serde(default)]
     pub bit_depth_preset: BitDepthPreset,
     #[serde(default)]
     pub overwrite_policy: OverwritePolicy,
@@ -43,6 +47,7 @@ pub fn preflight_batch(request: PreflightBatchRequest) -> Result<PreflightReport
         destination_dir: request.destination_dir,
         output_format: request.output_format,
         quality_preset: request.quality_preset,
+        mp3_encoding_mode: request.mp3_encoding_mode,
         bit_depth_preset: request.bit_depth_preset,
         overwrite_policy: request.overwrite_policy,
         items: request

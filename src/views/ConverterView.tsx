@@ -24,6 +24,7 @@ import {
   supportsEmbeddedCover,
   type AppInfo,
   type BitDepthPreset,
+  type Mp3EncodingMode,
   type OutputFormat,
   type OverwritePolicy,
   type QualityPreset,
@@ -45,6 +46,8 @@ function parentDir(path: string): string | null {
 export function ConverterView({ appInfo }: ConverterViewProps) {
   const [format, setFormat] = useState<OutputFormat>("flac");
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>("medium");
+  const [mp3EncodingMode, setMp3EncodingMode] =
+    useState<Mp3EncodingMode>("cbr");
   const [bitDepthPreset, setBitDepthPreset] =
     useState<BitDepthPreset>("original");
   const [preserveTags, setPreserveTags] = useState(true);
@@ -220,6 +223,7 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
       outputFormat: format,
       overwritePolicy,
       qualityPreset,
+      mp3EncodingMode,
       bitDepthPreset,
       preserveTags,
       preserveCover: preserveCover && supportsEmbeddedCover(format),
@@ -238,6 +242,7 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
         destinationDir: destination,
         outputFormat: format,
         qualityPreset,
+        mp3EncodingMode,
         bitDepthPreset,
         overwritePolicy,
         items: convertibleItems.map((item) => ({
@@ -405,9 +410,12 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
         />
         {isLossyFormat(format) ? (
           <QualityPicker
+            format={format}
             value={qualityPreset}
+            mp3EncodingMode={mp3EncodingMode}
             disabled={batch.isBusy}
             onChange={setQualityPreset}
+            onMp3EncodingModeChange={setMp3EncodingMode}
           />
         ) : null}
         {isPcmFormat(format) ? (

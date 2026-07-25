@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use crate::engine::job::{BitDepthPreset, OutputFormat, OverwritePolicy, QualityPreset};
+use crate::engine::job::{
+    BitDepthPreset, Mp3EncodingMode, OutputFormat, OverwritePolicy, QualityPreset,
+};
 use crate::engine::planner::{self, EncoderPlan, SourcePcmHints};
 use crate::errors::AppError;
 use crate::fs_safety::finalize;
@@ -57,6 +59,7 @@ pub struct PreflightRequest {
     pub destination_dir: String,
     pub output_format: OutputFormat,
     pub quality_preset: QualityPreset,
+    pub mp3_encoding_mode: Mp3EncodingMode,
     pub bit_depth_preset: BitDepthPreset,
     pub overwrite_policy: OverwritePolicy,
     pub items: Vec<PreflightItem>,
@@ -92,6 +95,7 @@ pub fn run_preflight(request: &PreflightRequest) -> Result<PreflightReport, AppE
             request.quality_preset,
             request.bit_depth_preset,
             Some(&hints),
+            request.mp3_encoding_mode,
         );
 
         let source = Path::new(&item.source_path);
@@ -289,7 +293,7 @@ fn estimate_output_bytes(
             Some((pcm * 0.60) as u64)
         }
         OutputFormat::Mp3 | OutputFormat::M4a | OutputFormat::Aac | OutputFormat::Opus | OutputFormat::Ogg => {
-            let bps = lossy_bitrate_bps(plan.format, plan.quality)?;
+            let bps = lossy_bitrate_bps(plan.format, plan.quality, plan.mp3_encoding_mode)?;
             Some(((duration * f64::from(bps)) / 8.0) as u64)
         }
     }
@@ -327,22 +331,28 @@ fn pcm_bytes_per_sample(bit_depth: BitDepthPreset, hints: &SourcePcmHints) -> u3
     }
 }
 
-/// Keep in sync with `planner::EncoderPlan::ffmpeg_audio_args` bitrates / vorbis q.
-fn lossy_bitrate_bps(format: OutputFormat, quality: QualityPreset) -> Option<u32> {
-    let kbps = match (format, quality) {
-        (OutputFormat::Mp3, QualityPreset::Low) => 128,
-        (OutputFormat::Mp3, QualityPreset::Medium) => 192,
-        (OutputFormat::Mp3, QualityPreset::High) => 320,
-        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::Low) => 128,
-        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::Medium) => 192,
-        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::High) => 256,
-        (OutputFormat::Opus, QualityPreset::Low) => 96,
-        (OutputFormat::Opus, QualityPreset::Medium) => 160,
-        (OutputFormat::Opus, QualityPreset::High) => 192,
-        // Rough vorbis q → kbps (q3/5/7).
-        (OutputFormat::Ogg, QualityPreset::Low) => 112,
-        (OutputFormat::Ogg, QualityPreset::Medium) => 160,
-        (OutputFormat::Ogg, QualityPreset::High) => 224,
+fn lossy_bitrate_bps(
+    format: OutputFormat,
+    quality: QualityPreset,
+    mp3_mode: Mp3EncodingMode,
+) -> Option<u32> {
+    let kbps = match (format, quality, mp3_mode) {
+        (OutputFormat::Mp3, QualityPreset::Low, Mp3EncodingMode::Cbr) => 128,
+        (OutputFormat::Mp3, QualityPreset::Medium, Mp3EncodingMode::Cbr) => 192,
+        (OutputFormat::Mp3, QualityPreset::High, Mp3EncodingMode::Cbr) => 320,
+        // Approximate average bitrates for lame V5 / V2 / V0.
+        (OutputFormat::Mp3, QualityPreset::Low, Mp3EncodingMode::Vbr) => 130,
+        (OutputFormat::Mp3, QualityPreset::Medium, Mp3EncodingMode::Vbr) => 190,
+        (OutputFormat::Mp3, QualityPreset::High, Mp3EncodingMode::Vbr) => 245,
+        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::Low, _) => 128,
+        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::Medium, _) => 192,
+        (OutputFormat::M4a | OutputFormat::Aac, QualityPreset::High, _) => 256,
+        (OutputFormat::Opus, QualityPreset::Low, _) => 96,
+        (OutputFormat::Opus, QualityPreset::Medium, _) => 160,
+        (OutputFormat::Opus, QualityPreset::High, _) => 192,
+        (OutputFormat::Ogg, QualityPreset::Low, _) => 112,
+        (OutputFormat::Ogg, QualityPreset::Medium, _) => 160,
+        (OutputFormat::Ogg, QualityPreset::High, _) => 224,
         _ => return None,
     };
     Some(kbps * 1000)
@@ -458,6 +468,7 @@ mod tests {
             destination_dir: std::env::temp_dir().to_string_lossy().into_owned(),
             output_format: OutputFormat::Flac,
             quality_preset: QualityPreset::Medium,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
             bit_depth_preset: BitDepthPreset::Original,
             overwrite_policy: OverwritePolicy::Rename,
             items: vec![item_mp3()],
@@ -486,6 +497,7 @@ mod tests {
             destination_dir: std::env::temp_dir().to_string_lossy().into_owned(),
             output_format: OutputFormat::Wav,
             quality_preset: QualityPreset::Medium,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
             bit_depth_preset: BitDepthPreset::Bit24,
             overwrite_policy: OverwritePolicy::Rename,
             items: vec![item],
@@ -510,6 +522,7 @@ mod tests {
             destination_dir: std::env::temp_dir().to_string_lossy().into_owned(),
             output_format: OutputFormat::Wav,
             quality_preset: QualityPreset::Medium,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
             bit_depth_preset: BitDepthPreset::Original,
             overwrite_policy: OverwritePolicy::Rename,
             items: vec![item],
@@ -536,6 +549,7 @@ mod tests {
             destination_dir: std::env::temp_dir().to_string_lossy().into_owned(),
             output_format: OutputFormat::Mp3,
             quality_preset: QualityPreset::Medium,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
             bit_depth_preset: BitDepthPreset::Original,
             overwrite_policy: OverwritePolicy::Rename,
             items: vec![item_mp3()],

@@ -28,6 +28,8 @@ export type OverwritePolicy = "rename" | "skip" | "replace";
 
 export type QualityPreset = "low" | "medium" | "high";
 
+export type Mp3EncodingMode = "cbr" | "vbr";
+
 /** PCM bit depth for WAV / AIFF only. */
 export type BitDepthPreset = "original" | "16" | "24" | "float32";
 
@@ -134,6 +136,58 @@ export const QUALITY_PRESETS: ReadonlyArray<{
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
 ];
+
+export const MP3_ENCODING_MODES: ReadonlyArray<{
+  value: Mp3EncodingMode;
+  label: string;
+}> = [
+  { value: "cbr", label: "CBR" },
+  { value: "vbr", label: "VBR" },
+];
+
+export function qualityPresetLabel(
+  format: OutputFormat,
+  preset: QualityPreset,
+  mp3Mode: Mp3EncodingMode = "cbr",
+): string {
+  const name =
+    preset === "low" ? "Low" : preset === "medium" ? "Medium" : "High";
+
+  if (format === "mp3" && mp3Mode === "vbr") {
+    const grade = preset === "low" ? "V5" : preset === "medium" ? "V2" : "V0";
+    return `${name} · ${grade}`;
+  }
+
+  const detail = (() => {
+    switch (format) {
+      case "mp3":
+        return preset === "low"
+          ? "128 kbps"
+          : preset === "medium"
+            ? "192 kbps"
+            : "320 kbps";
+      case "m4a":
+      case "aac":
+        return preset === "low"
+          ? "128 kbps"
+          : preset === "medium"
+            ? "192 kbps"
+            : "256 kbps";
+      case "opus":
+        return preset === "low"
+          ? "96 kbps"
+          : preset === "medium"
+            ? "160 kbps"
+            : "192 kbps";
+      case "ogg":
+        return preset === "low" ? "q3" : preset === "medium" ? "q5" : "q7";
+      default:
+        return null;
+    }
+  })();
+
+  return detail ? `${name} · ${detail}` : name;
+}
 
 export const BIT_DEPTH_PRESETS: ReadonlyArray<{
   value: BitDepthPreset;

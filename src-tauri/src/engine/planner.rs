@@ -1,7 +1,7 @@
 //! Turns a conversion request into an encoder plan.
 //! Owns format → codec / container / quality decisions. No process spawning here.
 
-use super::job::{BitDepthPreset, OutputFormat, QualityPreset};
+use super::job::{BitDepthPreset, Mp3EncodingMode, OutputFormat, QualityPreset};
 
 #[derive(Debug, Clone)]
 pub struct SourcePcmHints {
@@ -15,6 +15,7 @@ pub struct EncoderPlan {
     pub format: OutputFormat,
     pub quality: QualityPreset,
     pub bit_depth: BitDepthPreset,
+    pub mp3_encoding_mode: Mp3EncodingMode,
     pub container: &'static str,
     pub audio_codec: String,
     pub extension: &'static str,
@@ -28,19 +29,35 @@ impl EncoderPlan {
             }
             OutputFormat::Flac => vec!["-c:a".to_string(), "flac".to_string()],
             OutputFormat::Alac => vec!["-c:a".to_string(), "alac".to_string()],
-            OutputFormat::Mp3 => {
-                let bitrate = match self.quality {
-                    QualityPreset::Low => "128k",
-                    QualityPreset::Medium => "192k",
-                    QualityPreset::High => "320k",
-                };
-                vec![
-                    "-c:a".to_string(),
-                    "libmp3lame".to_string(),
-                    "-b:a".to_string(),
-                    bitrate.to_string(),
-                ]
-            }
+            OutputFormat::Mp3 => match self.mp3_encoding_mode {
+                Mp3EncodingMode::Cbr => {
+                    let bitrate = match self.quality {
+                        QualityPreset::Low => "128k",
+                        QualityPreset::Medium => "192k",
+                        QualityPreset::High => "320k",
+                    };
+                    vec![
+                        "-c:a".to_string(),
+                        "libmp3lame".to_string(),
+                        "-b:a".to_string(),
+                        bitrate.to_string(),
+                    ]
+                }
+                Mp3EncodingMode::Vbr => {
+                    // lame VBR: 0 = best (V0), 9 = worst. Map Low/Med/High → V5/V2/V0.
+                    let q = match self.quality {
+                        QualityPreset::Low => "5",
+                        QualityPreset::Medium => "2",
+                        QualityPreset::High => "0",
+                    };
+                    vec![
+                        "-c:a".to_string(),
+                        "libmp3lame".to_string(),
+                        "-q:a".to_string(),
+                        q.to_string(),
+                    ]
+                }
+            },
             OutputFormat::M4a | OutputFormat::Aac => {
                 let bitrate = match self.quality {
                     QualityPreset::Low => "128k",
@@ -100,6 +117,7 @@ pub fn plan_for(
     quality: QualityPreset,
     bit_depth: BitDepthPreset,
     source: Option<&SourcePcmHints>,
+    mp3_encoding_mode: Mp3EncodingMode,
 ) -> EncoderPlan {
     let quality = if format.is_lossy() {
         quality
@@ -111,6 +129,11 @@ pub fn plan_for(
     } else {
         BitDepthPreset::Original
     };
+    let mp3_encoding_mode = if matches!(format, OutputFormat::Mp3) {
+        mp3_encoding_mode
+    } else {
+        Mp3EncodingMode::Cbr
+    };
 
     match format {
         OutputFormat::Wav => {
@@ -119,6 +142,7 @@ pub fn plan_for(
                 format,
                 quality,
                 bit_depth,
+                mp3_encoding_mode,
                 container: "wav",
                 audio_codec: codec.to_string(),
                 extension: "wav",
@@ -130,6 +154,7 @@ pub fn plan_for(
                 format,
                 quality,
                 bit_depth,
+                mp3_encoding_mode,
                 container: "aiff",
                 audio_codec: codec.to_string(),
                 extension: "aiff",
@@ -139,6 +164,7 @@ pub fn plan_for(
             format,
             quality,
             bit_depth,
+            mp3_encoding_mode,
             container: "flac",
             audio_codec: "flac".to_string(),
             extension: "flac",
@@ -147,6 +173,7 @@ pub fn plan_for(
             format,
             quality,
             bit_depth,
+            mp3_encoding_mode,
             container: "mp3",
             audio_codec: "libmp3lame".to_string(),
             extension: "mp3",
@@ -155,6 +182,7 @@ pub fn plan_for(
             format,
             quality,
             bit_depth,
+            mp3_encoding_mode,
             container: "m4a",
             audio_codec: "aac".to_string(),
             extension: "m4a",
@@ -163,6 +191,7 @@ pub fn plan_for(
             format,
             quality,
             bit_depth,
+            mp3_encoding_mode,
             container: "adts",
             audio_codec: "aac".to_string(),
             extension: "aac",
@@ -171,6 +200,7 @@ pub fn plan_for(
             format,
             quality,
             bit_depth,
+            mp3_encoding_mode,
             container: "opus",
             audio_codec: "libopus".to_string(),
             extension: "opus",
@@ -179,6 +209,7 @@ pub fn plan_for(
             format,
             quality,
             bit_depth,
+            mp3_encoding_mode,
             container: "ogg",
             audio_codec: "libvorbis".to_string(),
             extension: "ogg",
@@ -187,6 +218,7 @@ pub fn plan_for(
             format,
             quality,
             bit_depth,
+            mp3_encoding_mode,
             container: "m4a",
             audio_codec: "alac".to_string(),
             extension: "m4a",
@@ -275,10 +307,31 @@ mod tests {
 
     #[test]
     fn medium_mp3_matches_legacy_default() {
-        let plan = plan_for(OutputFormat::Mp3, QualityPreset::Medium, BitDepthPreset::Original, None);
+        let plan = plan_for(
+            OutputFormat::Mp3,
+            QualityPreset::Medium,
+            BitDepthPreset::Original,
+            None,
+            Mp3EncodingMode::Cbr,
+        );
         assert_eq!(
             plan.ffmpeg_audio_args(),
             vec!["-c:a", "libmp3lame", "-b:a", "192k"]
+        );
+    }
+
+    #[test]
+    fn mp3_vbr_high_uses_q0() {
+        let plan = plan_for(
+            OutputFormat::Mp3,
+            QualityPreset::High,
+            BitDepthPreset::Original,
+            None,
+            Mp3EncodingMode::Vbr,
+        );
+        assert_eq!(
+            plan.ffmpeg_audio_args(),
+            vec!["-c:a", "libmp3lame", "-q:a", "0"]
         );
     }
 
@@ -294,6 +347,7 @@ mod tests {
             QualityPreset::Medium,
             BitDepthPreset::Original,
             Some(&hints),
+            Mp3EncodingMode::Cbr,
         );
         assert_eq!(plan.audio_codec, "pcm_s24le");
     }
@@ -310,6 +364,7 @@ mod tests {
             QualityPreset::Medium,
             BitDepthPreset::Bit16,
             Some(&hints),
+            Mp3EncodingMode::Cbr,
         );
         assert_eq!(plan.audio_codec, "pcm_s16le");
     }
@@ -321,6 +376,7 @@ mod tests {
             QualityPreset::Medium,
             BitDepthPreset::Float32,
             None,
+            Mp3EncodingMode::Cbr,
         );
         assert_eq!(plan.audio_codec, "pcm_f32be");
     }
@@ -332,6 +388,7 @@ mod tests {
             QualityPreset::Medium,
             BitDepthPreset::Original,
             None,
+            Mp3EncodingMode::Cbr,
         );
         assert_eq!(plan.extension, "m4a");
         assert_eq!(
@@ -347,6 +404,7 @@ mod tests {
             QualityPreset::Medium,
             BitDepthPreset::Original,
             None,
+            Mp3EncodingMode::Cbr,
         );
         assert_eq!(plan.extension, "aac");
         assert_eq!(
@@ -357,8 +415,20 @@ mod tests {
 
     #[test]
     fn lossless_ignores_quality_in_args() {
-        let low = plan_for(OutputFormat::Flac, QualityPreset::Low, BitDepthPreset::Original, None);
-        let high = plan_for(OutputFormat::Flac, QualityPreset::High, BitDepthPreset::Original, None);
+        let low = plan_for(
+            OutputFormat::Flac,
+            QualityPreset::Low,
+            BitDepthPreset::Original,
+            None,
+            Mp3EncodingMode::Cbr,
+        );
+        let high = plan_for(
+            OutputFormat::Flac,
+            QualityPreset::High,
+            BitDepthPreset::Original,
+            None,
+            Mp3EncodingMode::Cbr,
+        );
         assert_eq!(low.ffmpeg_audio_args(), high.ffmpeg_audio_args());
     }
 }
