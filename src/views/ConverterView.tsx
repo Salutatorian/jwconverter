@@ -36,7 +36,8 @@ function parentDir(path: string): string | null {
 export function ConverterView({ appInfo }: ConverterViewProps) {
   const [format, setFormat] = useState<OutputFormat>("flac");
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>("medium");
-  const [overwritePolicy, setOverwritePolicy] = useState<OverwritePolicy>("rename");
+  const [overwritePolicy, setOverwritePolicy] =
+    useState<OverwritePolicy>("rename");
   const [destination, setDestination] = useState<string | null>(null);
   const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -124,16 +125,22 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
     .find((item) => item.status === "completed" && item.outputPath);
 
   const batchSummary = batch.batch
-    ? `${batch.batch.completed} done · ${batch.batch.skipped} skipped · ${batch.batch.failed} failed · ${batch.batch.cancelled} cancelled · ${batch.batch.remaining} remaining · ${batch.batch.total} total`
+    ? `${batch.batch.completed} done · ${batch.batch.skipped} skipped · ${batch.batch.failed} failed · ${batch.batch.cancelled} cancelled · ${batch.batch.remaining} left`
     : null;
 
   const progressVisible =
     batch.isBusy ||
     batch.batch != null ||
     queue.items.some((item) =>
-      ["queued", "converting", "verifying", "completed", "skipped", "failed", "cancelled"].includes(
-        item.status,
-      ),
+      [
+        "queued",
+        "converting",
+        "verifying",
+        "completed",
+        "skipped",
+        "failed",
+        "cancelled",
+      ].includes(item.status),
     );
 
   async function handleChooseFiles() {
@@ -196,19 +203,28 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-6 py-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)]">
-          JW Converter
-        </h1>
-        <p className="text-sm text-[var(--text-muted)]">
-          Local audio conversion — files stay on your computer
-        </p>
-        {appInfo ? (
-          <p className="mt-1 text-xs text-[var(--text-faint)]">
-            v{appInfo.version} · {appInfo.phase}
+    <div className="app-shell">
+      <header className="flex items-center gap-3.5">
+        <img
+          src="/jwc-logo.png"
+          alt=""
+          className="h-8 w-auto select-none"
+          draggable={false}
+        />
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight text-[var(--text)]">
+            JW Converter
+          </h1>
+          <p className="text-sm text-[var(--text-muted)]">
+            Local audio conversion
+            {appInfo ? (
+              <span className="text-[var(--text-faint)]">
+                {" "}
+                · v{appInfo.version}
+              </span>
+            ) : null}
           </p>
-        ) : null}
+        </div>
       </header>
 
       <DropZone
@@ -217,46 +233,46 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
         analyzing={queue.isAnalyzing}
       />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
+          className="btn btn-secondary"
           disabled={queue.isAnalyzing || batch.isBusy}
           onClick={() => {
             void handleChooseFiles();
           }}
-          className="rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-contrast)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {queue.isAnalyzing ? "Analyzing…" : "Choose audio files"}
+          {queue.isAnalyzing ? "Analyzing…" : "Choose files"}
         </button>
         <button
           type="button"
+          className="btn btn-secondary"
           disabled={queue.isAnalyzing || batch.isBusy}
           onClick={() => {
             void handleChooseInputFolder();
           }}
-          className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           Choose folder
         </button>
         <button
           type="button"
+          className="btn btn-primary"
           disabled={!canConvert}
           onClick={() => {
             void handleConvert();
           }}
-          className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-50 enabled:border-[var(--accent)] enabled:bg-[var(--accent)] enabled:text-[var(--accent-contrast)]"
         >
           {batch.isBusy
             ? "Converting…"
             : convertibleItems.length > 1
-              ? `Convert ${convertibleItems.length} files`
+              ? `Convert ${convertibleItems.length}`
               : "Convert"}
         </button>
       </div>
 
       {batch.error ? (
         <p
-          className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          className="rounded-[var(--radius)] border border-red-400/30 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]"
           role="alert"
         >
           {batch.error}
@@ -275,46 +291,52 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
         }}
       />
 
-      <FormatPicker
-        value={format}
-        disabled={batch.isBusy}
-        onChange={setFormat}
-      />
-      {isLossyFormat(format) ? (
-        <QualityPicker
-          value={qualityPreset}
+      <div className="grid gap-3">
+        <FormatPicker
+          value={format}
           disabled={batch.isBusy}
-          onChange={setQualityPreset}
+          onChange={setFormat}
         />
-      ) : null}
-      <OverwritePicker
-        value={overwritePolicy}
-        disabled={batch.isBusy}
-        onChange={setOverwritePolicy}
-      />
-      <DestinationPicker
-        destination={destination}
-        disabled={batch.isBusy}
-        onChooseFolder={() => {
-          void handleChooseFolder();
-        }}
-        canUseDownloads={Boolean(downloadsDir)}
-        onUseDownloads={() => {
-          if (downloadsDir) {
-            setDestination(downloadsDir);
-          }
-        }}
-        canUseSourceFolder={convertibleItems.length === 1 && !convertibleItems[0]?.relativeSubdir}
-        onUseSourceFolder={() => {
-          const only = convertibleItems[0];
-          if (only) {
-            const folder = parentDir(only.path);
-            if (folder) {
-              setDestination(folder);
+        {isLossyFormat(format) ? (
+          <QualityPicker
+            value={qualityPreset}
+            disabled={batch.isBusy}
+            onChange={setQualityPreset}
+          />
+        ) : null}
+        <OverwritePicker
+          value={overwritePolicy}
+          disabled={batch.isBusy}
+          onChange={setOverwritePolicy}
+        />
+        <DestinationPicker
+          destination={destination}
+          disabled={batch.isBusy}
+          onChooseFolder={() => {
+            void handleChooseFolder();
+          }}
+          canUseDownloads={Boolean(downloadsDir)}
+          onUseDownloads={() => {
+            if (downloadsDir) {
+              setDestination(downloadsDir);
             }
+          }}
+          canUseSourceFolder={
+            convertibleItems.length === 1 &&
+            !convertibleItems[0]?.relativeSubdir
           }
-        }}
-      />
+          onUseSourceFolder={() => {
+            const only = convertibleItems[0];
+            if (only) {
+              const folder = parentDir(only.path);
+              if (folder) {
+                setDestination(folder);
+              }
+            }
+          }}
+        />
+      </div>
+
       <ConversionProgress
         visible={progressVisible}
         status={batch.batch?.status ?? currentItem?.status ?? "idle"}

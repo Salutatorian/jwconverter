@@ -15,21 +15,22 @@ export function DropZone({
       aria-label="Drop audio files or folders here"
       aria-disabled={disabled}
       className={[
-        "flex min-h-44 flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center transition-colors",
+        "flex min-h-40 flex-col items-center justify-center border border-dashed px-6 py-9 text-center transition-colors",
+        "rounded-[var(--radius)]",
         disabled
-          ? "cursor-not-allowed border-[var(--border)] bg-[var(--surface-muted)] opacity-70"
+          ? "cursor-not-allowed border-[var(--border)] bg-[var(--surface-muted)] opacity-60"
           : active
             ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-            : "border-[var(--accent)]/40 bg-[var(--surface)]",
+            : "border-[var(--border-strong)] bg-[var(--surface)]",
       ].join(" ")}
     >
-      <p className="text-base font-medium text-[var(--text)]">
-        {analyzing ? "Analyzing…" : "Drop audio files or folders here"}
+      <p className="text-[0.95rem] font-semibold tracking-tight text-[var(--text)]">
+        {analyzing ? "Analyzing…" : "Drop files or folders"}
       </p>
-      <p className="mt-2 max-w-sm text-sm text-[var(--text-muted)]">
+      <p className="mt-1.5 max-w-xs text-sm text-[var(--text-muted)]">
         {disabled
-          ? "File import is unavailable while converting."
-          : "Folders are scanned recursively. Folder structure is kept in the output."}
+          ? "Unavailable while converting."
+          : "Or use the buttons below. Folder structure is preserved."}
       </p>
     </div>
   );

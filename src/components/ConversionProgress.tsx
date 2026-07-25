@@ -26,50 +26,39 @@ export function ConversionProgress({
   const showBar = percent != null;
   const label =
     status === "verifying"
-      ? "Verifying output…"
+      ? "Verifying…"
       : status === "queued"
         ? "Starting…"
         : status === "completed"
           ? "Completed"
-          : status === "skipped"
-            ? "Skipped"
-            : status === "cancelled"
+          : status === "cancelled"
             ? "Cancelled"
             : status === "failed"
               ? "Failed"
-              : status === "running"
-                ? "Batch running…"
-                : "Converting…";
+              : status === "skipped"
+                ? "Skipped"
+                : status === "running"
+                  ? "Converting…"
+                  : "Converting…";
 
   return (
-    <section
-      aria-label="Conversion progress"
-      className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5"
-    >
+    <section aria-label="Conversion progress" className="panel">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold tracking-wide text-[var(--text-muted)] uppercase">
-          Progress
-        </h2>
+        <h2 className="panel-title">Progress</h2>
         {cancellable ? (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text)] hover:border-red-400/50"
-          >
-            Cancel queue
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+            Cancel
           </button>
         ) : null}
       </div>
 
-      {batchSummary ? (
-        <p className="mt-3 text-sm text-[var(--text)]">{batchSummary}</p>
-      ) : (
-        <p className="mt-3 text-sm text-[var(--text)]">{label}</p>
-      )}
+      <p className="mt-3 text-sm text-[var(--text)]">
+        {batchSummary ?? label}
+      </p>
 
       {showBar ? (
         <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--surface-muted)]"
+          className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--surface-muted)]"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -82,14 +71,8 @@ export function ConversionProgress({
         </div>
       ) : null}
 
-      {percent != null ? (
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          Current file {Math.round(percent)}%
-        </p>
-      ) : null}
-
       {message ? (
-        <p className="mt-3 text-sm text-[var(--text-muted)]">{message}</p>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">{message}</p>
       ) : null}
 
       {outputPath ? (
