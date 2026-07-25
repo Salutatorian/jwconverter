@@ -6,34 +6,53 @@ binaries with their own terms.
 
 ## What we ship
 
-For Windows release installers, the NSIS package may include:
+For Windows release installers, the NSIS package includes:
 
 - `ffmpeg.exe`
 - `ffprobe.exe`
+- `THIRD_PARTY_FFMPEG.txt` (build identity, GPL notice, source offer)
 
-Copied at build time from `src-tauri/binaries/` (gitignored). Development builds use the same folder.
+Binaries are copied at build time from `src-tauri/binaries/` (gitignored). Development builds use
+the same folder.
 
-## Current local build source
+## Exact build currently packaged (v0.1.15)
 
-This project’s local binaries were obtained from the **Gyan.dev FFmpeg Windows builds** distributed
-via WinGet (`Gyan.FFmpeg`). Those builds are commonly **GPL**-licensed when full codec sets are enabled.
+| Field | Value |
+|---|---|
+| Version string | `8.1-full_build-www.gyan.dev` |
+| Origin | [Gyan.dev FFmpeg Windows builds](https://www.gyan.dev/ffmpeg/builds/) (WinGet: `Gyan.FFmpeg`) |
+| License class | **GPL** (`--enable-gpl --enable-version3`) |
+| Recorded | 2026-07-26 |
 
-If you redistribute an installer that embeds these binaries, you must follow the license of the
-**exact** FFmpeg build you bundle (GPL and/or LGPL and any patent/codec notices that apply).
+Confirm on a machine with the bundled tools:
 
-## Attribution (required for redistribution)
+```text
+ffmpeg -version
+ffprobe -version
+```
 
-Please retain attribution similar to:
+If you change the binaries, update this table, `resources/THIRD_PARTY_FFMPEG.txt`, and the
+installer resources **before** publishing.
+
+## Attribution
 
 > This product uses FFmpeg and FFprobe. FFmpeg is a trademark of Fabrice Bellard.
-> FFmpeg binaries are provided under the terms of the GNU GPL / LGPL as applicable to the build used.
-> See https://ffmpeg.org/ and the license files shipped with your FFmpeg build.
+> The bundled Windows binaries are a Gyan.dev **full** build under the **GNU GPL v3**
+> (and licenses of included libraries). See `THIRD_PARTY_FFMPEG.txt` next to the installed app,
+> https://ffmpeg.org/, and https://www.gyan.dev/ffmpeg/builds/.
+
+## Corresponding source
+
+Provide corresponding source for redistributed GPL binaries. JW Converter’s offer:
+
+1. Links to FFmpeg upstream and Gyan builds (above / in `THIRD_PARTY_FFMPEG.txt`).
+2. Written offer for three years via GitHub Issues on this repository.
 
 ## Maintainer checklist before publishing an installer
 
-1. Record the **exact** FFmpeg build identity (version, download URL or WinGet package version, date).
-2. Confirm whether that build is **GPL** or **LGPL** (and which libraries are linked).
-3. Ship matching license text with the installer or in `docs/` / About UI.
+1. Record the **exact** FFmpeg build identity (version string from `ffmpeg -version`).
+2. Confirm GPL vs LGPL for **that** build; update docs + `THIRD_PARTY_FFMPEG.txt`.
+3. Ensure `THIRD_PARTY_FFMPEG.txt` is listed under `bundle.resources` in `tauri.conf.json`.
 4. Do **not** commit unknown `.exe` files to git; keep them local / CI-provisioned.
 
 ## JW Converter itself

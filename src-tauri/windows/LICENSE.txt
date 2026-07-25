@@ -19,10 +19,11 @@ DAMAGES, OR OTHER LIABILITY ARISING FROM USE OF THE SOFTWARE.
 
 4. THIRD-PARTY COMPONENTS (FFMPEG / FFPROBE)
 JW Converter may bundle FFmpeg and FFprobe binaries. Those tools are separate software
-with their own licenses (commonly GPL and/or LGPL depending on the build). Redistribution
-and use of those binaries is governed by their license terms, not solely by this EULA.
-See the documentation shipped with the Software (docs/ffmpeg-licensing.md in the source
-repository) for attribution and compliance notes.
+with their own licenses. The Windows installer currently ships a Gyan.dev full build under
+the GNU GPL (see THIRD_PARTY_FFMPEG.txt in the installation folder for the exact build
+identity, attribution, and corresponding-source offer). Redistribution and use of those
+binaries is governed by their license terms, not solely by this EULA.
+Additional notes: docs/ffmpeg-licensing.md in the source repository.
 
 5. ACCEPTANCE
 Clicking “I Agree” or installing the Software indicates that you accept this agreement.

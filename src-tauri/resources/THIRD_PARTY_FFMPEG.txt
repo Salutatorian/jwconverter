@@ -1,0 +1,37 @@
+# FFmpeg / FFprobe — third-party notice (JW Converter)
+
+This product bundles **FFmpeg** and **FFprobe** for local audio analysis and conversion.
+FFmpeg is a trademark of Fabrice Bellard. These binaries are separate from JW Converter’s
+own application license.
+
+## Exact build shipped with this installer
+
+- Identity: **ffmpeg 8.1-full_build-www.gyan.dev** (Gyan.dev Windows full build)
+- License of this build: **GNU GPL v3** (`--enable-gpl --enable-version3` and related libraries)
+- Obtained via: Gyan.dev / WinGet package lineage (`Gyan.FFmpeg`) for local packaging
+- Tools: `ffmpeg.exe`, `ffprobe.exe`
+
+Configuration for this build includes GPL-enabled encoders (for example libx264/libx265)
+and many third-party libraries. See `ffmpeg -version` / `ffprobe -version` on an installed
+copy for the full configure line.
+
+## Corresponding source
+
+FFmpeg’s licensing requires that corresponding source for GPL binaries you redistribute
+be available.
+
+- FFmpeg project / sources: https://ffmpeg.org/ and https://github.com/FFmpeg/FFmpeg
+- Gyan Windows builds (binary origin used here): https://www.gyan.dev/ffmpeg/builds/
+
+**Source offer:** For three years after you receive this JW Converter installer, you may
+request a copy of the corresponding source for the bundled FFmpeg/FFprobe binaries by
+opening an issue at:
+
+https://github.com/Salutatorian/jwconverter/issues
+
+Describe that you need the FFmpeg corresponding source for the JW Converter release you
+installed (include the app version from Settings → About).
+
+## More detail
+
+Repository documentation: `docs/ffmpeg-licensing.md`

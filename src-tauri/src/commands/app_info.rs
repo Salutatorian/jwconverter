@@ -14,6 +14,6 @@ pub fn get_app_info() -> AppInfo {
     AppInfo {
         name: "JW Converter".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
-        phase: "audio-polish".to_string(),
+        phase: "audio-complete".to_string(),
     }
 }

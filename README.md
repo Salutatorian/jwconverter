@@ -6,7 +6,7 @@ Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe 
 
 ## Download
 
-**[Download JW Converter for Windows (v0.1.11)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.11)**
+**[Download JW Converter for Windows (v0.1.15)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.1.15)**
 
 Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted audio files are not deleted.
 
@@ -31,6 +31,7 @@ Windows installer with bundled FFmpeg and an uninstall option.
 
 ## Status
 
+**v0.1.15** — Audio foundation complete for the 0.1 line (FFmpeg licensing pack). Next: **v0.2.0** images.
 **v0.1.11** — MP3 CBR/VBR modes; quality chips show bitrates / VBR grades.
 **v0.1.10** — M4A vs raw AAC, clearer format labels, broader input extensions.
 **v0.1.9** — Preflight: quality honesty warnings, size estimate, disk space hard gate.
@@ -44,14 +45,16 @@ Working:
 - Preserve relative folder structure in output
 - Analyze with FFprobe (local)
 - Convert to FLAC / WAV / MP3 / M4A (AAC) / AAC (ADTS) / Opus / OGG / ALAC / AIFF
-- Quality presets (Low / Medium / High) for lossy formats
+- Quality presets (Low / Medium / High) for lossy formats; MP3 CBR/VBR
 - Sequential batch queue
 - Temp output → verify → finalize (source never modified)
 - Per-file + overall progress, cancel queue
 - Default destination: Downloads
 - Overwrite policy: Rename (default) / Skip / Replace
+- Preflight warnings + size/disk gate
 - Windows NSIS installer with app icons and bundled FFmpeg/FFprobe
-- In-app Settings gear: updates, GitHub / Releases / Issues, about
+- Bundled `THIRD_PARTY_FFMPEG.txt` (GPL build identity + source offer)
+- In-app Settings gear: updates, GitHub / Releases / Issues, FFmpeg licensing
 - In-app update check + **Update** button (install only when you click)
 
 See `docs/ffmpeg-licensing.md` before redistributing the installer.

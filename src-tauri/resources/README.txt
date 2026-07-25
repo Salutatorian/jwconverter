@@ -16,8 +16,9 @@ Notes
 -----
 - Originals are never modified.
 - Folder imports keep relative folder structure in the output.
-- FFmpeg/FFprobe are bundled for offline use. See licensing docs in the project
-  repository before redistributing the installer.
+- FFmpeg/FFprobe are bundled for offline use. The install folder includes
+  THIRD_PARTY_FFMPEG.txt (build identity, GPL notice, source offer). More detail:
+  https://github.com/Salutatorian/jwconverter/blob/master/docs/ffmpeg-licensing.md
 
 Uninstall
 ---------

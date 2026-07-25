@@ -7,6 +7,17 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.1.15",
+    changes: [
+      "Audio foundation complete for the 0.1 line (next major: images in 0.2)",
+      "FFmpeg licensing pack: build identity, GPL notice, and source offer",
+      "THIRD_PARTY_FFMPEG.txt shipped with the installer; About links in Settings",
+    ],
+    debugs: [
+      "Documented exact Gyan 8.1 full GPL build used in release installers",
+    ],
+  },
+  {
     version: "0.1.11",
     changes: [
       "MP3 encoding mode: CBR or VBR (V5 / V2 / V0)",

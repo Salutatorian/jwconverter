@@ -2,9 +2,12 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useId, useRef } from "react";
 import type { UseUpdaterResult } from "../hooks/useUpdater";
 import {
+  FFMPEG_LICENSING_URL,
+  FFMPEG_SOURCE_URL,
   GITHUB_ISSUES_URL,
   GITHUB_RELEASES_URL,
   GITHUB_REPO_URL,
+  GYAN_FFMPEG_BUILDS_URL,
 } from "../lib/links";
 import type { AppInfo } from "../types/conversion";
 import { UpdateControls } from "./UpdateControls";
@@ -141,6 +144,40 @@ export function SettingsPanel({
             Local-first audio conversion. No accounts, no cloud upload, no
             telemetry. Sources are never modified.
           </p>
+          <p className="mt-3 text-sm text-[var(--text-muted)]">
+            Uses FFmpeg / FFprobe (Gyan full build, GPL). See the bundled
+            THIRD_PARTY_FFMPEG.txt in the install folder for build identity and
+            source offer.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                void openExternal(FFMPEG_LICENSING_URL);
+              }}
+            >
+              FFmpeg licensing
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                void openExternal(FFMPEG_SOURCE_URL);
+              }}
+            >
+              FFmpeg source
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                void openExternal(GYAN_FFMPEG_BUILDS_URL);
+              }}
+            >
+              Gyan builds
+            </button>
+          </div>
         </div>
       </section>
     </div>
