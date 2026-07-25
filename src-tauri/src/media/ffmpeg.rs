@@ -32,6 +32,8 @@ pub fn start_conversion(
     source: &Path,
     temp_output: &Path,
     plan: &EncoderPlan,
+    preserve_tags: bool,
+    preserve_cover: bool,
 ) -> Result<Child, AppError> {
     let ffmpeg = resolve_ffmpeg_required()?;
 
@@ -44,15 +46,35 @@ pub fn start_conversion(
         .arg("file,pipe,fd")
         .arg("-i")
         .arg(source)
-        .arg("-vn");
+        .arg("-map")
+        .arg("0:a:0");
+
+    let map_cover = preserve_cover && plan.format.supports_embedded_cover();
+    if map_cover {
+        // Optional attached-picture / cover stream (no-op when source has none).
+        command.arg("-map").arg("0:V:0?");
+        command.arg("-c:v").arg("copy");
+        command.arg("-disposition:v:0").arg("attached_pic");
+    } else {
+        command.arg("-vn");
+    }
 
     for arg in plan.ffmpeg_audio_args() {
         command.arg(arg);
     }
 
+    if preserve_tags {
+        command.arg("-map_metadata").arg("0");
+        command.arg("-map_chapters").arg("0");
+    } else {
+        command.arg("-map_metadata").arg("-1");
+    }
+
+    if matches!(plan.format, crate::engine::job::OutputFormat::Mp3) {
+        command.arg("-id3v2_version").arg("3");
+    }
+
     command
-        .arg("-map_metadata")
-        .arg("0")
         .arg("-progress")
         .arg("pipe:1")
         .arg("-nostats")

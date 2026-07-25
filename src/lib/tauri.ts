@@ -49,6 +49,8 @@ export interface ConversionRequest {
   overwritePolicy: OverwritePolicy;
   qualityPreset: QualityPreset;
   bitDepthPreset: BitDepthPreset;
+  preserveTags: boolean;
+  preserveCover: boolean;
 }
 
 export interface BatchStartResult {

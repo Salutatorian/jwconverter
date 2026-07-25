@@ -67,7 +67,17 @@ pub struct ConversionJob {
     pub quality_preset: QualityPreset,
     #[serde(default)]
     pub bit_depth_preset: BitDepthPreset,
+    /// Keep container tags / chapters from the source when possible.
+    #[serde(default = "default_true")]
+    pub preserve_tags: bool,
+    /// Keep embedded cover art when the destination format supports it.
+    #[serde(default = "default_true")]
+    pub preserve_cover: bool,
     pub status: JobStatus,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// Supported output formats.
@@ -89,6 +99,19 @@ impl OutputFormat {
         matches!(
             self,
             OutputFormat::Mp3 | OutputFormat::Aac | OutputFormat::Opus | OutputFormat::Ogg
+        )
+    }
+
+    /// Destinations that can usefully carry an embedded cover / attached picture.
+    pub fn supports_embedded_cover(self) -> bool {
+        matches!(
+            self,
+            OutputFormat::Mp3
+                | OutputFormat::Flac
+                | OutputFormat::Aac
+                | OutputFormat::Alac
+                | OutputFormat::Ogg
+                | OutputFormat::Opus
         )
     }
 }

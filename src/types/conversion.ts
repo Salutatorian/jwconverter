@@ -47,6 +47,17 @@ export function isPcmFormat(format: OutputFormat): boolean {
   return PCM_FORMATS.has(format);
 }
 
+export function supportsEmbeddedCover(format: OutputFormat): boolean {
+  return (
+    format === "mp3" ||
+    format === "flac" ||
+    format === "aac" ||
+    format === "alac" ||
+    format === "ogg" ||
+    format === "opus"
+  );
+}
+
 export interface AudioInfo {
   path: string;
   filename: string;

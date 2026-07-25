@@ -1,7 +1,9 @@
 use serde::Deserialize;
 use tauri::{AppHandle, State};
 
-use crate::engine::job::{ConversionJob, JobStatus, OutputFormat, OverwritePolicy, QualityPreset, BitDepthPreset};
+use crate::engine::job::{
+    BitDepthPreset, ConversionJob, JobStatus, OutputFormat, OverwritePolicy, QualityPreset,
+};
 use crate::engine::queue::{self, QueueItem};
 use crate::state::AppState;
 
@@ -20,6 +22,14 @@ pub struct ConversionRequest {
     pub quality_preset: QualityPreset,
     #[serde(default)]
     pub bit_depth_preset: BitDepthPreset,
+    #[serde(default = "default_true")]
+    pub preserve_tags: bool,
+    #[serde(default = "default_true")]
+    pub preserve_cover: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -55,6 +65,8 @@ fn build_queue_item(request: ConversionRequest) -> Result<QueueItem, String> {
             overwrite_policy: request.overwrite_policy,
             quality_preset: request.quality_preset,
             bit_depth_preset: request.bit_depth_preset,
+            preserve_tags: request.preserve_tags,
+            preserve_cover: request.preserve_cover,
             status: JobStatus::Queued,
         },
         source_duration_seconds: request.source_duration_seconds,

@@ -92,6 +92,8 @@ export function useConversion() {
         overwritePolicy: "rename",
         qualityPreset: "medium",
         bitDepthPreset: "original",
+        preserveTags: true,
+        preserveCover: true,
       };
 
       try {

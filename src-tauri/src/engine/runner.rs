@@ -117,7 +117,13 @@ pub fn run_job(
 
     (callbacks.on_status)(JobStatus::Converting);
 
-    let child = ffmpeg::start_conversion(&source, &temp_path, &plan)?;
+    let child = ffmpeg::start_conversion(
+        &source,
+        &temp_path,
+        &plan,
+        job.preserve_tags,
+        job.preserve_cover,
+    )?;
     {
         let mut guard = active.child.lock().map_err(|_| AppError::FfmpegFailure {
             detail: "Internal process lock error.".to_string(),
@@ -364,6 +370,8 @@ mod tests {
             overwrite_policy: policy,
             quality_preset: crate::engine::job::QualityPreset::Medium,
             bit_depth_preset: crate::engine::job::BitDepthPreset::Original,
+            preserve_tags: true,
+            preserve_cover: true,
             status: JobStatus::Queued,
         }
     }

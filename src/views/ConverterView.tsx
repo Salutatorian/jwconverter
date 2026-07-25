@@ -7,6 +7,7 @@ import { DestinationPicker } from "../components/DestinationPicker";
 import { DropZone } from "../components/DropZone";
 import { FileQueue } from "../components/FileQueue";
 import { FormatPicker } from "../components/FormatPicker";
+import { MetadataPicker } from "../components/MetadataPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import { QualityPicker } from "../components/QualityPicker";
 import { SettingsGearButton } from "../components/SettingsGearButton";
@@ -19,6 +20,7 @@ import {
   AUDIO_EXTENSIONS,
   isLossyFormat,
   isPcmFormat,
+  supportsEmbeddedCover,
   type AppInfo,
   type BitDepthPreset,
   type OutputFormat,
@@ -44,6 +46,8 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>("medium");
   const [bitDepthPreset, setBitDepthPreset] =
     useState<BitDepthPreset>("original");
+  const [preserveTags, setPreserveTags] = useState(true);
+  const [preserveCover, setPreserveCover] = useState(true);
   const [overwritePolicy, setOverwritePolicy] =
     useState<OverwritePolicy>("rename");
   const [destination, setDestination] = useState<string | null>(null);
@@ -213,6 +217,8 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
       overwritePolicy,
       qualityPreset,
       bitDepthPreset,
+      preserveTags,
+      preserveCover: preserveCover && supportsEmbeddedCover(format),
       assignJobIds: queue.assignJobIds,
     });
   }
@@ -352,6 +358,14 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
             onChange={setBitDepthPreset}
           />
         ) : null}
+        <MetadataPicker
+          preserveTags={preserveTags}
+          preserveCover={preserveCover}
+          coverSupported={supportsEmbeddedCover(format)}
+          disabled={batch.isBusy}
+          onPreserveTagsChange={setPreserveTags}
+          onPreserveCoverChange={setPreserveCover}
+        />
         <OverwritePicker
           value={overwritePolicy}
           disabled={batch.isBusy}

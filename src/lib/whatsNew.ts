@@ -7,6 +7,15 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.1.8",
+    changes: [
+      "Preserve tags (title, artist, album, and more) when converting — on by default",
+      "Preserve embedded cover art when the destination format supports it",
+      "Metadata panel with toggles; cover option disabled for WAV / AIFF",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.1.7",
     changes: [
       "WAV / AIFF bit depth: Original (default), 16-bit, 24-bit, 32-bit float",

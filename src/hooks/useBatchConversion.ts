@@ -105,6 +105,8 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
       overwritePolicy: OverwritePolicy;
       qualityPreset: QualityPreset;
       bitDepthPreset: BitDepthPreset;
+      preserveTags: boolean;
+      preserveCover: boolean;
       assignJobIds: (paths: string[], jobIds: string[]) => void;
     }) => {
       if (busyRef.current) {
@@ -134,6 +136,8 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
         overwritePolicy: args.overwritePolicy,
         qualityPreset: args.qualityPreset,
         bitDepthPreset: args.bitDepthPreset,
+        preserveTags: args.preserveTags,
+        preserveCover: args.preserveCover,
       }));
 
       try {
