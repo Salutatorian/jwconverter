@@ -279,13 +279,18 @@ mod tests {
         out_dir
     }
 
-    fn test_job(fixture: &Path, out_dir: &Path, policy: OverwritePolicy) -> ConversionJob {
+    fn test_job(
+        fixture: &Path,
+        out_dir: &Path,
+        format: OutputFormat,
+        policy: OverwritePolicy,
+    ) -> ConversionJob {
         ConversionJob {
             id: uuid::Uuid::new_v4().to_string(),
             source_path: fixture.to_string_lossy().into_owned(),
             destination_dir: out_dir.to_string_lossy().into_owned(),
             relative_subdir: None,
-            output_format: OutputFormat::Flac,
+            output_format: format,
             overwrite_policy: policy,
             status: JobStatus::Queued,
         }
@@ -321,7 +326,7 @@ mod tests {
         let source_bytes = std::fs::read(&fixture).expect("read source");
         let source_meta = std::fs::metadata(&fixture).expect("source meta");
 
-        let job = test_job(&fixture, &out_dir, OverwritePolicy::Rename);
+        let job = test_job(&fixture, &out_dir, OutputFormat::Flac, OverwritePolicy::Rename);
         let (active, callbacks) = active_and_callbacks();
 
         let result = run_job(&job, Some(2.0), &active, &callbacks).expect("convert");
@@ -354,7 +359,7 @@ mod tests {
         let existing_content = b"existing flac placeholder";
         std::fs::write(&primary, existing_content).expect("write existing primary");
 
-        let job = test_job(&fixture, &out_dir, OverwritePolicy::Skip);
+        let job = test_job(&fixture, &out_dir, OutputFormat::Flac, OverwritePolicy::Skip);
         let (active, callbacks) = active_and_callbacks();
 
         let result = run_job(&job, Some(2.0), &active, &callbacks).expect("skip");
@@ -380,7 +385,7 @@ mod tests {
         let existing_content = b"existing flac placeholder";
         std::fs::write(&primary, existing_content).expect("write existing primary");
 
-        let job = test_job(&fixture, &out_dir, OverwritePolicy::Rename);
+        let job = test_job(&fixture, &out_dir, OutputFormat::Flac, OverwritePolicy::Rename);
         let (active, callbacks) = active_and_callbacks();
 
         let result = run_job(&job, Some(2.0), &active, &callbacks).expect("rename");
@@ -416,7 +421,7 @@ mod tests {
         let source_bytes = std::fs::read(&fixture).expect("read source");
         let source_meta = std::fs::metadata(&fixture).expect("source meta");
 
-        let job = test_job(&fixture, &out_dir, OverwritePolicy::Replace);
+        let job = test_job(&fixture, &out_dir, OutputFormat::Flac, OverwritePolicy::Replace);
         let (active, callbacks) = active_and_callbacks();
 
         let result = run_job(&job, Some(2.0), &active, &callbacks).expect("replace");
@@ -434,5 +439,41 @@ mod tests {
 
         let _ = std::fs::remove_file(&primary);
         let _ = std::fs::remove_dir_all(&out_dir);
+    }
+
+    #[test]
+    fn converts_fixture_to_each_new_format() {
+        let Some(fixture) = fixture_path() else {
+            return;
+        };
+
+        let cases = [
+            (OutputFormat::Aac, "m4a"),
+            (OutputFormat::Opus, "opus"),
+            (OutputFormat::Ogg, "ogg"),
+            (OutputFormat::Alac, "m4a"),
+            (OutputFormat::Aiff, "aiff"),
+        ];
+
+        for (format, extension) in cases {
+            let out_dir = test_out_dir();
+            let job = test_job(&fixture, &out_dir, format, OverwritePolicy::Rename);
+            let (active, callbacks) = active_and_callbacks();
+            let result = run_job(&job, Some(2.0), &active, &callbacks)
+                .unwrap_or_else(|error| panic!("convert {format:?} failed: {error}"));
+            assert_eq!(result.status, JobStatus::Completed, "{format:?}");
+            let output = PathBuf::from(&result.output_path);
+            assert!(output.is_file(), "{format:?}");
+            assert!(
+                output
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case(extension)),
+                "{format:?} extension, got {}",
+                output.display()
+            );
+            assert!(output.metadata().expect("meta").len() > 0, "{format:?}");
+            let _ = std::fs::remove_dir_all(&out_dir);
+        }
     }
 }

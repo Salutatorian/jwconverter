@@ -43,11 +43,16 @@ pub struct ConversionJob {
     pub status: JobStatus,
 }
 
-/// Formats intentionally limited for early milestones.
+/// Supported output formats. Quality presets stay fixed for now.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum OutputFormat {
     Wav,
     Flac,
     Mp3,
+    Aac,
+    Opus,
+    Ogg,
+    Alac,
+    Aiff,
 }
