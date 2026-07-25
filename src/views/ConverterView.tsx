@@ -7,14 +7,17 @@ import { DropZone } from "../components/DropZone";
 import { FileQueue } from "../components/FileQueue";
 import { FormatPicker } from "../components/FormatPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
+import { QualityPicker } from "../components/QualityPicker";
 import { useBatchConversion } from "../hooks/useBatchConversion";
 import { useFileQueue } from "../hooks/useFileQueue";
 import { getDefaultPaths } from "../lib/tauri";
 import {
   AUDIO_EXTENSIONS,
+  isLossyFormat,
   type AppInfo,
   type OutputFormat,
   type OverwritePolicy,
+  type QualityPreset,
 } from "../types/conversion";
 
 type ConverterViewProps = {
@@ -32,6 +35,7 @@ function parentDir(path: string): string | null {
 
 export function ConverterView({ appInfo }: ConverterViewProps) {
   const [format, setFormat] = useState<OutputFormat>("flac");
+  const [qualityPreset, setQualityPreset] = useState<QualityPreset>("medium");
   const [overwritePolicy, setOverwritePolicy] = useState<OverwritePolicy>("rename");
   const [destination, setDestination] = useState<string | null>(null);
   const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
@@ -186,6 +190,7 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
       destinationDir: destination,
       outputFormat: format,
       overwritePolicy,
+      qualityPreset,
       assignJobIds: queue.assignJobIds,
     });
   }
@@ -275,6 +280,13 @@ export function ConverterView({ appInfo }: ConverterViewProps) {
         disabled={batch.isBusy}
         onChange={setFormat}
       />
+      {isLossyFormat(format) ? (
+        <QualityPicker
+          value={qualityPreset}
+          disabled={batch.isBusy}
+          onChange={setQualityPreset}
+        />
+      ) : null}
       <OverwritePicker
         value={overwritePolicy}
         disabled={batch.isBusy}

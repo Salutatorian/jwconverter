@@ -1,52 +1,52 @@
-import { OUTPUT_FORMATS, type OutputFormat } from "../types/conversion";
+import { QUALITY_PRESETS, type QualityPreset } from "../types/conversion";
 
-type FormatPickerProps = {
-  value: OutputFormat;
+type QualityPickerProps = {
+  value: QualityPreset;
   disabled?: boolean;
-  onChange: (format: OutputFormat) => void;
+  onChange: (preset: QualityPreset) => void;
 };
 
-export function FormatPicker({
+export function QualityPicker({
   value,
-  disabled = true,
+  disabled = false,
   onChange,
-}: FormatPickerProps) {
+}: QualityPickerProps) {
   return (
     <section
-      aria-label="Output format"
+      aria-label="Quality"
       className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5"
     >
       <h2 className="text-sm font-semibold tracking-wide text-[var(--text-muted)] uppercase">
-        Output format
+        Quality
       </h2>
       <div className="mt-4 flex flex-wrap gap-2">
-        {OUTPUT_FORMATS.map((format) => {
-          const isSelected = value === format.value;
-          const isDisabled = disabled || !format.enabled;
+        {QUALITY_PRESETS.map((preset) => {
+          const isSelected = value === preset.value;
           return (
             <button
-              key={format.value}
+              key={preset.value}
               type="button"
-              disabled={isDisabled}
+              disabled={disabled}
               aria-pressed={isSelected}
-              onClick={() => onChange(format.value)}
+              onClick={() => onChange(preset.value)}
               className={[
                 "rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors",
                 isSelected
                   ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--text)]"
                   : "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text)]",
-                isDisabled
+                disabled
                   ? "cursor-not-allowed opacity-50"
                   : "hover:border-[var(--accent)]/60",
               ].join(" ")}
             >
-              {format.label}
+              {preset.label}
             </button>
           );
         })}
       </div>
       <p className="mt-3 text-xs text-[var(--text-muted)]">
-        AAC and ALAC both write .m4a. Quality presets appear for lossy formats.
+        Medium matches the previous defaults (e.g. MP3/AAC 192 kbps). Applies
+        only to lossy formats.
       </p>
     </section>
   );

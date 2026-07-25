@@ -90,6 +90,7 @@ export function useConversion() {
         sourceDurationSeconds: args.sourceDurationSeconds,
         relativeSubdir: null,
         overwritePolicy: "rename",
+        qualityPreset: "medium",
       };
 
       try {

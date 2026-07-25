@@ -9,6 +9,7 @@ import type {
   JobStatus,
   OutputFormat,
   OverwritePolicy,
+  QualityPreset,
   QueueFileItem,
 } from "../types/conversion";
 
@@ -97,6 +98,7 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
       destinationDir: string;
       outputFormat: OutputFormat;
       overwritePolicy: OverwritePolicy;
+      qualityPreset: QualityPreset;
       assignJobIds: (paths: string[], jobIds: string[]) => void;
     }) => {
       const convertible = args.items.filter((item) => item.info);
@@ -115,6 +117,7 @@ export function useBatchConversion(patchByJobOrPath: PatchFn) {
         sourceDurationSeconds: item.info?.durationSeconds ?? null,
         relativeSubdir: item.relativeSubdir,
         overwritePolicy: args.overwritePolicy,
+        qualityPreset: args.qualityPreset,
       }));
 
       try {

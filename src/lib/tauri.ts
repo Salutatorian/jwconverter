@@ -5,6 +5,7 @@ import type {
   DiscoveredAudio,
   OutputFormat,
   OverwritePolicy,
+  QualityPreset,
 } from "../types/conversion";
 
 /** Typed wrappers around Tauri commands. Keep invoke strings in one place. */
@@ -45,6 +46,7 @@ export interface ConversionRequest {
   sourceDurationSeconds: number | null;
   relativeSubdir: string | null;
   overwritePolicy: OverwritePolicy;
+  qualityPreset: QualityPreset;
 }
 
 export interface BatchStartResult {

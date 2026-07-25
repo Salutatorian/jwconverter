@@ -25,6 +25,19 @@ export type OutputFormat =
 
 export type OverwritePolicy = "rename" | "skip" | "replace";
 
+export type QualityPreset = "low" | "medium" | "high";
+
+export const LOSSY_FORMATS: ReadonlySet<OutputFormat> = new Set([
+  "mp3",
+  "aac",
+  "opus",
+  "ogg",
+]);
+
+export function isLossyFormat(format: OutputFormat): boolean {
+  return LOSSY_FORMATS.has(format);
+}
+
 export interface AudioInfo {
   path: string;
   filename: string;
@@ -83,6 +96,15 @@ export const OVERWRITE_POLICIES: ReadonlyArray<{
   { value: "rename", label: "Rename" },
   { value: "skip", label: "Skip" },
   { value: "replace", label: "Replace" },
+];
+
+export const QUALITY_PRESETS: ReadonlyArray<{
+  value: QualityPreset;
+  label: string;
+}> = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
 ];
 
 export const AUDIO_EXTENSIONS = [
