@@ -41,7 +41,7 @@ pub fn preflight_image_batch(
     let engine_request = EngineRequest {
         destination_dir: request.destination_dir,
         output_format: request.output_format,
-        quality_preset: request.quality_preset,
+        quality_preset: request.quality_preset.normalize_for(request.output_format),
         resize_preset: request.resize_preset,
         overwrite_policy: request.overwrite_policy,
         items: request
