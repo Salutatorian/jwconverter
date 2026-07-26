@@ -4,6 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use super::job::{JobStatus, OverwritePolicy};
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageOutputFormat {
@@ -184,5 +188,8 @@ pub struct ImageConversionJob {
     pub quality_preset: ImageQualityPreset,
     #[serde(default)]
     pub resize_preset: ImageResizePreset,
+    /// Keep EXIF / ICC / comments when the destination format can carry them.
+    #[serde(default = "default_true")]
+    pub preserve_metadata: bool,
     pub status: JobStatus,
 }

@@ -5,6 +5,7 @@ import { ConversionProgress } from "../components/ConversionProgress";
 import { DestinationPicker } from "../components/DestinationPicker";
 import { DropZone } from "../components/DropZone";
 import { ImageFileQueue } from "../components/ImageFileQueue";
+import { ImageMetadataPicker } from "../components/ImageMetadataPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import { PreflightModal } from "../components/PreflightModal";
 import { SettingsGearButton } from "../components/SettingsGearButton";
@@ -52,6 +53,7 @@ export function ImageConverterView({
     useState<ImageQualityPreset>("medium");
   const [resizePreset, setResizePreset] =
     useState<ImageResizePreset>("original");
+  const [preserveMetadata, setPreserveMetadata] = useState(true);
   const [overwritePolicy, setOverwritePolicy] =
     useState<OverwritePolicy>("rename");
   const [destination, setDestination] = useState<string | null>(null);
@@ -220,6 +222,7 @@ export function ImageConverterView({
       overwritePolicy,
       qualityPreset,
       resizePreset,
+      preserveMetadata,
       assignJobIds: queue.assignJobIds,
     });
   }
@@ -462,6 +465,11 @@ export function ImageConverterView({
           value={overwritePolicy}
           disabled={batch.isBusy}
           onChange={setOverwritePolicy}
+        />
+        <ImageMetadataPicker
+          preserveMetadata={preserveMetadata}
+          disabled={batch.isBusy}
+          onPreserveMetadataChange={setPreserveMetadata}
         />
         <DestinationPicker
           destination={destination}

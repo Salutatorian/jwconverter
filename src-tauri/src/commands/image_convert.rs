@@ -22,6 +22,12 @@ pub struct ImageConversionRequest {
     pub quality_preset: ImageQualityPreset,
     #[serde(default)]
     pub resize_preset: ImageResizePreset,
+    #[serde(default = "default_true")]
+    pub preserve_metadata: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -55,6 +61,7 @@ fn build_item(request: ImageConversionRequest) -> Result<ImageQueueItem, String>
             overwrite_policy: request.overwrite_policy,
             quality_preset: request.quality_preset.normalize_for(request.output_format),
             resize_preset: request.resize_preset,
+            preserve_metadata: request.preserve_metadata,
             status: JobStatus::Queued,
         },
     })

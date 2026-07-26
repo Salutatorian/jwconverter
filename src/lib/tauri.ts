@@ -133,6 +133,7 @@ export interface ImageConversionRequest {
   overwritePolicy: OverwritePolicy;
   qualityPreset: import("../types/image").ImageQualityPreset;
   resizePreset: import("../types/image").ImageResizePreset;
+  preserveMetadata: boolean;
 }
 
 export interface ImagePreflightBatchRequest {

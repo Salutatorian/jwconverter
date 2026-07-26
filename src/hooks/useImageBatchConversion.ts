@@ -94,6 +94,7 @@ export function useImageBatchConversion(patchByJobOrPath: PatchFn) {
       overwritePolicy: OverwritePolicy;
       qualityPreset: ImageQualityPreset;
       resizePreset: ImageResizePreset;
+      preserveMetadata: boolean;
       assignJobIds: (paths: string[], jobIds: string[]) => void;
     }) => {
       if (busyRef.current) {
@@ -122,6 +123,7 @@ export function useImageBatchConversion(patchByJobOrPath: PatchFn) {
         overwritePolicy: args.overwritePolicy,
         qualityPreset: args.qualityPreset,
         resizePreset: args.resizePreset,
+        preserveMetadata: args.preserveMetadata,
       }));
 
       try {

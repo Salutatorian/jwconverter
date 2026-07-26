@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.2.5",
+    changes: [
+      "Preserve image metadata (EXIF / ICC / comments) — on by default",
+      "Optional strip when you want a clean output file",
+    ],
+    debugs: [
+      "Soak: Unicode paths, long names, and corrupt decode handling look solid",
+    ],
+  },
+  {
     version: "0.2.4",
     changes: [
       "New image outputs: BMP, GIF (still), and AVIF",

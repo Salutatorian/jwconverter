@@ -109,6 +109,7 @@ pub fn start_conversion(
     format: ImageOutputFormat,
     quality: ImageQualityPreset,
     resize: ImageResizePreset,
+    preserve_metadata: bool,
 ) -> Result<std::process::Child, AppError> {
     let magick = resolve_magick_required()?;
     let dir = magick_dir(&magick)?;
@@ -119,6 +120,10 @@ pub fn start_conversion(
     command.arg(source);
     // Apply EXIF Orientation so phone photos don't land sideways.
     command.arg("-auto-orient");
+
+    if !preserve_metadata {
+        command.arg("-strip");
+    }
 
     if let Some(geometry) = resize.magick_geometry() {
         command.arg("-resize").arg(geometry);
@@ -343,6 +348,7 @@ mod tests {
             ImageOutputFormat::Jpeg,
             ImageQualityPreset::Medium,
             ImageResizePreset::Original,
+            true,
         )
         .expect("start");
         let child = Arc::new(Mutex::new(Some(child)));
@@ -380,6 +386,7 @@ mod tests {
             ImageOutputFormat::Jpeg,
             ImageQualityPreset::Medium,
             ImageResizePreset::Original,
+            true,
         )
         .expect("start");
         let child = Arc::new(Mutex::new(Some(child)));
@@ -418,6 +425,7 @@ mod tests {
             ImageOutputFormat::Webp,
             ImageQualityPreset::Lossless,
             ImageResizePreset::Original,
+            true,
         )
         .expect("start");
         let child = Arc::new(Mutex::new(Some(child)));
@@ -460,6 +468,7 @@ mod tests {
                 format,
                 ImageQualityPreset::Medium,
                 ImageResizePreset::Original,
+                true,
             )
             .expect("start");
             let child = Arc::new(Mutex::new(Some(child)));
@@ -474,5 +483,99 @@ mod tests {
                 info.format
             );
         }
+    }
+
+    #[test]
+    fn preserve_metadata_keeps_comment_strip_removes_it() {
+        let Some(magick_path) = resolve_magick() else {
+            eprintln!("skip: magick not available");
+            return;
+        };
+
+        let dir = std::env::temp_dir().join(format!("jw-meta-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        let src = dir.join("src.jpg");
+        let kept = dir.join("kept.jpg");
+        let stripped = dir.join("stripped.jpg");
+
+        let status = std::process::Command::new(&magick_path)
+            .args(["-size", "24x16", "xc:navy", "-set", "comment", "jw-meta-test"])
+            .arg(&src)
+            .status()
+            .expect("create jpg");
+        assert!(status.success());
+
+        for (out, preserve) in [(&kept, true), (&stripped, false)] {
+            let child = start_conversion(
+                &src,
+                out,
+                ImageOutputFormat::Jpeg,
+                ImageQualityPreset::Medium,
+                ImageResizePreset::Original,
+                preserve,
+            )
+            .expect("start");
+            let child = Arc::new(Mutex::new(Some(child)));
+            let cancel = Arc::new(AtomicBool::new(false));
+            let result = wait_with_cancel(child, cancel).expect("wait");
+            assert!(result.success);
+        }
+
+        let kept_verbose = std::process::Command::new(&magick_path)
+            .args(["identify", "-verbose"])
+            .arg(&kept)
+            .output()
+            .expect("identify kept");
+        let kept_text = String::from_utf8_lossy(&kept_verbose.stdout);
+        assert!(
+            kept_text.contains("jw-meta-test"),
+            "expected comment when preserve=true"
+        );
+
+        let stripped_verbose = std::process::Command::new(&magick_path)
+            .args(["identify", "-verbose"])
+            .arg(&stripped)
+            .output()
+            .expect("identify stripped");
+        let stripped_text = String::from_utf8_lossy(&stripped_verbose.stdout);
+        assert!(
+            !stripped_text.contains("jw-meta-test"),
+            "expected no comment when preserve=false"
+        );
+    }
+
+    #[test]
+    fn converts_under_unicode_path() {
+        let Some(magick_path) = resolve_magick() else {
+            eprintln!("skip: magick not available");
+            return;
+        };
+
+        let dir = std::env::temp_dir().join(format!("jw-üñí-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        let src = dir.join("фото.png");
+        let out = dir.join("out.webp");
+
+        let status = std::process::Command::new(&magick_path)
+            .args(["-size", "8x8", "xc:teal"])
+            .arg(&src)
+            .status()
+            .expect("create png");
+        assert!(status.success());
+
+        let child = start_conversion(
+            &src,
+            &out,
+            ImageOutputFormat::Webp,
+            ImageQualityPreset::Medium,
+            ImageResizePreset::Original,
+            true,
+        )
+        .expect("start");
+        let child = Arc::new(Mutex::new(Some(child)));
+        let cancel = Arc::new(AtomicBool::new(false));
+        let result = wait_with_cancel(child, cancel).expect("wait");
+        assert!(result.success, "{}", result.stderr_tail);
+        assert!(out.is_file());
     }
 }
