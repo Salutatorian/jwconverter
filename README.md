@@ -6,7 +6,7 @@ Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; imag
 
 ## Download
 
-**[Download JW Converter for Windows (v0.2.5)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.2.5)**
+**[Download JW Converter for Windows (v0.2.7)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.2.7)**
 
 Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted files are not deleted.
 
@@ -30,7 +30,7 @@ Windows installer with bundled FFmpeg + ImageMagick.
 
 ## Status
 
-**v0.2.7** — *(in progress)* dual-mode polish + next batch — not published yet.
+**v0.2.7** — Dual-mode polish batch: Audio+Images product truth and UX parity (one ship).
 **v0.2.5** — Preserve image metadata (default on); optional strip; soak pass.
 **v0.2.4** — Image outputs: BMP, GIF (still), AVIF (HEIC out still unavailable).
 **v0.2.3** — WebP Lossless + PNG compression presets (Fast / Balanced / Small).

@@ -9,9 +9,10 @@ export const WHATS_NEW: WhatsNewEntry[] = [
   {
     version: "0.2.7",
     changes: [
+      "Dual-mode polish in one release (skipped micro 0.2.6)",
       "Product copy reflects Audio + Images (README, Settings, installer)",
       "Images mode: Update available CTA, mode-aware drop zone, queue Remove parity",
-      "Consistent Audio | Images chip order across modes",
+      "Consistent Audio | Images chip order; Metadata before Overwrite",
     ],
     debugs: [],
   },
