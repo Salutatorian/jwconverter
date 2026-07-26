@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AppShell, type MediaMode } from "./components/AppShell";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { WhatsNewModal } from "./components/WhatsNewModal";
+import { useTheme } from "./hooks/useTheme";
 import { useUpdater } from "./hooks/useUpdater";
 import { getAppInfo } from "./lib/tauri";
 import {
@@ -21,6 +22,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modeLocked, setModeLocked] = useState(false);
   const updater = useUpdater();
+  const theme = useTheme();
   const updateAvailable =
     updater.status === "available" || updater.status === "downloading";
 
@@ -70,15 +72,9 @@ function App() {
         version={appInfo?.version ?? null}
       >
         {mode === "audio" ? (
-          <ConverterView
-            appInfo={appInfo}
-            onBusyChange={setModeLocked}
-          />
+          <ConverterView appInfo={appInfo} onBusyChange={setModeLocked} />
         ) : (
-          <ImageConverterView
-            appInfo={appInfo}
-            onBusyChange={setModeLocked}
-          />
+          <ImageConverterView appInfo={appInfo} onBusyChange={setModeLocked} />
         )}
       </AppShell>
 
@@ -89,6 +85,8 @@ function App() {
         }}
         appInfo={appInfo}
         updater={updater}
+        themePreference={theme.preference}
+        onThemePreferenceChange={theme.setPreference}
       />
 
       {whatsNew ? (

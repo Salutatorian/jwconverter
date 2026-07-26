@@ -18,6 +18,7 @@ import {
   GYAN_FFMPEG_BUILDS_URL,
 } from "../lib/links";
 import { getMediaToolsInfo } from "../lib/tauri";
+import type { ThemePreference } from "../lib/theme";
 import type { AppInfo } from "../types/conversion";
 import { UpdateControls } from "./UpdateControls";
 
@@ -28,6 +29,8 @@ type SettingsDialogProps = {
   onClose: () => void;
   appInfo: AppInfo | null;
   updater: UseUpdaterResult;
+  themePreference: ThemePreference;
+  onThemePreferenceChange: (preference: ThemePreference) => void;
 };
 
 const NAV: {
@@ -54,6 +57,8 @@ export function SettingsDialog({
   onClose,
   appInfo,
   updater,
+  themePreference,
+  onThemePreferenceChange,
 }: SettingsDialogProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -167,19 +172,51 @@ export function SettingsDialog({
 
           <div className="settings-pane-body">
             {section === "general" ? (
-              <div className="flex flex-col gap-3">
-                <h3 className="text-base font-semibold text-[var(--text)]">
-                  Local conversion
-                </h3>
-                <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-                  JW Converter runs entirely on your machine. Switch between
-                  Audio and Images from the main window. Sources are never
-                  modified; outputs go to the destination you choose.
-                </p>
-                <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-                  Overwrite policy (Rename / Skip / Replace), quality presets,
-                  and metadata options live on the convert screen — not here.
-                </p>
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-3">
+                  <h3 className="text-base font-semibold text-[var(--text)]">
+                    Appearance
+                  </h3>
+                  <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                    Flat black or white. Default follows your system theme.
+                  </p>
+                  <div
+                    className="chip-row"
+                    role="group"
+                    aria-label="Color theme"
+                  >
+                    {(
+                      [
+                        { value: "system", label: "System" },
+                        { value: "dark", label: "Black" },
+                        { value: "light", label: "White" },
+                      ] as const
+                    ).map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className="chip"
+                        aria-pressed={themePreference === option.value}
+                        onClick={() => {
+                          onThemePreferenceChange(option.value);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <h3 className="text-base font-semibold text-[var(--text)]">
+                    Local conversion
+                  </h3>
+                  <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                    JW Converter runs entirely on your machine. Switch between
+                    Audio and Images from the rail. Sources are never modified;
+                    outputs go to the destination you choose.
+                  </p>
+                </div>
               </div>
             ) : null}
 

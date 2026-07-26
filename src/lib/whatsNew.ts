@@ -7,6 +7,14 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.4.1",
+    changes: [
+      "Flat black / white backgrounds — removed the noisy grain overlay",
+      "Theme: System (default), Black, or White — follows OS theme when set to System",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.4.0",
     changes: [
       "Full UI revamp — cobalt-style shell with left rail for Audio / Images / Settings",

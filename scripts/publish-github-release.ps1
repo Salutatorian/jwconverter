@@ -51,15 +51,13 @@ $notes = @"
 Download the Windows installer below. From v0.1.2 onward, the app can check GitHub Releases and install updates when you click **Update**.
 
 ### What's new
-- Full UI revamp — cobalt-style left rail (Audio / Images / Settings)
-- Near-black canvas, pill controls, monospace chrome
-- Attachment file queues kept for batch status + retry
+- Flat black / white UI — no grain overlay
+- Theme: System (default), Black, or White in Settings → General
 
 ### Notes
 - Windows 10/11 x64 + WebView2
 - Sources are never modified
 - Bundled FFmpeg/FFprobe — see docs/ffmpeg-licensing.md
-- macOS CI builds are unsigned (Gatekeeper may require right-click → Open)
 "@
 
 gh release create $tag $uploadSetup $latestPath `
