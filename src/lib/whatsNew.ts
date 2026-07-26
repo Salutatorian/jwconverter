@@ -7,6 +7,18 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.2.8",
+    changes: [
+      "Clearer empty states for Audio and Images (what to drop, format hints)",
+      "Honest HEIC messaging: import supported, export not available on this Magick build",
+      "Updated README screenshot for the dual-mode app",
+      "Extra soak coverage (Unicode paths, cancel mid-convert)",
+    ],
+    debugs: [
+      "HEIC export still blocked until a write-capable ImageMagick is bundled",
+    ],
+  },
+  {
     version: "0.2.7",
     changes: [
       "Image line polish (was briefly 0.2.1–0.2.6) in one release",

@@ -142,7 +142,9 @@ export function SettingsPanel({
           </p>
           <p className="panel-hint">
             Local-first audio and image conversion. No accounts, no cloud
-            upload, no telemetry. Sources are never modified.
+            upload, no telemetry. Sources are never modified. HEIC can be
+            imported; HEIC export needs a future ImageMagick build with write
+            support.
           </p>
           <p className="mt-3 text-sm text-[var(--text-muted)]">
             Uses FFmpeg / FFprobe (Gyan full build, GPL) for audio and

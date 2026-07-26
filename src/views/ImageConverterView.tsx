@@ -290,6 +290,10 @@ export function ImageConverterView({
               </span>
             ) : null}
           </p>
+          <p className="mt-1 text-xs text-[var(--text-faint)]">
+            Drop photos or a folder to get started — HEIC import OK; HEIC export
+            not available on this build.
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
@@ -428,6 +432,10 @@ export function ImageConverterView({
               </button>
             ))}
           </div>
+          <p className="panel-hint mt-2">
+            HEIC/HEIF can be imported when Magick can read them. Export is not
+            available in this build.
+          </p>
         </section>
 
         {showsImageQualityControls(format) ? (

@@ -301,6 +301,9 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
               </span>
             ) : null}
           </p>
+          <p className="mt-1 text-xs text-[var(--text-faint)]">
+            Drop files or a folder to get started — originals stay untouched.
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button type="button" className="chip" disabled aria-pressed>
               Audio

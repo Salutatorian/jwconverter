@@ -545,6 +545,46 @@ mod tests {
     }
 
     #[test]
+    fn cancel_flag_aborts_wait() {
+        let Some(magick_path) = resolve_magick() else {
+            eprintln!("skip: magick not available");
+            return;
+        };
+
+        let dir = std::env::temp_dir().join(format!("jw-cancel-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        let src = dir.join("big.png");
+        let out = dir.join("out.jpg");
+
+        // Larger canvas so Magick runs long enough to cancel.
+        let status = std::process::Command::new(&magick_path)
+            .args(["-size", "2000x2000", "plasma:fractal"])
+            .arg(&src)
+            .status()
+            .expect("create png");
+        assert!(status.success());
+
+        let child = start_conversion(
+            &src,
+            &out,
+            ImageOutputFormat::Jpeg,
+            ImageQualityPreset::High,
+            ImageResizePreset::Original,
+            true,
+        )
+        .expect("start");
+        let child = Arc::new(Mutex::new(Some(child)));
+        let cancel = Arc::new(AtomicBool::new(false));
+        let cancel_flag = Arc::clone(&cancel);
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(30));
+            cancel_flag.store(true, Ordering::SeqCst);
+        });
+        let result = wait_with_cancel(child, cancel).expect("wait");
+        assert!(result.cancelled || !result.success);
+    }
+
+    #[test]
     fn converts_under_unicode_path() {
         let Some(magick_path) = resolve_magick() else {
             eprintln!("skip: magick not available");
