@@ -124,10 +124,11 @@ pub fn start_conversion(
         command.arg("-resize").arg(geometry);
     }
 
-    if format.is_lossy() {
-        command
-            .arg("-quality")
-            .arg(quality.magick_quality().to_string());
+    let quality = quality.normalize_for(format);
+    if format == ImageOutputFormat::Webp && quality.is_lossless() {
+        command.arg("-define").arg("webp:lossless=true");
+    } else if let Some(q) = quality.magick_quality_for(format) {
+        command.arg("-quality").arg(q.to_string());
     }
 
     let out = format!("{}:{}", format.magick_format(), temp_output.display());
@@ -390,5 +391,42 @@ mod tests {
         let info = analyze(out.to_string_lossy().as_ref()).expect("identify");
         assert_eq!(info.width, Some(16));
         assert_eq!(info.height, Some(16));
+    }
+
+    #[test]
+    fn converts_png_to_webp_lossless() {
+        let Some(magick_path) = resolve_magick() else {
+            eprintln!("skip: magick not available");
+            return;
+        };
+
+        let dir = std::env::temp_dir().join(format!("jw-webp-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        let src = dir.join("src.png");
+        let out = dir.join("out.webp");
+
+        let status = std::process::Command::new(&magick_path)
+            .args(["-size", "8x8", "xc:green"])
+            .arg(&src)
+            .status()
+            .expect("create png");
+        assert!(status.success());
+
+        let child = start_conversion(
+            &src,
+            &out,
+            ImageOutputFormat::Webp,
+            ImageQualityPreset::Lossless,
+            ImageResizePreset::Original,
+        )
+        .expect("start");
+        let child = Arc::new(Mutex::new(Some(child)));
+        let cancel = Arc::new(AtomicBool::new(false));
+        let result = wait_with_cancel(child, cancel).expect("wait");
+        assert!(result.success);
+        assert!(out.is_file());
+
+        let info = analyze(out.to_string_lossy().as_ref()).expect("identify");
+        assert_eq!(info.format.as_deref(), Some("WEBP"));
     }
 }

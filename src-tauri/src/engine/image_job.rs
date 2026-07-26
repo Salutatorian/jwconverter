@@ -24,8 +24,20 @@ impl ImageOutputFormat {
         }
     }
 
-    pub fn is_lossy(self) -> bool {
-        matches!(self, ImageOutputFormat::Jpeg | ImageOutputFormat::Webp)
+    /// True when the chosen quality encodes lossy pixels (WebP lossless is not).
+    pub fn is_lossy_with(self, quality: ImageQualityPreset) -> bool {
+        match self {
+            ImageOutputFormat::Jpeg => true,
+            ImageOutputFormat::Webp => !quality.is_lossless(),
+            ImageOutputFormat::Png | ImageOutputFormat::Tiff => false,
+        }
+    }
+
+    pub fn shows_quality_controls(self) -> bool {
+        matches!(
+            self,
+            ImageOutputFormat::Jpeg | ImageOutputFormat::Png | ImageOutputFormat::Webp
+        )
     }
 
     pub fn magick_format(self) -> &'static str {
@@ -45,15 +57,50 @@ pub enum ImageQualityPreset {
     #[default]
     Medium,
     High,
+    Lossless,
 }
 
 impl ImageQualityPreset {
-    /// ImageMagick `-quality` for JPEG / WebP.
-    pub fn magick_quality(self) -> u8 {
-        match self {
-            ImageQualityPreset::Low => 70,
-            ImageQualityPreset::Medium => 85,
-            ImageQualityPreset::High => 95,
+    pub fn is_lossless(self) -> bool {
+        matches!(self, ImageQualityPreset::Lossless)
+    }
+
+    /// Coerce Lossless → Medium when the format does not support it.
+    pub fn normalize_for(self, format: ImageOutputFormat) -> Self {
+        if self.is_lossless() && !matches!(format, ImageOutputFormat::Webp) {
+            ImageQualityPreset::Medium
+        } else {
+            self
+        }
+    }
+
+    /// Magick `-quality` when applicable (None for WebP lossless / TIFF).
+    pub fn magick_quality_for(self, format: ImageOutputFormat) -> Option<u8> {
+        let quality = self.normalize_for(format);
+        match format {
+            ImageOutputFormat::Jpeg => Some(match quality {
+                ImageQualityPreset::Low => 70,
+                ImageQualityPreset::Medium => 85,
+                ImageQualityPreset::High | ImageQualityPreset::Lossless => 95,
+            }),
+            ImageOutputFormat::Webp => {
+                if quality.is_lossless() {
+                    None
+                } else {
+                    Some(match quality {
+                        ImageQualityPreset::Low => 70,
+                        ImageQualityPreset::Medium => 85,
+                        ImageQualityPreset::High | ImageQualityPreset::Lossless => 95,
+                    })
+                }
+            }
+            // PNG: higher Magick quality ≈ less zlib compression (faster / larger).
+            ImageOutputFormat::Png => Some(match quality {
+                ImageQualityPreset::Low => 90,
+                ImageQualityPreset::Medium => 75,
+                ImageQualityPreset::High | ImageQualityPreset::Lossless => 50,
+            }),
+            ImageOutputFormat::Tiff => None,
         }
     }
 }

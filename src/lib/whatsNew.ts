@@ -7,6 +7,15 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.2.3",
+    changes: [
+      "WebP Lossless encoding option",
+      "PNG compression presets (Fast / Balanced / Small)",
+      "Quality controls shown for JPEG, WebP, and PNG with format-aware labels",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.2.2",
     changes: [
       "Images honor EXIF orientation (phone photos no longer land sideways)",

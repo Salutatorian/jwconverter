@@ -21,9 +21,9 @@ import type { AppInfo, OverwritePolicy } from "../types/conversion";
 import {
   IMAGE_EXTENSIONS,
   IMAGE_OUTPUT_FORMATS,
-  IMAGE_QUALITY_PRESETS,
   IMAGE_RESIZE_PRESETS,
-  isLossyImageFormat,
+  qualityPresetsForFormat,
+  showsImageQualityControls,
   type ImageOutputFormat,
   type ImageQualityPreset,
   type ImageResizePreset,
@@ -402,7 +402,12 @@ export function ImageConverterView({
                 className="chip"
                 disabled={batch.isBusy}
                 aria-pressed={format === item.value}
-                onClick={() => setFormat(item.value)}
+                onClick={() => {
+                  setFormat(item.value);
+                  if (item.value !== "webp" && qualityPreset === "lossless") {
+                    setQualityPreset("medium");
+                  }
+                }}
               >
                 {item.label}
               </button>
@@ -410,11 +415,13 @@ export function ImageConverterView({
           </div>
         </section>
 
-        {isLossyImageFormat(format) ? (
+        {showsImageQualityControls(format) ? (
           <section aria-label="Quality" className="panel">
-            <h2 className="panel-title">Quality</h2>
+            <h2 className="panel-title">
+              {format === "png" ? "Compression" : "Quality"}
+            </h2>
             <div className="chip-row">
-              {IMAGE_QUALITY_PRESETS.map((item) => (
+              {qualityPresetsForFormat(format).map((item) => (
                 <button
                   key={item.value}
                   type="button"

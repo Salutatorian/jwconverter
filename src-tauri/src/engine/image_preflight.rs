@@ -65,7 +65,11 @@ pub fn run_image_preflight(request: &ImagePreflightRequest) -> Result<PreflightR
             source_bytes = source_bytes.saturating_add(size);
         }
 
-        if source_is_lossy(item.format.as_deref()) && !request.output_format.is_lossy() {
+        if source_is_lossy(item.format.as_deref())
+            && !request
+                .output_format
+                .is_lossy_with(request.quality_preset)
+        {
             lossy_to_lossless += 1;
         }
 
@@ -96,7 +100,7 @@ pub fn run_image_preflight(request: &ImagePreflightRequest) -> Result<PreflightR
             kind: WarningKind::LossyToLossless,
             count: lossy_to_lossless,
             message: format!(
-                "{lossy_to_lossless} image(s): converting a lossy photo to PNG/TIFF won't restore discarded detail — output is often larger."
+                "{lossy_to_lossless} image(s): converting a lossy photo to PNG/TIFF/WebP lossless won't restore discarded detail — output is often larger."
             ),
         });
     }
@@ -134,24 +138,35 @@ fn estimate_output_bytes(
     quality: ImageQualityPreset,
 ) -> u64 {
     let pixels = u64::from(width).saturating_mul(u64::from(height));
+    let quality = quality.normalize_for(format);
     match format {
         ImageOutputFormat::Jpeg => {
             let bpp = match quality {
                 ImageQualityPreset::Low => 0.12,
                 ImageQualityPreset::Medium => 0.20,
-                ImageQualityPreset::High => 0.35,
+                ImageQualityPreset::High | ImageQualityPreset::Lossless => 0.35,
             };
             (pixels as f64 * bpp) as u64
         }
         ImageOutputFormat::Webp => {
+            if quality.is_lossless() {
+                return pixels.saturating_mul(2);
+            }
             let bpp = match quality {
                 ImageQualityPreset::Low => 0.08,
                 ImageQualityPreset::Medium => 0.14,
-                ImageQualityPreset::High => 0.25,
+                ImageQualityPreset::High | ImageQualityPreset::Lossless => 0.25,
             };
             (pixels as f64 * bpp) as u64
         }
-        ImageOutputFormat::Png => pixels.saturating_mul(2),
+        ImageOutputFormat::Png => {
+            let bpp = match quality {
+                ImageQualityPreset::Low => 2.4,
+                ImageQualityPreset::Medium => 2.0,
+                ImageQualityPreset::High | ImageQualityPreset::Lossless => 1.6,
+            };
+            (pixels as f64 * bpp) as u64
+        }
         ImageOutputFormat::Tiff => pixels.saturating_mul(3),
     }
 }
@@ -221,5 +236,29 @@ mod tests {
             .iter()
             .any(|w| w.kind == WarningKind::LossyToLossless));
         assert!(report.estimated_output_bytes > 0);
+    }
+
+    #[test]
+    fn lossy_to_webp_lossless_warns() {
+        let report = run_image_preflight(&ImagePreflightRequest {
+            destination_dir: std::env::temp_dir().to_string_lossy().into_owned(),
+            output_format: ImageOutputFormat::Webp,
+            quality_preset: ImageQualityPreset::Lossless,
+            resize_preset: ImageResizePreset::Original,
+            overwrite_policy: OverwritePolicy::Rename,
+            items: vec![ImagePreflightItem {
+                source_path: r"C:\photos\a.jpg".into(),
+                relative_subdir: None,
+                width: Some(2000),
+                height: Some(1500),
+                file_size_bytes: Some(400_000),
+                format: Some("JPEG".into()),
+            }],
+        })
+        .expect("ok");
+        assert!(report
+            .warnings
+            .iter()
+            .any(|w| w.kind == WarningKind::LossyToLossless));
     }
 }

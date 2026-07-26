@@ -1,5 +1,5 @@
 export type ImageOutputFormat = "jpeg" | "png" | "webp" | "tiff";
-export type ImageQualityPreset = "low" | "medium" | "high";
+export type ImageQualityPreset = "low" | "medium" | "high" | "lossless";
 export type ImageResizePreset =
   | "original"
   | "2048"
@@ -17,14 +17,40 @@ export const IMAGE_OUTPUT_FORMATS: ReadonlyArray<{
   { value: "tiff", label: "TIFF" },
 ];
 
-export const IMAGE_QUALITY_PRESETS: ReadonlyArray<{
-  value: ImageQualityPreset;
-  label: string;
-}> = [
-  { value: "low", label: "Low · 70" },
-  { value: "medium", label: "Medium · 85" },
-  { value: "high", label: "High · 95" },
-];
+export function qualityPresetsForFormat(
+  format: ImageOutputFormat,
+): ReadonlyArray<{ value: ImageQualityPreset; label: string }> {
+  switch (format) {
+    case "jpeg":
+      return [
+        { value: "low", label: "Low · 70" },
+        { value: "medium", label: "Medium · 85" },
+        { value: "high", label: "High · 95" },
+      ];
+    case "webp":
+      return [
+        { value: "low", label: "Low · 70" },
+        { value: "medium", label: "Medium · 85" },
+        { value: "high", label: "High · 95" },
+        { value: "lossless", label: "Lossless" },
+      ];
+    case "png":
+      return [
+        { value: "low", label: "Fast · 90" },
+        { value: "medium", label: "Balanced · 75" },
+        { value: "high", label: "Small · 50" },
+      ];
+    case "tiff":
+      return [];
+  }
+}
+
+export function showsImageQualityControls(format: ImageOutputFormat): boolean {
+  return format === "jpeg" || format === "png" || format === "webp";
+}
+
+/** Kept for callers that only need the shared Low/Med/High set. */
+export const IMAGE_QUALITY_PRESETS = qualityPresetsForFormat("jpeg");
 
 export const IMAGE_RESIZE_PRESETS: ReadonlyArray<{
   value: ImageResizePreset;
@@ -66,8 +92,17 @@ export function isImagePath(path: string): boolean {
   return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(`.${ext}`));
 }
 
-export function isLossyImageFormat(format: ImageOutputFormat): boolean {
-  return format === "jpeg" || format === "webp";
+export function isLossyImageFormat(
+  format: ImageOutputFormat,
+  quality: ImageQualityPreset = "medium",
+): boolean {
+  if (format === "jpeg") {
+    return true;
+  }
+  if (format === "webp") {
+    return quality !== "lossless";
+  }
+  return false;
 }
 
 export interface ImageInfo {

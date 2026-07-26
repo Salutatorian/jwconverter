@@ -53,7 +53,7 @@ fn build_item(request: ImageConversionRequest) -> Result<ImageQueueItem, String>
             relative_subdir,
             output_format: request.output_format,
             overwrite_policy: request.overwrite_policy,
-            quality_preset: request.quality_preset,
+            quality_preset: request.quality_preset.normalize_for(request.output_format),
             resize_preset: request.resize_preset,
             status: JobStatus::Queued,
         },
