@@ -1,4 +1,11 @@
-export type ImageOutputFormat = "jpeg" | "png" | "webp" | "tiff";
+export type ImageOutputFormat =
+  | "jpeg"
+  | "png"
+  | "webp"
+  | "tiff"
+  | "bmp"
+  | "gif"
+  | "avif";
 export type ImageQualityPreset = "low" | "medium" | "high" | "lossless";
 export type ImageResizePreset =
   | "original"
@@ -14,7 +21,10 @@ export const IMAGE_OUTPUT_FORMATS: ReadonlyArray<{
   { value: "jpeg", label: "JPEG" },
   { value: "png", label: "PNG" },
   { value: "webp", label: "WebP" },
+  { value: "avif", label: "AVIF" },
   { value: "tiff", label: "TIFF" },
+  { value: "bmp", label: "BMP" },
+  { value: "gif", label: "GIF" },
 ];
 
 export function qualityPresetsForFormat(
@@ -22,6 +32,7 @@ export function qualityPresetsForFormat(
 ): ReadonlyArray<{ value: ImageQualityPreset; label: string }> {
   switch (format) {
     case "jpeg":
+    case "avif":
       return [
         { value: "low", label: "Low · 70" },
         { value: "medium", label: "Medium · 85" },
@@ -41,12 +52,19 @@ export function qualityPresetsForFormat(
         { value: "high", label: "Small · 50" },
       ];
     case "tiff":
+    case "bmp":
+    case "gif":
       return [];
   }
 }
 
 export function showsImageQualityControls(format: ImageOutputFormat): boolean {
-  return format === "jpeg" || format === "png" || format === "webp";
+  return (
+    format === "jpeg" ||
+    format === "png" ||
+    format === "webp" ||
+    format === "avif"
+  );
 }
 
 /** Kept for callers that only need the shared Low/Med/High set. */
@@ -96,7 +114,7 @@ export function isLossyImageFormat(
   format: ImageOutputFormat,
   quality: ImageQualityPreset = "medium",
 ): boolean {
-  if (format === "jpeg") {
+  if (format === "jpeg" || format === "gif" || format === "avif") {
     return true;
   }
   if (format === "webp") {

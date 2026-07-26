@@ -12,6 +12,9 @@ pub enum ImageOutputFormat {
     Png,
     Webp,
     Tiff,
+    Bmp,
+    Gif,
+    Avif,
 }
 
 impl ImageOutputFormat {
@@ -21,22 +24,28 @@ impl ImageOutputFormat {
             ImageOutputFormat::Png => "png",
             ImageOutputFormat::Webp => "webp",
             ImageOutputFormat::Tiff => "tiff",
+            ImageOutputFormat::Bmp => "bmp",
+            ImageOutputFormat::Gif => "gif",
+            ImageOutputFormat::Avif => "avif",
         }
     }
 
     /// True when the chosen quality encodes lossy pixels (WebP lossless is not).
     pub fn is_lossy_with(self, quality: ImageQualityPreset) -> bool {
         match self {
-            ImageOutputFormat::Jpeg => true,
+            ImageOutputFormat::Jpeg | ImageOutputFormat::Gif | ImageOutputFormat::Avif => true,
             ImageOutputFormat::Webp => !quality.is_lossless(),
-            ImageOutputFormat::Png | ImageOutputFormat::Tiff => false,
+            ImageOutputFormat::Png | ImageOutputFormat::Tiff | ImageOutputFormat::Bmp => false,
         }
     }
 
     pub fn shows_quality_controls(self) -> bool {
         matches!(
             self,
-            ImageOutputFormat::Jpeg | ImageOutputFormat::Png | ImageOutputFormat::Webp
+            ImageOutputFormat::Jpeg
+                | ImageOutputFormat::Png
+                | ImageOutputFormat::Webp
+                | ImageOutputFormat::Avif
         )
     }
 
@@ -46,6 +55,25 @@ impl ImageOutputFormat {
             ImageOutputFormat::Png => "PNG",
             ImageOutputFormat::Webp => "WEBP",
             ImageOutputFormat::Tiff => "TIFF",
+            ImageOutputFormat::Bmp => "BMP",
+            ImageOutputFormat::Gif => "GIF",
+            ImageOutputFormat::Avif => "AVIF",
+        }
+    }
+
+    /// Magick identify format aliases that still count as a match.
+    pub fn matches_identified(self, actual: &str) -> bool {
+        let expected = self.magick_format();
+        if actual.eq_ignore_ascii_case(expected) {
+            return true;
+        }
+        match self {
+            ImageOutputFormat::Jpeg => actual.eq_ignore_ascii_case("JPG"),
+            ImageOutputFormat::Gif => actual.eq_ignore_ascii_case("GIF87"),
+            ImageOutputFormat::Bmp => {
+                actual.eq_ignore_ascii_case("BMP2") || actual.eq_ignore_ascii_case("BMP3")
+            }
+            _ => false,
         }
     }
 }
@@ -74,11 +102,11 @@ impl ImageQualityPreset {
         }
     }
 
-    /// Magick `-quality` when applicable (None for WebP lossless / TIFF).
+    /// Magick `-quality` when applicable (None for WebP lossless / TIFF / BMP / GIF).
     pub fn magick_quality_for(self, format: ImageOutputFormat) -> Option<u8> {
         let quality = self.normalize_for(format);
         match format {
-            ImageOutputFormat::Jpeg => Some(match quality {
+            ImageOutputFormat::Jpeg | ImageOutputFormat::Avif => Some(match quality {
                 ImageQualityPreset::Low => 70,
                 ImageQualityPreset::Medium => 85,
                 ImageQualityPreset::High | ImageQualityPreset::Lossless => 95,
@@ -100,7 +128,9 @@ impl ImageQualityPreset {
                 ImageQualityPreset::Medium => 75,
                 ImageQualityPreset::High | ImageQualityPreset::Lossless => 50,
             }),
-            ImageOutputFormat::Tiff => None,
+            ImageOutputFormat::Tiff
+            | ImageOutputFormat::Bmp
+            | ImageOutputFormat::Gif => None,
         }
     }
 }

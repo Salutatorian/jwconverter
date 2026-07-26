@@ -429,4 +429,50 @@ mod tests {
         let info = analyze(out.to_string_lossy().as_ref()).expect("identify");
         assert_eq!(info.format.as_deref(), Some("WEBP"));
     }
+
+    #[test]
+    fn converts_png_to_bmp_gif_avif() {
+        let Some(magick_path) = resolve_magick() else {
+            eprintln!("skip: magick not available");
+            return;
+        };
+
+        let dir = std::env::temp_dir().join(format!("jw-extra-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        let src = dir.join("src.png");
+
+        let status = std::process::Command::new(&magick_path)
+            .args(["-size", "8x8", "xc:orange"])
+            .arg(&src)
+            .status()
+            .expect("create png");
+        assert!(status.success());
+
+        for (format, name) in [
+            (ImageOutputFormat::Bmp, "out.bmp"),
+            (ImageOutputFormat::Gif, "out.gif"),
+            (ImageOutputFormat::Avif, "out.avif"),
+        ] {
+            let out = dir.join(name);
+            let child = start_conversion(
+                &src,
+                &out,
+                format,
+                ImageQualityPreset::Medium,
+                ImageResizePreset::Original,
+            )
+            .expect("start");
+            let child = Arc::new(Mutex::new(Some(child)));
+            let cancel = Arc::new(AtomicBool::new(false));
+            let result = wait_with_cancel(child, cancel).expect("wait");
+            assert!(result.success, "{name}: {}", result.stderr_tail);
+            assert!(out.is_file());
+            let info = analyze(out.to_string_lossy().as_ref()).expect("identify");
+            assert!(
+                format.matches_identified(info.format.as_deref().unwrap_or("")),
+                "{name} got {:?}",
+                info.format
+            );
+        }
+    }
 }

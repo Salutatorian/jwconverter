@@ -142,13 +142,13 @@ fn verify_image_output(path: &Path, format: ImageOutputFormat) -> Result<(), App
     }
 
     let info = imagemagick::analyze(path.to_string_lossy().as_ref())?;
-    let expected = format.magick_format();
     if let Some(actual) = info.format.as_deref() {
-        let ok = actual.eq_ignore_ascii_case(expected)
-            || (expected == "JPEG" && actual.eq_ignore_ascii_case("JPG"));
-        if !ok {
+        if !format.matches_identified(actual) {
             return Err(AppError::VerificationFailure {
-                detail: format!("Output format mismatch. Expected {expected}, got {actual}."),
+                detail: format!(
+                    "Output format mismatch. Expected {}, got {actual}.",
+                    format.magick_format()
+                ),
             });
         }
     }

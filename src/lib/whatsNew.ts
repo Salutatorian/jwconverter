@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.2.4",
+    changes: [
+      "New image outputs: BMP, GIF (still), and AVIF",
+      "AVIF quality presets (Low / Medium / High)",
+    ],
+    debugs: [
+      "HEIC export still unavailable — bundled Magick is HEIC read-only",
+    ],
+  },
+  {
     version: "0.2.3",
     changes: [
       "WebP Lossless encoding option",

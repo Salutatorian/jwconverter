@@ -100,7 +100,7 @@ pub fn run_image_preflight(request: &ImagePreflightRequest) -> Result<PreflightR
             kind: WarningKind::LossyToLossless,
             count: lossy_to_lossless,
             message: format!(
-                "{lossy_to_lossless} image(s): converting a lossy photo to PNG/TIFF/WebP lossless won't restore discarded detail — output is often larger."
+                "{lossy_to_lossless} image(s): converting a lossy photo to a lossless format (PNG/TIFF/BMP/WebP lossless) won't restore discarded detail — output is often larger."
             ),
         });
     }
@@ -168,6 +168,16 @@ fn estimate_output_bytes(
             (pixels as f64 * bpp) as u64
         }
         ImageOutputFormat::Tiff => pixels.saturating_mul(3),
+        ImageOutputFormat::Bmp => pixels.saturating_mul(3),
+        ImageOutputFormat::Gif => (pixels as f64 * 0.5) as u64,
+        ImageOutputFormat::Avif => {
+            let bpp = match quality {
+                ImageQualityPreset::Low => 0.06,
+                ImageQualityPreset::Medium => 0.10,
+                ImageQualityPreset::High | ImageQualityPreset::Lossless => 0.18,
+            };
+            (pixels as f64 * bpp) as u64
+        }
     }
 }
 
