@@ -30,12 +30,7 @@ Windows installer with bundled FFmpeg + ImageMagick.
 
 ## Status
 
-**v0.2.7** — Dual-mode polish batch: Audio+Images product truth and UX parity (one ship).
-**v0.2.5** — Preserve image metadata (default on); optional strip; soak pass.
-**v0.2.4** — Image outputs: BMP, GIF (still), AVIF (HEIC out still unavailable).
-**v0.2.3** — WebP Lossless + PNG compression presets (Fast / Balanced / Small).
-**v0.2.2** — Images honor EXIF orientation; clearer camera RAW decode errors.
-**v0.2.1** — Image resize presets + image preflight (size estimate, disk gate, honesty warnings).
+**v0.2.7** — Image polish batch (resize, preflight, orientation, RAW errors, WebP/PNG knobs, BMP/GIF/AVIF, metadata, dual-mode UX). Replaces micro releases 0.2.1–0.2.6.
 **v0.2.0** — Images mode (ImageMagick): JPEG/PNG/WebP/TIFF + common RAW inputs.
 **v0.1.15** — Audio foundation complete for the 0.1 line (FFmpeg licensing pack).
 **v0.1.11** — MP3 CBR/VBR modes; quality chips show bitrates / VBR grades.

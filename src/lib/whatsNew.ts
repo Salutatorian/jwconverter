@@ -9,57 +9,15 @@ export const WHATS_NEW: WhatsNewEntry[] = [
   {
     version: "0.2.7",
     changes: [
-      "Dual-mode polish in one release (skipped micro 0.2.6)",
-      "Product copy reflects Audio + Images (README, Settings, installer)",
-      "Images mode: Update available CTA, mode-aware drop zone, queue Remove parity",
-      "Consistent Audio | Images chip order; Metadata before Overwrite",
-    ],
-    debugs: [],
-  },
-  {
-    version: "0.2.5",
-    changes: [
-      "Preserve image metadata (EXIF / ICC / comments) — on by default",
-      "Optional strip when you want a clean output file",
-    ],
-    debugs: [
-      "Soak: Unicode paths, long names, and corrupt decode handling look solid",
-    ],
-  },
-  {
-    version: "0.2.4",
-    changes: [
-      "New image outputs: BMP, GIF (still), and AVIF",
-      "AVIF quality presets (Low / Medium / High)",
+      "Image line polish (was briefly 0.2.1–0.2.6) in one release",
+      "Resize presets + image preflight; EXIF orientation; clearer RAW errors",
+      "WebP Lossless + PNG compression; BMP / GIF / AVIF outputs",
+      "Preserve image metadata (default on)",
+      "Dual-mode polish: Audio + Images product copy and UX parity",
     ],
     debugs: [
       "HEIC export still unavailable — bundled Magick is HEIC read-only",
     ],
-  },
-  {
-    version: "0.2.3",
-    changes: [
-      "WebP Lossless encoding option",
-      "PNG compression presets (Fast / Balanced / Small)",
-      "Quality controls shown for JPEG, WebP, and PNG with format-aware labels",
-    ],
-    debugs: [],
-  },
-  {
-    version: "0.2.2",
-    changes: [
-      "Images honor EXIF orientation (phone photos no longer land sideways)",
-      "Clearer errors when a camera RAW file can't be decoded",
-    ],
-    debugs: [],
-  },
-  {
-    version: "0.2.1",
-    changes: [
-      "Image resize presets (original or max long-edge 2048 / 1920 / 1280 / 1024)",
-      "Image preflight: size estimate, disk space gate, lossy→PNG/TIFF honesty warning",
-    ],
-    debugs: [],
   },
   {
     version: "0.2.0",
