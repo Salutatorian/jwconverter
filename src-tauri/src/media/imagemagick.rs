@@ -48,6 +48,7 @@ pub fn analyze(path: &str) -> Result<ImageInfo, AppError> {
         .env("MAGICK_CONFIGURE_PATH", dir)
         .arg("identify")
         .arg("-ping")
+        .arg("-auto-orient")
         .arg("-format")
         .arg("%w\\n%h\\n%m\\n%b")
         .arg(path)
@@ -62,10 +63,7 @@ pub fn analyze(path: &str) -> Result<ImageInfo, AppError> {
     if !output.status.success() {
         let err = String::from_utf8_lossy(&output.stderr);
         return Err(AppError::DecodeFailure {
-            detail: format!(
-                "Could not read image: {}",
-                err.lines().next().unwrap_or("unknown Magick error")
-            ),
+            detail: friendly_image_error(path, &err),
         });
     }
 
@@ -119,6 +117,8 @@ pub fn start_conversion(
     let mut command = Command::new(&magick);
     command.env("MAGICK_CONFIGURE_PATH", dir);
     command.arg(source);
+    // Apply EXIF Orientation so phone photos don't land sideways.
+    command.arg("-auto-orient");
 
     if let Some(geometry) = resize.magick_geometry() {
         command.arg("-resize").arg(geometry);
@@ -208,6 +208,65 @@ fn magick_dir(magick: &Path) -> Result<&Path, AppError> {
     })
 }
 
+/// Camera RAW extensions we accept as inputs (Magick/LibRaw when available).
+fn is_likely_raw_path(path: &str) -> bool {
+    Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| {
+            matches!(
+                e.to_ascii_lowercase().as_str(),
+                "cr2" | "cr3" | "nef" | "arw" | "dng" | "orf" | "rw2" | "raf" | "pef" | "srw"
+            )
+        })
+        .unwrap_or(false)
+}
+
+fn first_stderr_line(stderr: &str) -> Option<&str> {
+    stderr
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty())
+}
+
+/// User-facing decode/convert failure text (honest about RAW / LibRaw limits).
+pub fn friendly_image_error(path: &str, stderr: &str) -> String {
+    let tip = first_stderr_line(stderr).unwrap_or("");
+    let lower = stderr.to_ascii_lowercase();
+    let looks_raw = is_likely_raw_path(path)
+        || lower.contains("libraw")
+        || lower.contains("dng:")
+        || lower.contains("cr2:")
+        || lower.contains("nef:");
+    let no_delegate = lower.contains("no decode delegate")
+        || lower.contains("unsupported file format");
+
+    if looks_raw {
+        let mut msg = "Couldn't decode this camera RAW file. The bundled ImageMagick/LibRaw may not support this camera model, or the file may be corrupt.".to_string();
+        if !tip.is_empty() {
+            msg.push_str(" (");
+            msg.push_str(tip);
+            msg.push(')');
+        }
+        return msg;
+    }
+
+    if no_delegate {
+        return if tip.is_empty() {
+            "Couldn't read this image — format not supported by the bundled ImageMagick."
+                .to_string()
+        } else {
+            format!("Couldn't read this image: {tip}")
+        };
+    }
+
+    if tip.is_empty() {
+        "ImageMagick could not process this image.".to_string()
+    } else {
+        format!("Could not process image: {tip}")
+    }
+}
+
 fn parse_byte_size(raw: &str) -> Option<u64> {
     let trimmed = raw.trim();
     if let Ok(n) = trimmed.parse::<u64>() {
@@ -234,6 +293,66 @@ mod tests {
     use super::*;
     use std::sync::atomic::AtomicBool;
     use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn raw_failure_message_is_honest() {
+        let msg = friendly_image_error(
+            r"C:\photos\IMG_0001.CR2",
+            "magick: no decode delegate for this image format `CR2' @ error/constitute.c/ReadImage/1000",
+        );
+        assert!(msg.contains("camera RAW"));
+        assert!(msg.contains("LibRaw"));
+    }
+
+    #[test]
+    fn non_raw_keeps_short_tip() {
+        let msg = friendly_image_error(
+            r"C:\photos\broken.png",
+            "magick: improper image header `broken.png' @ error/png.c/ReadPNGImage/100",
+        );
+        assert!(msg.contains("improper image header"));
+        assert!(!msg.contains("camera RAW"));
+        assert!(msg.starts_with("Could not process image:"));
+    }
+
+    #[test]
+    fn auto_orient_swaps_phone_jpeg_dimensions() {
+        let Some(magick_path) = resolve_magick() else {
+            eprintln!("skip: magick not available");
+            return;
+        };
+
+        let dir = std::env::temp_dir().join(format!("jw-orient-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        // 40×20 with Orientation=RightTop; after -auto-orient pixels should be 20×40.
+        // TIFF stores orientation reliably (this Magick build strips it on JPEG write).
+        let src = dir.join("phone.tif");
+        let out = dir.join("out.jpg");
+
+        let status = std::process::Command::new(&magick_path)
+            .args(["-size", "40x20", "xc:red", "-orient", "RightTop"])
+            .arg(&src)
+            .status()
+            .expect("create oriented tiff");
+        assert!(status.success());
+
+        let child = start_conversion(
+            &src,
+            &out,
+            ImageOutputFormat::Jpeg,
+            ImageQualityPreset::Medium,
+            ImageResizePreset::Original,
+        )
+        .expect("start");
+        let child = Arc::new(Mutex::new(Some(child)));
+        let cancel = Arc::new(AtomicBool::new(false));
+        let result = wait_with_cancel(child, cancel).expect("wait");
+        assert!(result.success);
+
+        let info = analyze(out.to_string_lossy().as_ref()).expect("identify");
+        assert_eq!(info.width, Some(20));
+        assert_eq!(info.height, Some(40));
+    }
 
     #[test]
     fn converts_png_fixture_to_jpeg() {

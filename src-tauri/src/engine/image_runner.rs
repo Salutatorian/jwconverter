@@ -103,15 +103,8 @@ pub fn run_job(
 
     if !run.success {
         let _ = std::fs::remove_file(&temp_path);
-        return Err(AppError::FfmpegFailure {
-            detail: if run.stderr_tail.trim().is_empty() {
-                "ImageMagick conversion failed.".to_string()
-            } else {
-                format!(
-                    "ImageMagick conversion failed: {}",
-                    run.stderr_tail.lines().next().unwrap_or("unknown error")
-                )
-            },
+        return Err(AppError::DecodeFailure {
+            detail: imagemagick::friendly_image_error(&job.source_path, &run.stderr_tail),
         });
     }
 

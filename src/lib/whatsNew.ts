@@ -7,6 +7,14 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.2.2",
+    changes: [
+      "Images honor EXIF orientation (phone photos no longer land sideways)",
+      "Clearer errors when a camera RAW file can't be decoded",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.2.1",
     changes: [
       "Image resize presets (original or max long-edge 2048 / 1920 / 1280 / 1024)",
