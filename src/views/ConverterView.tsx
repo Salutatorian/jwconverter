@@ -412,6 +412,7 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
         items={queue.items}
         disabled={batch.isBusy}
         onRemove={queue.removeItem}
+        onRetry={queue.retryItem}
         onClear={() => {
           if (!batch.isBusy) {
             queue.clear();

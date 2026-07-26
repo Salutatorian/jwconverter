@@ -1,0 +1,137 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/**"
+      - "src-tauri/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            os_key: windows
+          - platform: macos-latest
+            os_key: macos
+          - platform: ubuntu-22.04
+            os_key: linux
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Linux dependencies
+        if: matrix.os_key == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev \
+            imagemagick
+
+      - name: macOS Homebrew tools
+        if: matrix.os_key == 'macos'
+        run: brew install ffmpeg imagemagick
+
+      - name: Fetch media tools (macOS / Linux)
+        if: matrix.os_key != 'windows'
+        run: |
+          chmod +x scripts/fetch-media-tools.sh
+          ./scripts/fetch-media-tools.sh ${{ matrix.os_key }}
+
+      - name: Windows media tools present
+        if: matrix.os_key == 'windows'
+        shell: pwsh
+        run: |
+          $bin = "src-tauri/binaries"
+          $need = @(
+            "ffmpeg.exe",
+            "ffprobe.exe",
+            "ffmpeg-x86_64-pc-windows-msvc.exe",
+            "ffprobe-x86_64-pc-windows-msvc.exe"
+          )
+          $missing = @()
+          foreach ($f in $need) {
+            if (-not (Test-Path (Join-Path $bin $f))) { $missing += $f }
+          }
+          if (-not (Test-Path "src-tauri/resources/imagemagick/magick.exe")) {
+            $missing += "resources/imagemagick/magick.exe"
+          }
+          if ($missing.Count -gt 0) {
+            Write-Host "Missing local binaries (expected on maintainer machine / cache):"
+            $missing | ForEach-Object { Write-Host " - $_" }
+            Write-Host "Windows CI skips packaging when binaries are not in the repo."
+            echo "SKIP_WINDOWS_BUNDLE=1" >> $env:GITHUB_ENV
+          }
+
+      - name: Install frontend deps
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build Tauri (Windows)
+        if: matrix.os_key == 'windows' && env.SKIP_WINDOWS_BUNDLE != '1'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          args: --bundles nsis
+
+      - name: Build Tauri (macOS)
+        if: matrix.os_key == 'macos'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --bundles app,dmg
+
+      - name: Build Tauri (Linux)
+        if: matrix.os_key == 'linux'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --bundles appimage,deb
+
+      - name: Upload artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jwconverter-${{ matrix.os_key }}
+          path: |
+            src-tauri/target/release/bundle/nsis/*
+            src-tauri/target/release/bundle/dmg/*
+            src-tauri/target/release/bundle/macos/*
+            src-tauri/target/release/bundle/appimage/*
+            src-tauri/target/release/bundle/deb/*
+          if-no-files-found: ignore

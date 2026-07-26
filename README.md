@@ -1,16 +1,19 @@
 # JW Converter
 
-Local-first Windows converter for **audio** and **images**.
+Local-first converter for **audio** and **images** — Windows primary, with macOS and Linux builds.
 
-Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; images use ImageMagick. Everything runs on your PC.
+Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; images use ImageMagick. Everything runs on your machine.
 
 ## Download
 
-**[Download JW Converter for Windows (v0.2.8)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.2.8)**
+**[Download JW Converter (v0.3.0)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.3.0)**
 
-Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted files are not deleted.
+- **Windows:** signed `.exe` installer (recommended day-to-day build)
+- **macOS / Linux:** CI artifacts on the release — macOS is unsigned initially (Gatekeeper may require right-click → Open)
 
-From **v0.1.2** onward, the app checks for updates on launch (and every few hours). Open the gear **Settings** panel to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
+Grab the installer from the latest GitHub Release. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted files are not deleted.
+
+From **v0.1.2** onward, the app checks for updates on launch (and every few hours). Open the gear **Settings** dialog to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
 
 ![JW Converter UI](docs/assets/jw-converter-ui.png)
 

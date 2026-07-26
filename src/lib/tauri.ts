@@ -23,6 +23,7 @@ export async function analyzeFile(path: string): Promise<AudioInfo> {
 export async function getMediaToolsInfo(): Promise<{
   ffmpegPath: string | null;
   ffprobePath: string | null;
+  magickPath: string | null;
   source: string;
 }> {
   return invoke("get_media_tools_info");

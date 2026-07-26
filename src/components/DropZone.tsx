@@ -1,3 +1,5 @@
+import { ImageIcon, Music2Icon } from "lucide-react";
+
 type DropZoneProps = {
   mode: "audio" | "images";
   disabled?: boolean;
@@ -21,6 +23,7 @@ export function DropZone({
     mode === "images"
       ? "JPEG, PNG, WebP, TIFF, BMP, GIF, AVIF, RAW — or whole folders. HEIC import supported (export not available yet)."
       : "FLAC, WAV, MP3, M4A, AAC, Opus, OGG, ALAC, AIFF — or whole folders. Structure is preserved.";
+  const Icon = mode === "images" ? ImageIcon : Music2Icon;
 
   return (
     <div
@@ -34,9 +37,20 @@ export function DropZone({
           ? "cursor-not-allowed border-[var(--border)] bg-[var(--surface-muted)] opacity-60"
           : active
             ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-            : "border-[var(--border-strong)] bg-[var(--surface)]",
+            : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]",
       ].join(" ")}
     >
+      <div
+        className={[
+          "mb-3 flex size-11 items-center justify-center rounded-xl border",
+          active
+            ? "border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]"
+            : "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-muted)]",
+        ].join(" ")}
+        aria-hidden
+      >
+        <Icon className="size-5" />
+      </div>
       <p className="text-[0.95rem] font-semibold tracking-tight text-[var(--text)]">
         {analyzing ? "Analyzing…" : active ? "Drop to add" : title}
       </p>

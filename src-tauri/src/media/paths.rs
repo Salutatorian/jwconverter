@@ -52,10 +52,10 @@ pub fn resolve_ffprobe() -> Result<PathBuf, String> {
         return Ok(path);
     }
 
-    Err(
-        "FFprobe was not found. Place ffprobe.exe in src-tauri/binaries/ or set CONVERTER_FFPROBE."
-            .to_string(),
-    )
+    Err(format!(
+        "FFprobe was not found. Place {} in src-tauri/binaries/ or set CONVERTER_FFPROBE.",
+        FFPROBE_NAME
+    ))
 }
 
 pub fn resolve_ffmpeg() -> Option<PathBuf> {
@@ -128,7 +128,9 @@ pub fn resolve_magick() -> Option<PathBuf> {
         }
     }
 
-    #[cfg(debug_assertions)]
+    // Windows ships a portable Magick tree. On macOS/Linux, fall back to a
+    // system install (Homebrew / apt) when no portable tree is bundled.
+    #[cfg(any(not(windows), debug_assertions))]
     if let Some(path) = which_on_path(MAGICK_NAME) {
         return Some(path);
     }
@@ -158,6 +160,15 @@ fn candidate_binary_dirs() -> Vec<PathBuf> {
 
 #[cfg(debug_assertions)]
 fn which_on_path(name: &str) -> Option<PathBuf> {
+    which_on_path_impl(name)
+}
+
+#[cfg(all(not(windows), not(debug_assertions)))]
+fn which_on_path(name: &str) -> Option<PathBuf> {
+    which_on_path_impl(name)
+}
+
+fn which_on_path_impl(name: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     for dir in std::env::split_paths(&path) {
         let candidate = dir.join(name);

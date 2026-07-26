@@ -1,3 +1,23 @@
+import {
+  CheckIcon,
+  ClockIcon,
+  FileTextIcon,
+  FileWarningIcon,
+  RefreshCwIcon,
+  XIcon,
+} from "lucide-react";
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+  type AttachmentState,
+} from "./ui/attachment";
+import { Spinner } from "./ui/spinner";
+import type { JobStatus } from "../types/conversion";
 import type { ImageQueueFileItem } from "../types/image";
 
 type ImageFileQueueProps = {
@@ -5,9 +25,26 @@ type ImageFileQueueProps = {
   disabled?: boolean;
   onRemove: (localId: string) => void;
   onClear: () => void;
+  onRetry?: (localId: string) => void;
 };
 
-function summary(item: ImageQueueFileItem): string {
+function attachmentState(status: JobStatus): AttachmentState {
+  switch (status) {
+    case "converting":
+      return "uploading";
+    case "analyzing":
+    case "verifying":
+      return "processing";
+    case "failed":
+      return "error";
+    case "completed":
+      return "done";
+    default:
+      return "idle";
+  }
+}
+
+function infoSummary(item: ImageQueueFileItem): string {
   const info = item.info;
   if (!info) {
     return "";
@@ -21,35 +58,58 @@ function summary(item: ImageQueueFileItem): string {
   }
   if (info.fileSizeBytes != null) {
     const mb = info.fileSizeBytes / (1024 * 1024);
-    parts.push(mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(info.fileSizeBytes / 1024)} KB`);
+    parts.push(
+      mb >= 1
+        ? `${mb.toFixed(1)} MB`
+        : `${Math.round(info.fileSizeBytes / 1024)} KB`,
+    );
   }
   return parts.join(" · ");
 }
 
-function statusLabel(item: ImageQueueFileItem): string {
+function description(item: ImageQueueFileItem): string {
   switch (item.status) {
     case "analyzing":
-      return "Analyzing";
-    case "ready":
-      return "Ready";
+      return "Analyzing…";
+    case "ready": {
+      const summary = infoSummary(item);
+      return summary ? `Ready · ${summary}` : "Ready to convert";
+    }
     case "queued":
       return "Queued";
     case "converting":
       return item.percent != null
-        ? `Converting ${Math.round(item.percent)}%`
-        : "Converting";
+        ? `Converting · ${Math.round(item.percent)}%`
+        : "Converting…";
     case "verifying":
-      return "Verifying";
-    case "completed":
-      return "Done";
+      return "Verifying…";
+    case "completed": {
+      const summary = infoSummary(item);
+      return summary ? `Done · ${summary}` : "Done";
+    }
     case "failed":
-      return "Failed";
+      return item.error ?? "Conversion failed. Try again.";
     case "cancelled":
       return "Cancelled";
     case "skipped":
-      return "Skipped";
+      return "Skipped — output already exists";
     default:
       return item.status;
+  }
+}
+
+function MediaIcon({ status }: { status: JobStatus }) {
+  switch (attachmentState(status)) {
+    case "uploading":
+      return <Spinner />;
+    case "processing":
+      return <FileTextIcon />;
+    case "error":
+      return <FileWarningIcon />;
+    case "done":
+      return <CheckIcon />;
+    default:
+      return <ClockIcon />;
   }
 }
 
@@ -58,14 +118,15 @@ export function ImageFileQueue({
   disabled = false,
   onRemove,
   onClear,
+  onRetry,
 }: ImageFileQueueProps) {
   if (items.length === 0) {
     return null;
   }
 
   return (
-    <section aria-label="Image queue" className="panel">
-      <div className="flex items-center justify-between gap-3">
+    <section aria-label="Image queue" className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3 px-0.5">
         <h2 className="panel-title">Images · {items.length}</h2>
         <button
           type="button"
@@ -77,41 +138,47 @@ export function ImageFileQueue({
         </button>
       </div>
 
-      <ul className="mt-3 max-h-56 space-y-1.5 overflow-y-auto">
-        {items.map((item) => (
-          <li
-            key={item.localId}
-            className="flex items-start justify-between gap-3 rounded-[10px] bg-[var(--surface-muted)] px-3 py-2"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-[var(--text)]">
-                {item.filename}
-              </p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                {statusLabel(item)}
-                {item.relativeSubdir ? ` · ${item.relativeSubdir}` : ""}
-                {item.info ? ` · ${summary(item)}` : ""}
-              </p>
-              {item.error ? (
-                <p className="mt-1 text-xs text-[var(--danger)]">{item.error}</p>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              className="btn btn-ghost shrink-0 px-2 py-1 text-xs"
-              disabled={
-                disabled ||
-                item.status === "converting" ||
-                item.status === "verifying"
-              }
-              onClick={() => onRemove(item.localId)}
-              aria-label={`Remove ${item.filename}`}
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-0.5">
+        {items.map((item) => {
+          const state = attachmentState(item.status);
+          const busy =
+            item.status === "converting" || item.status === "verifying";
+          return (
+            <Attachment key={item.localId} state={state} className="w-full">
+              <AttachmentMedia>
+                <MediaIcon status={item.status} />
+              </AttachmentMedia>
+              <AttachmentContent>
+                <AttachmentTitle>{item.filename}</AttachmentTitle>
+                <AttachmentDescription>
+                  {description(item)}
+                  {item.relativeSubdir ? ` · ${item.relativeSubdir}` : ""}
+                </AttachmentDescription>
+              </AttachmentContent>
+              <AttachmentActions>
+                {state === "error" && onRetry ? (
+                  <AttachmentAction
+                    aria-label={`Retry ${item.filename}`}
+                    disabled={disabled}
+                    onClick={() => onRetry(item.localId)}
+                  >
+                    <RefreshCwIcon />
+                  </AttachmentAction>
+                ) : null}
+                <AttachmentAction
+                  aria-label={
+                    busy ? `Cancel ${item.filename}` : `Remove ${item.filename}`
+                  }
+                  disabled={disabled || busy}
+                  onClick={() => onRemove(item.localId)}
+                >
+                  <XIcon />
+                </AttachmentAction>
+              </AttachmentActions>
+            </Attachment>
+          );
+        })}
+      </div>
     </section>
   );
 }

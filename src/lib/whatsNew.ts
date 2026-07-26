@@ -7,6 +7,19 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.3.0",
+    changes: [
+      "Attachment-style file queue — clear ready / converting / done / error states with retry",
+      "Settings sidebar: General, Updates, About, Advanced (media tool paths)",
+      "Polished drop zone and convert shell to match the new UI",
+      "macOS + Linux builds via GitHub Actions (Windows remains the primary signed release)",
+    ],
+    debugs: [
+      "macOS builds are unsigned — Gatekeeper may require right-click Open until notarization",
+      "On Mac/Linux, Images mode may use a system ImageMagick install when no portable tree is bundled",
+    ],
+  },
+  {
     version: "0.2.8",
     changes: [
       "Clearer empty states for Audio and Images (what to drop, format hints)",

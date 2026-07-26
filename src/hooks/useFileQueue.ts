@@ -104,6 +104,27 @@ export function useFileQueue() {
     setItems([]);
   }, []);
 
+  const retryItem = useCallback((localId: string) => {
+    setItems((current) =>
+      current.map((item) => {
+        if (item.localId !== localId || item.status !== "failed") {
+          return item;
+        }
+        if (item.info) {
+          return {
+            ...item,
+            status: "ready",
+            percent: null,
+            error: null,
+            jobId: null,
+            outputPath: null,
+          };
+        }
+        return item;
+      }),
+    );
+  }, []);
+
   const patchByJobOrPath = useCallback(
     (
       keys: { jobId?: string | null; sourcePath?: string | null },
@@ -168,6 +189,7 @@ export function useFileQueue() {
     addPaths,
     removeItem,
     clear,
+    retryItem,
     patchByJobOrPath,
     assignJobIds,
     readyCount: items.filter((item) => item.info && item.status !== "failed").length,

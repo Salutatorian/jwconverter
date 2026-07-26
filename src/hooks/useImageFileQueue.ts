@@ -102,6 +102,27 @@ export function useImageFileQueue() {
     setItems([]);
   }, []);
 
+  const retryItem = useCallback((localId: string) => {
+    setItems((current) =>
+      current.map((item) => {
+        if (item.localId !== localId || item.status !== "failed") {
+          return item;
+        }
+        if (item.info) {
+          return {
+            ...item,
+            status: "ready",
+            percent: null,
+            error: null,
+            jobId: null,
+            outputPath: null,
+          };
+        }
+        return item;
+      }),
+    );
+  }, []);
+
   const assignJobIds = useCallback((paths: string[], jobIds: string[]) => {
     setItems((current) =>
       current.map((item) => {
@@ -144,6 +165,7 @@ export function useImageFileQueue() {
     addPaths,
     removeItem,
     clear,
+    retryItem,
     assignJobIds,
     patchByJobOrPath,
   };

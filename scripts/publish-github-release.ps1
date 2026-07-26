@@ -50,10 +50,17 @@ $notes = @"
 
 Download the Windows installer below. From v0.1.2 onward, the app can check GitHub Releases and install updates when you click **Update**.
 
+### What's new
+- Attachment-style file queue (ready / converting / done / error + retry)
+- Settings sidebar: General, Updates, About, Advanced
+- macOS + Linux CI builds (Windows remains the primary signed release)
+- Polished drop zone and convert shell
+
 ### Notes
 - Windows 10/11 x64 + WebView2
 - Sources are never modified
 - Bundled FFmpeg/FFprobe — see docs/ffmpeg-licensing.md
+- macOS CI builds are unsigned (Gatekeeper may require right-click → Open)
 "@
 
 gh release create $tag $uploadSetup $latestPath `

@@ -8,6 +8,7 @@ use crate::media::paths;
 pub struct MediaToolsInfo {
     pub ffmpeg_path: Option<String>,
     pub ffprobe_path: Option<String>,
+    pub magick_path: Option<String>,
     pub source: String,
 }
 
@@ -32,6 +33,7 @@ pub fn get_media_tools_info() -> MediaToolsInfo {
         ffprobe_path: status
             .ffprobe
             .map(|path| path.to_string_lossy().into_owned()),
+        magick_path: paths::resolve_magick().map(|path| path.to_string_lossy().into_owned()),
         source: status.source,
     }
 }
