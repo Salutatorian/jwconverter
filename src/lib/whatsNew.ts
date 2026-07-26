@@ -7,7 +7,7 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
-    version: "0.2.6",
+    version: "0.2.7",
     changes: [
       "Product copy reflects Audio + Images (README, Settings, installer)",
       "Images mode: Update available CTA, mode-aware drop zone, queue Remove parity",
