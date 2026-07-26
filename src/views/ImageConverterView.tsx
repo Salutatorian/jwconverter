@@ -6,20 +6,27 @@ import { DestinationPicker } from "../components/DestinationPicker";
 import { DropZone } from "../components/DropZone";
 import { ImageFileQueue } from "../components/ImageFileQueue";
 import { OverwritePicker } from "../components/OverwritePicker";
+import { PreflightModal } from "../components/PreflightModal";
 import { SettingsGearButton } from "../components/SettingsGearButton";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { useImageBatchConversion } from "../hooks/useImageBatchConversion";
 import { useImageFileQueue } from "../hooks/useImageFileQueue";
 import { useUpdater } from "../hooks/useUpdater";
-import { getDefaultPaths } from "../lib/tauri";
+import {
+  getDefaultPaths,
+  preflightImageBatch,
+  type PreflightReport,
+} from "../lib/tauri";
 import type { AppInfo, OverwritePolicy } from "../types/conversion";
 import {
   IMAGE_EXTENSIONS,
   IMAGE_OUTPUT_FORMATS,
   IMAGE_QUALITY_PRESETS,
+  IMAGE_RESIZE_PRESETS,
   isLossyImageFormat,
   type ImageOutputFormat,
   type ImageQualityPreset,
+  type ImageResizePreset,
 } from "../types/image";
 
 type ImageConverterViewProps = {
@@ -43,12 +50,17 @@ export function ImageConverterView({
   const [format, setFormat] = useState<ImageOutputFormat>("jpeg");
   const [qualityPreset, setQualityPreset] =
     useState<ImageQualityPreset>("medium");
+  const [resizePreset, setResizePreset] =
+    useState<ImageResizePreset>("original");
   const [overwritePolicy, setOverwritePolicy] =
     useState<OverwritePolicy>("rename");
   const [destination, setDestination] = useState<string | null>(null);
   const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [preflightReport, setPreflightReport] =
+    useState<PreflightReport | null>(null);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
 
   const queue = useImageFileQueue();
   const batch = useImageBatchConversion(queue.patchByJobOrPath);
@@ -197,7 +209,7 @@ export function ImageConverterView({
     }
   }
 
-  async function handleConvert() {
+  async function startConvert() {
     if (!destination) {
       return;
     }
@@ -207,8 +219,50 @@ export function ImageConverterView({
       outputFormat: format,
       overwritePolicy,
       qualityPreset,
+      resizePreset,
       assignJobIds: queue.assignJobIds,
     });
+  }
+
+  async function handleConvert() {
+    if (!destination) {
+      return;
+    }
+
+    setPreflightError(null);
+    try {
+      const report = await preflightImageBatch({
+        destinationDir: destination,
+        outputFormat: format,
+        qualityPreset,
+        resizePreset,
+        overwritePolicy,
+        items: convertibleItems.map((item) => ({
+          sourcePath: item.path,
+          relativeSubdir: item.relativeSubdir,
+          width: item.info?.width ?? null,
+          height: item.info?.height ?? null,
+          fileSizeBytes: item.info?.fileSizeBytes ?? null,
+          format: item.info?.format ?? null,
+        })),
+      });
+
+      if (report.diskBlocked || report.warnings.length > 0) {
+        setPreflightReport(report);
+        return;
+      }
+
+      await startConvert();
+    } catch (error) {
+      setPreflightError(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  async function handlePreflightContinue() {
+    setPreflightReport(null);
+    await startConvert();
   }
 
   return (
@@ -316,6 +370,15 @@ export function ImageConverterView({
         </p>
       ) : null}
 
+      {preflightError ? (
+        <p
+          className="rounded-[var(--radius)] border border-red-400/30 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]"
+          role="alert"
+        >
+          {preflightError}
+        </p>
+      ) : null}
+
       <ImageFileQueue
         items={queue.items}
         disabled={batch.isBusy}
@@ -367,6 +430,27 @@ export function ImageConverterView({
           </section>
         ) : null}
 
+        <section aria-label="Resize" className="panel">
+          <h2 className="panel-title">Resize</h2>
+          <p className="mb-2 text-xs text-[var(--text-muted)]">
+            Long edge max — never upscales
+          </p>
+          <div className="chip-row">
+            {IMAGE_RESIZE_PRESETS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className="chip"
+                disabled={batch.isBusy}
+                aria-pressed={resizePreset === item.value}
+                onClick={() => setResizePreset(item.value)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
         <OverwritePicker
           value={overwritePolicy}
           disabled={batch.isBusy}
@@ -412,6 +496,22 @@ export function ImageConverterView({
           void batch.cancel();
         }}
       />
+
+      {preflightReport ? (
+        <PreflightModal
+          report={preflightReport}
+          onCancel={() => {
+            setPreflightReport(null);
+          }}
+          onContinue={
+            preflightReport.diskBlocked
+              ? undefined
+              : () => {
+                  void handlePreflightContinue();
+                }
+          }
+        />
+      ) : null}
     </div>
   );
 }

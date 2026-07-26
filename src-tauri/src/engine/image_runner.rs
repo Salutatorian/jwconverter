@@ -77,6 +77,7 @@ pub fn run_job(
         &temp_path,
         job.output_format,
         job.quality_preset,
+        job.resize_preset,
     )?;
     {
         let mut guard = active.child.lock().map_err(|_| AppError::FfmpegFailure {

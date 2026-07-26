@@ -10,6 +10,7 @@ import type {
   ImageOutputFormat,
   ImageQualityPreset,
   ImageQueueFileItem,
+  ImageResizePreset,
 } from "../types/image";
 
 export interface ConversionEvent {
@@ -92,6 +93,7 @@ export function useImageBatchConversion(patchByJobOrPath: PatchFn) {
       outputFormat: ImageOutputFormat;
       overwritePolicy: OverwritePolicy;
       qualityPreset: ImageQualityPreset;
+      resizePreset: ImageResizePreset;
       assignJobIds: (paths: string[], jobIds: string[]) => void;
     }) => {
       if (busyRef.current) {
@@ -119,6 +121,7 @@ export function useImageBatchConversion(patchByJobOrPath: PatchFn) {
         relativeSubdir: item.relativeSubdir,
         overwritePolicy: args.overwritePolicy,
         qualityPreset: args.qualityPreset,
+        resizePreset: args.resizePreset,
       }));
 
       try {

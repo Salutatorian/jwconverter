@@ -132,6 +132,23 @@ export interface ImageConversionRequest {
   relativeSubdir: string | null;
   overwritePolicy: OverwritePolicy;
   qualityPreset: import("../types/image").ImageQualityPreset;
+  resizePreset: import("../types/image").ImageResizePreset;
+}
+
+export interface ImagePreflightBatchRequest {
+  destinationDir: string;
+  outputFormat: import("../types/image").ImageOutputFormat;
+  qualityPreset: import("../types/image").ImageQualityPreset;
+  resizePreset: import("../types/image").ImageResizePreset;
+  overwritePolicy: OverwritePolicy;
+  items: Array<{
+    sourcePath: string;
+    relativeSubdir: string | null;
+    width: number | null;
+    height: number | null;
+    fileSizeBytes: number | null;
+    format: string | null;
+  }>;
 }
 
 export async function discoverImagePaths(
@@ -145,6 +162,12 @@ export async function analyzeImage(
   path: string,
 ): Promise<import("../types/image").ImageInfo> {
   return invoke("analyze_image", { path });
+}
+
+export async function preflightImageBatch(
+  request: ImagePreflightBatchRequest,
+): Promise<PreflightReport> {
+  return invoke<PreflightReport>("preflight_image_batch", { request });
 }
 
 export async function startImageBatch(

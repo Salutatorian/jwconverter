@@ -1,5 +1,11 @@
 export type ImageOutputFormat = "jpeg" | "png" | "webp" | "tiff";
 export type ImageQualityPreset = "low" | "medium" | "high";
+export type ImageResizePreset =
+  | "original"
+  | "2048"
+  | "1920"
+  | "1280"
+  | "1024";
 
 export const IMAGE_OUTPUT_FORMATS: ReadonlyArray<{
   value: ImageOutputFormat;
@@ -18,6 +24,17 @@ export const IMAGE_QUALITY_PRESETS: ReadonlyArray<{
   { value: "low", label: "Low · 70" },
   { value: "medium", label: "Medium · 85" },
   { value: "high", label: "High · 95" },
+];
+
+export const IMAGE_RESIZE_PRESETS: ReadonlyArray<{
+  value: ImageResizePreset;
+  label: string;
+}> = [
+  { value: "original", label: "Original" },
+  { value: "2048", label: "Max 2048" },
+  { value: "1920", label: "Max 1920" },
+  { value: "1280", label: "Max 1280" },
+  { value: "1024", label: "Max 1024" },
 ];
 
 export const IMAGE_EXTENSIONS = [

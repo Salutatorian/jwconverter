@@ -7,6 +7,14 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.2.1",
+    changes: [
+      "Image resize presets (original or max long-edge 2048 / 1920 / 1280 / 1024)",
+      "Image preflight: size estimate, disk space gate, lossy→PNG/TIFF honesty warning",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.2.0",
     changes: [
       "Images mode: convert JPEG, PNG, WebP, TIFF (and common RAW inputs)",

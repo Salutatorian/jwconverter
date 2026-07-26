@@ -19,6 +19,7 @@ use commands::image_convert::{
     analyze_image, cancel_image_batch, is_image_batch_running, start_image_batch,
 };
 use commands::image_discover::discover_image_paths;
+use commands::image_preflight::preflight_image_batch;
 use commands::preflight::preflight_batch;
 use commands::system::get_default_paths;
 use state::AppState;
@@ -42,6 +43,7 @@ pub fn run() {
             start_image_batch,
             cancel_image_batch,
             is_image_batch_running,
+            preflight_image_batch,
             preflight_batch,
             start_conversion,
             start_batch,

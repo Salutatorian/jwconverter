@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 
-use crate::engine::image_job::{ImageOutputFormat, ImageQualityPreset};
+use crate::engine::image_job::{ImageOutputFormat, ImageQualityPreset, ImageResizePreset};
 use crate::errors::AppError;
 use crate::media::magick_policy;
 use crate::media::paths::resolve_magick;
@@ -110,6 +110,7 @@ pub fn start_conversion(
     temp_output: &Path,
     format: ImageOutputFormat,
     quality: ImageQualityPreset,
+    resize: ImageResizePreset,
 ) -> Result<std::process::Child, AppError> {
     let magick = resolve_magick_required()?;
     let dir = magick_dir(&magick)?;
@@ -118,6 +119,10 @@ pub fn start_conversion(
     let mut command = Command::new(&magick);
     command.env("MAGICK_CONFIGURE_PATH", dir);
     command.arg(source);
+
+    if let Some(geometry) = resize.magick_geometry() {
+        command.arg("-resize").arg(geometry);
+    }
 
     if format.is_lossy() {
         command
@@ -254,6 +259,7 @@ mod tests {
             &out,
             ImageOutputFormat::Jpeg,
             ImageQualityPreset::Medium,
+            ImageResizePreset::Original,
         )
         .expect("start");
         let child = Arc::new(Mutex::new(Some(child)));

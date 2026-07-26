@@ -1,7 +1,9 @@
 use serde::Deserialize;
 use tauri::{AppHandle, State};
 
-use crate::engine::image_job::{ImageConversionJob, ImageOutputFormat, ImageQualityPreset};
+use crate::engine::image_job::{
+    ImageConversionJob, ImageOutputFormat, ImageQualityPreset, ImageResizePreset,
+};
 use crate::engine::image_queue::{self, ImageQueueItem};
 use crate::engine::job::{JobStatus, OverwritePolicy};
 use crate::state::AppState;
@@ -18,6 +20,8 @@ pub struct ImageConversionRequest {
     pub overwrite_policy: OverwritePolicy,
     #[serde(default)]
     pub quality_preset: ImageQualityPreset,
+    #[serde(default)]
+    pub resize_preset: ImageResizePreset,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -50,6 +54,7 @@ fn build_item(request: ImageConversionRequest) -> Result<ImageQueueItem, String>
             output_format: request.output_format,
             overwrite_policy: request.overwrite_policy,
             quality_preset: request.quality_preset,
+            resize_preset: request.resize_preset,
             status: JobStatus::Queued,
         },
     })

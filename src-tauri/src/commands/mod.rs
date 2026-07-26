@@ -7,5 +7,6 @@ pub mod convert;
 pub mod discover;
 pub mod image_convert;
 pub mod image_discover;
+pub mod image_preflight;
 pub mod preflight;
 pub mod system;

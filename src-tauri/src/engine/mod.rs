@@ -1,6 +1,7 @@
 //! Conversion engine: job model, planning, run lifecycle, verification, queue.
 
 pub mod image_job;
+pub mod image_preflight;
 pub mod image_queue;
 pub mod image_runner;
 pub mod job;
