@@ -151,7 +151,8 @@ export function SettingsDialog({
         <div className="settings-pane">
           <header className="settings-pane-header">
             <p id={titleId} className="settings-breadcrumb">
-              Settings <span aria-hidden>›</span> {sectionLabel}
+              Settings <span aria-hidden>›</span>{" "}
+              <strong>{sectionLabel}</strong>
             </p>
             <button
               ref={closeRef}

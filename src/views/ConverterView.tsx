@@ -11,11 +11,8 @@ import { MetadataPicker } from "../components/MetadataPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import { PreflightModal } from "../components/PreflightModal";
 import { QualityPicker } from "../components/QualityPicker";
-import { SettingsGearButton } from "../components/SettingsGearButton";
-import { SettingsPanel } from "../components/SettingsPanel";
 import { useBatchConversion } from "../hooks/useBatchConversion";
 import { useFileQueue } from "../hooks/useFileQueue";
-import { useUpdater } from "../hooks/useUpdater";
 import { getDefaultPaths, preflightBatch, type PreflightReport } from "../lib/tauri";
 import {
   AUDIO_EXTENSIONS,
@@ -32,7 +29,7 @@ import {
 
 type ConverterViewProps = {
   appInfo: AppInfo | null;
-  onSwitchToImages: () => void;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 function parentDir(path: string): string | null {
@@ -44,7 +41,7 @@ function parentDir(path: string): string | null {
   return normalized.slice(0, index);
 }
 
-export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps) {
+export function ConverterView({ appInfo, onBusyChange }: ConverterViewProps) {
   const [format, setFormat] = useState<OutputFormat>("flac");
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>("medium");
   const [mp3EncodingMode, setMp3EncodingMode] =
@@ -58,16 +55,19 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
   const [destination, setDestination] = useState<string | null>(null);
   const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [preflightReport, setPreflightReport] =
     useState<PreflightReport | null>(null);
   const [preflightError, setPreflightError] = useState<string | null>(null);
 
   const queue = useFileQueue();
   const batch = useBatchConversion(queue.patchByJobOrPath);
-  const updater = useUpdater();
-  const updateAvailable =
-    updater.status === "available" || updater.status === "downloading";
+
+  useEffect(() => {
+    onBusyChange?.(batch.isBusy);
+    return () => {
+      onBusyChange?.(false);
+    };
+  }, [batch.isBusy, onBusyChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -281,70 +281,16 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
 
   return (
     <div className="app-shell">
-      <header className="flex items-start gap-3.5">
-        <img
-          src="/jwc-logo.png"
-          alt=""
-          className="mt-0.5 h-8 w-auto select-none"
-          draggable={false}
-        />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold tracking-tight text-[var(--text)]">
-            JW Converter
-          </h1>
-          <p className="text-sm text-[var(--text-muted)]">
-            Local audio conversion
-            {appInfo ? (
-              <span className="text-[var(--text-faint)]">
-                {" "}
-                · v{appInfo.version}
-              </span>
-            ) : null}
-          </p>
-          <p className="mt-1 text-xs text-[var(--text-faint)]">
-            Drop files or a folder to get started — originals stay untouched.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" className="chip" disabled aria-pressed>
-              Audio
-            </button>
-            <button
-              type="button"
-              className="chip"
-              onClick={onSwitchToImages}
-              disabled={batch.isBusy}
-            >
-              Images
-            </button>
-          </div>
-          {updateAvailable && !settingsOpen ? (
-            <button
-              type="button"
-              className="mt-1 text-xs font-medium text-[var(--accent)]"
-              onClick={() => {
-                setSettingsOpen(true);
-              }}
-            >
-              Update available — open Settings
-            </button>
-          ) : null}
-        </div>
-        <SettingsGearButton
-          updateAvailable={updateAvailable}
-          onClick={() => {
-            setSettingsOpen(true);
-          }}
-        />
+      <header className="stage-header">
+        <p className="stage-kicker">
+          audio{appInfo ? ` · v${appInfo.version}` : ""}
+        </p>
+        <h1 className="stage-title">JW Converter</h1>
+        <p className="stage-sub">
+          Drop files or a folder — originals stay untouched. Convert locally
+          with FFmpeg.
+        </p>
       </header>
-
-      <SettingsPanel
-        open={settingsOpen}
-        onClose={() => {
-          setSettingsOpen(false);
-        }}
-        appInfo={appInfo}
-        updater={updater}
-      />
 
       <DropZone
         mode="audio"
@@ -353,7 +299,7 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
         analyzing={queue.isAnalyzing}
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="action-row">
         <button
           type="button"
           className="btn btn-secondary"

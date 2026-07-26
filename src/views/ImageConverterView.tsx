@@ -8,11 +8,8 @@ import { ImageFileQueue } from "../components/ImageFileQueue";
 import { ImageMetadataPicker } from "../components/ImageMetadataPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import { PreflightModal } from "../components/PreflightModal";
-import { SettingsGearButton } from "../components/SettingsGearButton";
-import { SettingsPanel } from "../components/SettingsPanel";
 import { useImageBatchConversion } from "../hooks/useImageBatchConversion";
 import { useImageFileQueue } from "../hooks/useImageFileQueue";
-import { useUpdater } from "../hooks/useUpdater";
 import {
   getDefaultPaths,
   preflightImageBatch,
@@ -32,7 +29,7 @@ import {
 
 type ImageConverterViewProps = {
   appInfo: AppInfo | null;
-  onSwitchToAudio: () => void;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 function parentDir(path: string): string | null {
@@ -46,7 +43,7 @@ function parentDir(path: string): string | null {
 
 export function ImageConverterView({
   appInfo,
-  onSwitchToAudio,
+  onBusyChange,
 }: ImageConverterViewProps) {
   const [format, setFormat] = useState<ImageOutputFormat>("jpeg");
   const [qualityPreset, setQualityPreset] =
@@ -59,16 +56,19 @@ export function ImageConverterView({
   const [destination, setDestination] = useState<string | null>(null);
   const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [preflightReport, setPreflightReport] =
     useState<PreflightReport | null>(null);
   const [preflightError, setPreflightError] = useState<string | null>(null);
 
   const queue = useImageFileQueue();
   const batch = useImageBatchConversion(queue.patchByJobOrPath);
-  const updater = useUpdater();
-  const updateAvailable =
-    updater.status === "available" || updater.status === "downloading";
+
+  useEffect(() => {
+    onBusyChange?.(batch.isBusy);
+    return () => {
+      onBusyChange?.(false);
+    };
+  }, [batch.isBusy, onBusyChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -270,71 +270,16 @@ export function ImageConverterView({
 
   return (
     <div className="app-shell">
-      <header className="flex items-start gap-3.5">
-        <img
-          src="/jwc-logo.png"
-          alt=""
-          className="mt-0.5 h-8 w-auto select-none"
-          draggable={false}
-        />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold tracking-tight text-[var(--text)]">
-            JW Converter
-          </h1>
-          <p className="text-sm text-[var(--text-muted)]">
-            Local image conversion
-            {appInfo ? (
-              <span className="text-[var(--text-faint)]">
-                {" "}
-                · v{appInfo.version}
-              </span>
-            ) : null}
-          </p>
-          <p className="mt-1 text-xs text-[var(--text-faint)]">
-            Drop photos or a folder to get started — HEIC import OK; HEIC export
-            not available on this build.
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="chip"
-              onClick={onSwitchToAudio}
-              disabled={batch.isBusy}
-            >
-              Audio
-            </button>
-            <button type="button" className="chip" disabled aria-pressed>
-              Images
-            </button>
-          </div>
-          {updateAvailable && !settingsOpen ? (
-            <button
-              type="button"
-              className="mt-1 text-xs font-medium text-[var(--accent)]"
-              onClick={() => {
-                setSettingsOpen(true);
-              }}
-            >
-              Update available — open Settings
-            </button>
-          ) : null}
-        </div>
-        <SettingsGearButton
-          updateAvailable={updateAvailable}
-          onClick={() => {
-            setSettingsOpen(true);
-          }}
-        />
+      <header className="stage-header">
+        <p className="stage-kicker">
+          images{appInfo ? ` · v${appInfo.version}` : ""}
+        </p>
+        <h1 className="stage-title">JW Converter</h1>
+        <p className="stage-sub">
+          Drop photos or a folder — HEIC import OK; HEIC export not available on
+          this build.
+        </p>
       </header>
-
-      <SettingsPanel
-        open={settingsOpen}
-        onClose={() => {
-          setSettingsOpen(false);
-        }}
-        appInfo={appInfo}
-        updater={updater}
-      />
 
       <DropZone
         mode="images"
@@ -343,7 +288,7 @@ export function ImageConverterView({
         analyzing={queue.isAnalyzing}
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="action-row">
         <button
           type="button"
           className="btn btn-secondary"

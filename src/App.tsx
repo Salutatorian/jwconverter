@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { AppShell, type MediaMode } from "./components/AppShell";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { WhatsNewModal } from "./components/WhatsNewModal";
+import { useUpdater } from "./hooks/useUpdater";
 import { getAppInfo } from "./lib/tauri";
 import {
   pendingWhatsNew,
@@ -10,13 +13,16 @@ import type { AppInfo } from "./types/conversion";
 import { ConverterView } from "./views/ConverterView";
 import { ImageConverterView } from "./views/ImageConverterView";
 
-type MediaMode = "audio" | "images";
-
 function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [ipcError, setIpcError] = useState<string | null>(null);
   const [whatsNew, setWhatsNew] = useState<WhatsNewEntry | null>(null);
   const [mode, setMode] = useState<MediaMode>("audio");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [modeLocked, setModeLocked] = useState(false);
+  const updater = useUpdater();
+  const updateAvailable =
+    updater.status === "available" || updater.status === "downloading";
 
   useEffect(() => {
     let cancelled = false;
@@ -46,27 +52,45 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="h-full min-h-screen">
       {ipcError ? (
-        <p className="px-6 pt-4 text-sm text-red-300" role="alert">
+        <p className="px-6 pt-4 text-sm text-[var(--danger)]" role="alert">
           Could not reach the Rust backend: {ipcError}
         </p>
       ) : null}
-      {mode === "audio" ? (
-        <ConverterView
-          appInfo={appInfo}
-          onSwitchToImages={() => {
-            setMode("images");
-          }}
-        />
-      ) : (
-        <ImageConverterView
-          appInfo={appInfo}
-          onSwitchToAudio={() => {
-            setMode("audio");
-          }}
-        />
-      )}
+
+      <AppShell
+        mode={mode}
+        onModeChange={setMode}
+        modeLocked={modeLocked}
+        updateAvailable={updateAvailable}
+        onOpenSettings={() => {
+          setSettingsOpen(true);
+        }}
+        version={appInfo?.version ?? null}
+      >
+        {mode === "audio" ? (
+          <ConverterView
+            appInfo={appInfo}
+            onBusyChange={setModeLocked}
+          />
+        ) : (
+          <ImageConverterView
+            appInfo={appInfo}
+            onBusyChange={setModeLocked}
+          />
+        )}
+      </AppShell>
+
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+        }}
+        appInfo={appInfo}
+        updater={updater}
+      />
+
       {whatsNew ? (
         <WhatsNewModal entry={whatsNew} onDismiss={dismissWhatsNew} />
       ) : null}

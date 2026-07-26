@@ -51,10 +51,9 @@ $notes = @"
 Download the Windows installer below. From v0.1.2 onward, the app can check GitHub Releases and install updates when you click **Update**.
 
 ### What's new
-- Attachment-style file queue (ready / converting / done / error + retry)
-- Settings sidebar: General, Updates, About, Advanced
-- macOS + Linux CI builds (Windows remains the primary signed release)
-- Polished drop zone and convert shell
+- Full UI revamp — cobalt-style left rail (Audio / Images / Settings)
+- Near-black canvas, pill controls, monospace chrome
+- Attachment file queues kept for batch status + retry
 
 ### Notes
 - Windows 10/11 x64 + WebView2

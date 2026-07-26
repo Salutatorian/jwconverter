@@ -7,6 +7,17 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.4.0",
+    changes: [
+      "Full UI revamp — cobalt-style shell with left rail for Audio / Images / Settings",
+      "Pill controls, near-black canvas, monospace chrome",
+      "Attachment file queues kept for clear batch status + retry",
+    ],
+    debugs: [
+      "Settings still only General / Updates / About / Advanced (no fake SaaS pages)",
+    ],
+  },
+  {
     version: "0.3.0",
     changes: [
       "Attachment-style file queue — clear ready / converting / done / error states with retry",

@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 
 const attachmentVariants = cva(
-  "group/attachment relative flex w-full min-w-0 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] transition-colors focus-within:ring-1 focus-within:ring-[var(--accent)]/40 data-[state=error]:border-[var(--danger)]/40 data-[state=error]:bg-[var(--danger-soft)] data-[state=idle]:border-dashed",
+  "group/attachment relative flex w-full min-w-0 items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] transition-colors focus-within:ring-1 focus-within:ring-[var(--text)]/30 data-[state=error]:border-[var(--danger)]/45 data-[state=error]:bg-[var(--danger-soft)] data-[state=idle]:border-dashed data-[state=idle]:border-[var(--border-strong)]",
   {
     variants: {
       size: {
