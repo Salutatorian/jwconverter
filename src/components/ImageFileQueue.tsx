@@ -98,9 +98,14 @@ export function ImageFileQueue({
             </div>
             <button
               type="button"
-              className="btn btn-ghost shrink-0"
-              disabled={disabled}
+              className="btn btn-ghost shrink-0 px-2 py-1 text-xs"
+              disabled={
+                disabled ||
+                item.status === "converting" ||
+                item.status === "verifying"
+              }
               onClick={() => onRemove(item.localId)}
+              aria-label={`Remove ${item.filename}`}
             >
               Remove
             </button>

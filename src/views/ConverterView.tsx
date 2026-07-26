@@ -344,6 +344,7 @@ export function ConverterView({ appInfo, onSwitchToImages }: ConverterViewProps)
       />
 
       <DropZone
+        mode="audio"
         disabled={queue.isAnalyzing || batch.isBusy}
         active={dragActive}
         analyzing={queue.isAnalyzing}

@@ -141,8 +141,8 @@ export function SettingsPanel({
             {appInfo ? ` · v${appInfo.version}` : null}
           </p>
           <p className="panel-hint">
-            Local-first audio conversion. No accounts, no cloud upload, no
-            telemetry. Sources are never modified.
+            Local-first audio and image conversion. No accounts, no cloud
+            upload, no telemetry. Sources are never modified.
           </p>
           <p className="mt-3 text-sm text-[var(--text-muted)]">
             Uses FFmpeg / FFprobe (Gyan full build, GPL) for audio and

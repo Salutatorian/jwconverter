@@ -1,14 +1,14 @@
 # JW Converter
 
-Local-first Windows audio conversion utility.
+Local-first Windows converter for **audio** and **images**.
 
-Built with Tauri 2, React, TypeScript, and Rust. Conversion uses FFmpeg/FFprobe (wired in later milestones).
+Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; images use ImageMagick. Everything runs on your PC.
 
 ## Download
 
-**[Download JW Converter for Windows (v0.2.5)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.2.5)**
+**[Download JW Converter for Windows (v0.2.6)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.2.6)**
 
-Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted audio files are not deleted.
+Grab the `.exe` installer from the latest GitHub Release, run it, and you're set. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted files are not deleted.
 
 From **v0.1.2** onward, the app checks for updates on launch (and every few hours). Open the gear **Settings** panel to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
 
@@ -17,20 +17,20 @@ From **v0.1.2** onward, the app checks for updates on launch (and every few hour
 ## Reddit blurb (for sharing this screenshot)
 
 ```text
-Made a local-first Windows audio converter — JW Converter.
+Made a local-first Windows converter — JW Converter.
 
-Drop files or whole folders (structure is preserved). Pick an output
-format (FLAC / WAV / MP3 / M4A / AAC / Opus / OGG / ALAC / AIFF), set quality
-for lossy formats (Low / Medium / High), and choose what happens if the
-output already exists (Rename / Skip / Replace).
+Audio and Images modes. Drop files or whole folders (structure is
+preserved). Pick an output format, set quality where it matters, and
+choose Rename / Skip / Replace if outputs already exist.
 
 Everything runs on your PC — no accounts, no cloud upload, no telemetry.
 Sources are never modified (temp → verify → finalize). Ships as a normal
-Windows installer with bundled FFmpeg and an uninstall option.
+Windows installer with bundled FFmpeg + ImageMagick.
 ```
 
 ## Status
 
+**v0.2.6** — Dual-mode polish: product copy + Images/Audio UX parity.
 **v0.2.5** — Preserve image metadata (default on); optional strip; soak pass.
 **v0.2.4** — Image outputs: BMP, GIF (still), AVIF (HEIC out still unavailable).
 **v0.2.3** — WebP Lossless + PNG compression presets (Fast / Balanced / Small).
@@ -46,22 +46,16 @@ Windows installer with bundled FFmpeg and an uninstall option.
 
 Working:
 
-- Choose / drag multiple audio files
-- Choose / drop folders (recursive scan)
+- Audio / Images mode switch
+- Choose / drag multiple files; choose / drop folders (recursive scan)
 - Preserve relative folder structure in output
-- Analyze with FFprobe (local)
-- Convert to FLAC / WAV / MP3 / M4A (AAC) / AAC (ADTS) / Opus / OGG / ALAC / AIFF
-- Quality presets (Low / Medium / High) for lossy formats; MP3 CBR/VBR
-- Sequential batch queue
-- Temp output → verify → finalize (source never modified)
-- Per-file + overall progress, cancel queue
-- Default destination: Downloads
-- Overwrite policy: Rename (default) / Skip / Replace
-- Preflight warnings + size/disk gate
-- Windows NSIS installer with app icons and bundled FFmpeg/FFprobe
-- Bundled `THIRD_PARTY_FFMPEG.txt` (GPL build identity + source offer)
-- In-app Settings gear: updates, GitHub / Releases / Issues, FFmpeg licensing
-- In-app update check + **Update** button (install only when you click)
+- Audio: FFprobe analyze; FLAC / WAV / MP3 / M4A / AAC / Opus / OGG / ALAC / AIFF
+- Images: JPEG / PNG / WebP / TIFF / BMP / GIF / AVIF (+ common RAW inputs)
+- Quality / compression / resize / metadata presets where they apply
+- Sequential batch queue; temp → verify → finalize (source never modified)
+- Overwrite policy: Rename / Skip / Replace; preflight size/disk gates
+- Windows NSIS installer with bundled FFmpeg + ImageMagick
+- In-app Settings: updates, GitHub links, FFmpeg licensing
 
 See `docs/ffmpeg-licensing.md` before redistributing the installer.
 
@@ -127,9 +121,9 @@ cargo check
 UI (React)
   → Tauri IPC commands
     → Conversion engine (jobs, plan, run, verify)
-      → media (FFmpeg/FFprobe) + fs_safety (temp/finalize)
+      → media (FFmpeg/FFprobe + ImageMagick) + fs_safety (temp/finalize)
 ```
 
 ## Privacy
 
-Conversions will run entirely on your machine. No accounts, no cloud upload, no telemetry by default.
+Conversions run entirely on your machine. No accounts, no cloud upload, no telemetry by default.

@@ -291,9 +291,6 @@ export function ImageConverterView({
             ) : null}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" className="chip" disabled aria-pressed>
-              Images
-            </button>
             <button
               type="button"
               className="chip"
@@ -302,7 +299,21 @@ export function ImageConverterView({
             >
               Audio
             </button>
+            <button type="button" className="chip" disabled aria-pressed>
+              Images
+            </button>
           </div>
+          {updateAvailable && !settingsOpen ? (
+            <button
+              type="button"
+              className="mt-1 text-xs font-medium text-[var(--accent)]"
+              onClick={() => {
+                setSettingsOpen(true);
+              }}
+            >
+              Update available — open Settings
+            </button>
+          ) : null}
         </div>
         <SettingsGearButton
           updateAvailable={updateAvailable}
@@ -322,6 +333,7 @@ export function ImageConverterView({
       />
 
       <DropZone
+        mode="images"
         disabled={queue.isAnalyzing || batch.isBusy}
         active={dragActive}
         analyzing={queue.isAnalyzing}
@@ -461,15 +473,15 @@ export function ImageConverterView({
           </div>
         </section>
 
-        <OverwritePicker
-          value={overwritePolicy}
-          disabled={batch.isBusy}
-          onChange={setOverwritePolicy}
-        />
         <ImageMetadataPicker
           preserveMetadata={preserveMetadata}
           disabled={batch.isBusy}
           onPreserveMetadataChange={setPreserveMetadata}
+        />
+        <OverwritePicker
+          value={overwritePolicy}
+          disabled={batch.isBusy}
+          onChange={setOverwritePolicy}
         />
         <DestinationPicker
           destination={destination}

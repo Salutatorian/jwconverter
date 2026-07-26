@@ -8,8 +8,8 @@ By installing or using JW Converter (“the Software”), you agree to the follo
 You may install and use the Software on Windows computers for personal or internal use.
 
 2. LOCAL PROCESSING
-The Software converts and analyzes audio on your computer. It does not require an account
-and does not upload your media as part of normal operation.
+The Software converts and analyzes audio and images on your computer. It does not
+require an account and does not upload your media as part of normal operation.
 
 3. NO WARRANTY
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,

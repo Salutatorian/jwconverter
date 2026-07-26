@@ -7,6 +7,15 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.2.6",
+    changes: [
+      "Product copy reflects Audio + Images (README, Settings, installer)",
+      "Images mode: Update available CTA, mode-aware drop zone, queue Remove parity",
+      "Consistent Audio | Images chip order across modes",
+    ],
+    debugs: [],
+  },
+  {
     version: "0.2.5",
     changes: [
       "Preserve image metadata (EXIF / ICC / comments) — on by default",
