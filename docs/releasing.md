@@ -26,6 +26,8 @@ powershell -File scripts/publish-github-release.ps1 -Version 0.1.3
 - the NSIS setup `.exe`
 - `latest.json` (what the app polls at `/releases/latest/download/latest.json`)
 
-## Behavior reminder
+Creating the `vX.Y.Z` tag also starts **GitHub Actions → Build**, which builds the **macOS DMG** (and Linux AppImage) and attaches them to the same release. Wait for that workflow if the DMG is not visible yet.
 
-Checks run on launch and every 4 hours. Install only starts when the user clicks **Update**.
+### macOS note
+
+DMGs are **unsigned** until Apple Developer ID + notarization. Users: right-click → Open the first time.

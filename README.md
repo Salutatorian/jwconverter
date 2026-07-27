@@ -6,14 +6,15 @@ Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; imag
 
 ## Download
 
-**[Download JW Converter (v0.3.0)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.3.0)**
+**[Download JW Converter (v0.5.0)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.5.0)**
 
-- **Windows:** signed `.exe` installer (recommended day-to-day build)
-- **macOS / Linux:** CI artifacts on the release — macOS is unsigned initially (Gatekeeper may require right-click → Open)
+- **Windows:** signed `.exe` installer (recommended day-to-day build + in-app Update)
+- **macOS:** `.dmg` for Apple Silicon — **unsigned**; first launch: right-click the app → **Open** (Gatekeeper). Notarization comes later.
+- **Linux:** AppImage when present on the release
 
-Grab the installer from the latest GitHub Release. Uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted files are not deleted.
+Grab installers from the latest GitHub Release. On Windows, uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted files are not deleted.
 
-From **v0.1.2** onward, the app checks for updates on launch (and every few hours). Open the gear **Settings** dialog to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
+From **v0.1.2** onward, the Windows app checks for updates on launch (and every few hours). Open **Settings** to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
 
 ![JW Converter UI](docs/assets/jw-converter-ui.png)
 
@@ -33,6 +34,9 @@ Windows installer with bundled FFmpeg + ImageMagick.
 
 ## Status
 
+**v0.5.0** — macOS DMG on Releases (Apple Silicon, unsigned) + CI release uploads.  
+**v0.4.1** — Flat B/W theme; System / Black / White.  
+**v0.4.0** — Cobalt hybrid UI shell.  
 **v0.2.8** — Empty-state polish, HEIC honesty (import only), updated screenshot, soak coverage.
 **v0.2.7** — Image polish batch (resize, preflight, orientation, RAW errors, WebP/PNG knobs, BMP/GIF/AVIF, metadata, dual-mode UX). Replaces micro releases 0.2.1–0.2.6.
 **v0.2.0** — Images mode (ImageMagick): JPEG/PNG/WebP/TIFF + common RAW inputs.

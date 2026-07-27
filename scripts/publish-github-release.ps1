@@ -48,16 +48,22 @@ $tag = "v$Version"
 $notes = @"
 ## JW Converter v$Version
 
-Download the Windows installer below. From v0.1.2 onward, the app can check GitHub Releases and install updates when you click **Update**.
+### Downloads
+- **Windows:** signed installer below (recommended)
+- **macOS:** `.dmg` for Apple Silicon (unsigned) — attached by CI; if missing, wait a few minutes for the Build workflow, then refresh. First open: right-click → **Open** (Gatekeeper)
+- **Linux:** AppImage when CI succeeds
+
+From v0.1.2 onward, Windows installs can check GitHub Releases and install updates via **Settings → Updates**.
 
 ### What's new
-- Flat black / white UI — no grain overlay
-- Theme: System (default), Black, or White in Settings → General
+- macOS DMG published on the GitHub Release (Apple Silicon)
+- CI attaches Mac/Linux installers to the release tag
 
 ### Notes
 - Windows 10/11 x64 + WebView2
 - Sources are never modified
 - Bundled FFmpeg/FFprobe — see docs/ffmpeg-licensing.md
+- macOS not notarized yet
 "@
 
 gh release create $tag $uploadSetup $latestPath `

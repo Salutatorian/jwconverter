@@ -7,6 +7,17 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.5.0",
+    changes: [
+      "macOS DMG on GitHub Releases (Apple Silicon, unsigned — right-click → Open)",
+      "CI builds attach Mac (and Linux AppImage) assets to the release tag",
+    ],
+    debugs: [
+      "macOS is not notarized yet; Gatekeeper will warn until Apple Developer ID signing",
+      "Mac auto-update is not in latest.json yet — download DMG from Releases",
+    ],
+  },
+  {
     version: "0.4.1",
     changes: [
       "Flat black / white backgrounds — removed the noisy grain overlay",
