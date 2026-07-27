@@ -142,8 +142,8 @@ jobs:
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
           DMG_DIR="src-tauri/target/release/bundle/dmg"
-          mapfile -t DMGS < <(find "$DMG_DIR" -maxdepth 1 -type f -name '*.dmg' | sort)
-          if [[ ${#DMGS[@]} -eq 0 ]]; then
+          DMG="$(find "$DMG_DIR" -maxdepth 1 -type f -name '*.dmg' | sort | head -n 1 || true)"
+          if [[ -z "$DMG" ]]; then
             echo "No DMG found under $DMG_DIR"
             ls -laR src-tauri/target/release/bundle || true
             exit 1
@@ -151,7 +151,7 @@ jobs:
 
           # Stable download name for Apple Silicon CI (macos-latest).
           STABLE="JW.Converter_${TAG#v}_macos_aarch64.dmg"
-          cp "${DMGS[0]}" "$DMG_DIR/$STABLE"
+          cp "$DMG" "$DMG_DIR/$STABLE"
 
           # Release may be created by the Windows publish script slightly earlier/later.
           for i in 1 2 3 4 5 6 7 8 9 10; do
@@ -176,13 +176,13 @@ jobs:
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
           APP_DIR="src-tauri/target/release/bundle/appimage"
-          mapfile -t APPS < <(find "$APP_DIR" -maxdepth 1 -type f -name '*.AppImage' | sort)
-          if [[ ${#APPS[@]} -eq 0 ]]; then
+          APP="$(find "$APP_DIR" -maxdepth 1 -type f -name '*.AppImage' | sort | head -n 1 || true)"
+          if [[ -z "$APP" ]]; then
             echo "No AppImage found — skipping release upload"
             exit 0
           fi
           STABLE="JW.Converter_${TAG#v}_linux_x86_64.AppImage"
-          cp "${APPS[0]}" "$APP_DIR/$STABLE"
+          cp "$APP" "$APP_DIR/$STABLE"
           for i in 1 2 3 4 5 6 7 8 9 10; do
             if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
               break
