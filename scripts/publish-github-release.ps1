@@ -56,7 +56,8 @@ $notes = @"
 From v0.1.2 onward, Windows installs can check GitHub Releases and install updates via **Settings → Updates**.
 
 ### What's new
-- macOS DMG published on the GitHub Release (Apple Silicon)
+- macOS: static FFmpeg/FFprobe (works without Homebrew)
+- macOS: ImageMagick path resolves inside the .app Resources tree
 - CI attaches Mac/Linux installers to the release tag
 
 ### Notes
@@ -64,6 +65,7 @@ From v0.1.2 onward, Windows installs can check GitHub Releases and install updat
 - Sources are never modified
 - Bundled FFmpeg/FFprobe — see docs/ffmpeg-licensing.md
 - macOS not notarized yet
+- Images on a clean Mac may still need system Magick if Magick dylib bundling is incomplete
 "@
 
 gh release create $tag $uploadSetup $latestPath `

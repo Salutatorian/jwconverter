@@ -32,9 +32,60 @@ ensure_magick_resource_dir() {
   if [[ ! -f "$RES_MAGICK/README.txt" ]]; then
     cat > "$RES_MAGICK/README.txt" <<'EOF'
 ImageMagick portable tree for packaging.
-On macOS/Linux CI this may be a stub or a copied system `magick` binary.
 Windows ships a full portable Magick tree.
+On macOS CI we try to bundle magick + dylibs via dylibbundler.
+On Linux CI Magick may still require a system install unless bundled.
 EOF
+  fi
+}
+
+# Copy Homebrew magick and rewrite dylib refs to @executable_path/lib (portable).
+bundle_magick_macos() {
+  ensure_magick_resource_dir
+  if ! command -v magick >/dev/null 2>&1; then
+    brew install imagemagick || true
+  fi
+  if ! command -v magick >/dev/null 2>&1; then
+    echo "WARN: magick not available — Images mode needs a system ImageMagick install."
+    return 0
+  fi
+
+  MAGICK_BIN="$(command -v magick)"
+  if command -v realpath >/dev/null 2>&1; then
+    MAGICK_BIN="$(realpath "$MAGICK_BIN" || true)"
+  fi
+  if [[ -z "${MAGICK_BIN:-}" || ! -f "$MAGICK_BIN" ]]; then
+    echo "WARN: could not resolve magick binary path."
+    return 0
+  fi
+
+  rm -rf "$RES_MAGICK/lib" "$BIN/imagemagick/lib"
+  mkdir -p "$RES_MAGICK/lib" "$BIN/imagemagick/lib"
+  cp "$MAGICK_BIN" "$RES_MAGICK/magick"
+  chmod +x "$RES_MAGICK/magick"
+
+  if command -v dylibbundler >/dev/null 2>&1 || brew install dylibbundler; then
+    # -od overwrite dest, -b bundle deps, -x binary, -d lib dir, -p install name prefix
+    dylibbundler -od -b -x "$RES_MAGICK/magick" -d "$RES_MAGICK/lib" -p "@executable_path/lib/" \
+      || echo "WARN: dylibbundler failed — Magick may still depend on Homebrew."
+  else
+    echo "WARN: dylibbundler unavailable — Magick may still depend on Homebrew."
+  fi
+
+  cp "$RES_MAGICK/magick" "$BIN/imagemagick/magick"
+  chmod +x "$BIN/imagemagick/magick"
+  if [[ -d "$RES_MAGICK/lib" ]]; then
+    cp -R "$RES_MAGICK/lib/." "$BIN/imagemagick/lib/" 2>/dev/null || true
+  fi
+
+  # Prefer a fully portable Magick; warn (do not fail the build) if Cellar links remain.
+  if command -v otool >/dev/null 2>&1; then
+    if otool -L "$RES_MAGICK/magick" 2>/dev/null | grep -q '/opt/homebrew/Cellar\|/usr/local/Cellar'; then
+      echo "WARN: bundled magick still links Homebrew Cellar — Images may need system Magick."
+      otool -L "$RES_MAGICK/magick" || true
+    else
+      echo "OK: magick dylibs look portable."
+    fi
   fi
 }
 
@@ -64,30 +115,44 @@ case "$OS" in
       TRIPLE="x86_64-apple-darwin"
     fi
 
-    if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
-      brew install ffmpeg
+    # Static/universal builds from evermeet — no Homebrew dylib deps.
+    echo "Downloading static FFmpeg/FFprobe from evermeet.cx..."
+    curl -fsJL "https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip" -o "$TMP/ffmpeg.zip"
+    curl -fsJL "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip" -o "$TMP/ffprobe.zip"
+    unzip -qo "$TMP/ffmpeg.zip" -d "$TMP/ffmpeg"
+    unzip -qo "$TMP/ffprobe.zip" -d "$TMP/ffprobe"
+    FFMPEG_SRC="$(find "$TMP/ffmpeg" -type f -name ffmpeg | head -n1)"
+    FFPROBE_SRC="$(find "$TMP/ffprobe" -type f -name ffprobe | head -n1)"
+    if [[ -z "$FFMPEG_SRC" || -z "$FFPROBE_SRC" ]]; then
+      echo "ERROR: evermeet zip did not contain ffmpeg/ffprobe"
+      exit 1
     fi
-    cp "$(command -v ffmpeg)" "$BIN/ffmpeg"
-    cp "$(command -v ffprobe)" "$BIN/ffprobe"
+    cp "$FFMPEG_SRC" "$BIN/ffmpeg"
+    cp "$FFPROBE_SRC" "$BIN/ffprobe"
     chmod +x "$BIN/ffmpeg" "$BIN/ffprobe"
+    # Tauri externalBin expects triple-suffixed names at build time.
     cp "$BIN/ffmpeg" "$BIN/ffmpeg-$TRIPLE"
     cp "$BIN/ffprobe" "$BIN/ffprobe-$TRIPLE"
+    cp "$BIN/ffmpeg" "$BIN/ffmpeg-aarch64-apple-darwin"
+    cp "$BIN/ffprobe" "$BIN/ffprobe-aarch64-apple-darwin"
+    cp "$BIN/ffmpeg" "$BIN/ffmpeg-x86_64-apple-darwin"
+    cp "$BIN/ffprobe" "$BIN/ffprobe-x86_64-apple-darwin"
 
-    ensure_magick_resource_dir
-    if command -v magick >/dev/null 2>&1; then
-      MAGICK_BIN="$(command -v magick)"
-      # Resolve symlinks so we copy a real file when possible.
-      if command -v realpath >/dev/null 2>&1; then
-        MAGICK_BIN="$(realpath "$MAGICK_BIN" || true)"
+    if command -v otool >/dev/null 2>&1; then
+      if otool -L "$BIN/ffmpeg" 2>/dev/null | grep -q '/opt/homebrew/Cellar\|/usr/local/Cellar'; then
+        echo "ERROR: ffmpeg still links Homebrew Cellar — not a static build."
+        otool -L "$BIN/ffmpeg" || true
+        exit 1
       fi
-      if [[ -n "${MAGICK_BIN:-}" && -f "$MAGICK_BIN" ]]; then
-        cp "$MAGICK_BIN" "$BIN/imagemagick/magick"
-        cp "$MAGICK_BIN" "$RES_MAGICK/magick"
-        chmod +x "$BIN/imagemagick/magick" "$RES_MAGICK/magick"
-      fi
-    else
-      echo "WARN: magick not on PATH — Images mode may need a system ImageMagick install."
     fi
+    # Sanity: static builds are multi‑MB, not ~400KB Homebrew stubs.
+    FFMPEG_SIZE="$(wc -c < "$BIN/ffmpeg" | tr -d ' ')"
+    if [[ "$FFMPEG_SIZE" -lt 5000000 ]]; then
+      echo "ERROR: ffmpeg size ${FFMPEG_SIZE} looks too small for a static build."
+      exit 1
+    fi
+
+    bundle_magick_macos
     ;;
   linux)
     TRIPLE="x86_64-unknown-linux-gnu"
@@ -106,6 +171,7 @@ case "$OS" in
       cp "$MAGICK_BIN" "$BIN/imagemagick/magick"
       cp "$MAGICK_BIN" "$RES_MAGICK/magick"
       chmod +x "$BIN/imagemagick/magick" "$RES_MAGICK/magick"
+      echo "WARN: Linux Magick is copied from PATH and may need system libs in AppImage."
     else
       echo "WARN: magick not on PATH — Images mode may need a system ImageMagick install."
     fi
@@ -118,4 +184,4 @@ esac
 
 echo "==> Done. Binaries in $BIN"
 ls -la "$BIN" | head -n 40
-ls -la "$RES_MAGICK" | head -n 20
+ls -la "$RES_MAGICK" 2>/dev/null | head -n 20 || true

@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.5.1",
+    changes: [
+      "macOS: ship static FFmpeg/FFprobe (evermeet) so Audio works without Homebrew",
+      "macOS: find ImageMagick under the app Resources path",
+    ],
+    debugs: [
+      "Images on a clean Mac may still need system Magick if dylib bundling warns in CI",
+    ],
+  },
+  {
     version: "0.5.0",
     changes: [
       "macOS DMG on GitHub Releases (Apple Silicon, unsigned — right-click → Open)",

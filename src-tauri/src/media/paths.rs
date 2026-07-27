@@ -117,15 +117,8 @@ pub fn resolve_magick() -> Option<PathBuf> {
         return None;
     }
 
-    for dir in candidate_binary_dirs() {
-        let nested = dir.join("imagemagick").join(MAGICK_NAME);
-        if nested.is_file() {
-            return Some(nested);
-        }
-        let candidate = dir.join(MAGICK_NAME);
-        if candidate.is_file() {
-            return Some(candidate);
-        }
+    if let Some(path) = magick_in_dirs(&candidate_binary_dirs()) {
+        return Some(path);
     }
 
     // Windows ships a portable Magick tree. On macOS/Linux, fall back to a
@@ -152,10 +145,52 @@ fn candidate_binary_dirs() -> Vec<PathBuf> {
             dirs.push(parent.join("resources"));
             dirs.push(parent.join("resources").join("binaries"));
             dirs.push(parent.join("resources").join("imagemagick"));
+            // macOS .app: Contents/MacOS → Contents/Resources/resources[/imagemagick]
+            dirs.push(parent.join("..").join("Resources").join("resources"));
+            dirs.push(
+                parent
+                    .join("..")
+                    .join("Resources")
+                    .join("resources")
+                    .join("imagemagick"),
+            );
+            dirs.push(parent.join("..").join("Resources"));
         }
     }
 
     dirs
+}
+
+/// Candidate roots relative to an executable parent dir (for tests).
+pub fn candidate_dirs_for_exe_parent(parent: &Path) -> Vec<PathBuf> {
+    vec![
+        parent.to_path_buf(),
+        parent.join("binaries"),
+        parent.join("resources"),
+        parent.join("resources").join("binaries"),
+        parent.join("resources").join("imagemagick"),
+        parent.join("..").join("Resources").join("resources"),
+        parent
+            .join("..")
+            .join("Resources")
+            .join("resources")
+            .join("imagemagick"),
+        parent.join("..").join("Resources"),
+    ]
+}
+
+fn magick_in_dirs(dirs: &[PathBuf]) -> Option<PathBuf> {
+    for dir in dirs {
+        let nested = dir.join("imagemagick").join(MAGICK_NAME);
+        if nested.is_file() {
+            return Some(nested);
+        }
+        let candidate = dir.join(MAGICK_NAME);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+    None
 }
 
 #[cfg(debug_assertions)]
@@ -189,4 +224,71 @@ pub fn resolve_media_tools() -> Option<MediaToolPaths> {
 #[allow(dead_code)]
 pub fn tool_exists(path: &Path) -> bool {
     path.is_file()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn macos_app_resources_layout_finds_magick() {
+        let root = std::env::temp_dir().join(format!(
+            "jwconverter-magick-layout-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        let macos = root.join("Contents").join("MacOS");
+        let magick_dir = root
+            .join("Contents")
+            .join("Resources")
+            .join("resources")
+            .join("imagemagick");
+        fs::create_dir_all(&macos).expect("macos dir");
+        fs::create_dir_all(&magick_dir).expect("magick dir");
+        let magick_path = magick_dir.join(MAGICK_NAME);
+        fs::write(&magick_path, b"stub").expect("write magick stub");
+
+        let found = magick_in_dirs(&candidate_dirs_for_exe_parent(&macos))
+            .expect("magick should resolve via Resources layout");
+        let canon_found = fs::canonicalize(&found).expect("canonicalize found");
+        let canon_expected = fs::canonicalize(&magick_path).expect("canonicalize expected");
+        let _ = fs::remove_dir_all(&root);
+        assert_eq!(canon_found, canon_expected);
+    }
+
+    #[test]
+    fn macos_app_resources_layout_misses_without_resources_candidates() {
+        let root = std::env::temp_dir().join(format!(
+            "jwconverter-magick-miss-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        let macos = root.join("Contents").join("MacOS");
+        let magick_dir = root
+            .join("Contents")
+            .join("Resources")
+            .join("resources")
+            .join("imagemagick");
+        fs::create_dir_all(&macos).expect("macos dir");
+        fs::create_dir_all(&magick_dir).expect("magick dir");
+        fs::write(magick_dir.join(MAGICK_NAME), b"stub").expect("write magick stub");
+
+        let legacy_only = vec![
+            macos.clone(),
+            macos.join("binaries"),
+            macos.join("resources"),
+            macos.join("resources").join("binaries"),
+            macos.join("resources").join("imagemagick"),
+        ];
+        let found = magick_in_dirs(&legacy_only);
+        let _ = fs::remove_dir_all(&root);
+        assert!(found.is_none(), "legacy MacOS-only candidates must miss Resources magick");
+    }
 }
