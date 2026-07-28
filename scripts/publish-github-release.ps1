@@ -63,7 +63,7 @@ From v0.1.2 onward, Windows installs can check GitHub Releases and install updat
 ### Notes
 - Windows 10/11 x64 + WebView2
 - Sources are never modified
-- Bundled FFmpeg/FFprobe — see docs/ffmpeg-licensing.md
+- Bundled FFmpeg/FFprobe — see third_party/FFMPEG-LICENSING.md
 - macOS not notarized yet
 - Images on a clean Mac may still need system Magick if Magick dylib bundling is incomplete
 "@

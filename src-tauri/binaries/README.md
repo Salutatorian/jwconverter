@@ -25,4 +25,4 @@ Example (PowerShell), using a GitHub portable Q16 x64 release:
 Copy-Item -Recurse -Force src-tauri\binaries\imagemagick src-tauri\resources\imagemagick
 ```
 
-See `resources/THIRD_PARTY_IMAGEMAGICK.txt`.
+See `third_party/THIRD_PARTY_IMAGEMAGICK.txt` at the repository root.

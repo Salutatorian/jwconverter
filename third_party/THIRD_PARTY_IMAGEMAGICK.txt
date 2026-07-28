@@ -18,4 +18,4 @@ bundled binaries.
 
 ## More detail
 
-Repository documentation: `docs/ffmpeg-licensing.md` (audio) and this notice for images.
+Repository documentation: `third_party/FFMPEG-LICENSING.md` (audio) and this notice for images.

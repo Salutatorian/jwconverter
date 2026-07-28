@@ -60,7 +60,7 @@ Working:
 - Windows NSIS installer with bundled FFmpeg + ImageMagick
 - In-app Settings: updates, GitHub links, FFmpeg licensing
 
-See `docs/ffmpeg-licensing.md` before redistributing the installer.
+See `third_party/FFMPEG-LICENSING.md` before redistributing the installer.
 
 ## Development (Windows)
 
@@ -84,7 +84,7 @@ Place `ffmpeg.exe` and `ffprobe.exe` in `src-tauri/binaries/` (gitignored).
 
 For release packaging, also create target-triple copies (see `src-tauri/binaries/README.md`).
 
-Licensing notes: `docs/ffmpeg-licensing.md`.
+Licensing notes: `third_party/FFMPEG-LICENSING.md`.
 
 ### Release installer (Windows)
 

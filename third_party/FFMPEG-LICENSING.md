@@ -31,7 +31,7 @@ ffmpeg -version
 ffprobe -version
 ```
 
-If you change the binaries, update this table, `resources/THIRD_PARTY_FFMPEG.txt`, and the
+If you change the binaries, update this table, `third_party/THIRD_PARTY_FFMPEG.txt`, and the
 installer resources **before** publishing.
 
 ## Attribution
@@ -52,7 +52,7 @@ Provide corresponding source for redistributed GPL binaries. JW Converter’s of
 
 1. Record the **exact** FFmpeg build identity (version string from `ffmpeg -version`).
 2. Confirm GPL vs LGPL for **that** build; update docs + `THIRD_PARTY_FFMPEG.txt`.
-3. Ensure `THIRD_PARTY_FFMPEG.txt` is listed under `bundle.resources` in `tauri.conf.json`.
+3. Ensure `../third_party/THIRD_PARTY_FFMPEG.txt` is listed under `bundle.resources` in `tauri.conf.json`.
 4. Do **not** commit unknown `.exe` files to git; keep them local / CI-provisioned.
 
 ## JW Converter itself

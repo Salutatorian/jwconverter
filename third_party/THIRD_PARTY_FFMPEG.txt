@@ -34,4 +34,4 @@ installed (include the app version from Settings → About).
 
 ## More detail
 
-Repository documentation: `docs/ffmpeg-licensing.md`
+Repository documentation: `third_party/FFMPEG-LICENSING.md`

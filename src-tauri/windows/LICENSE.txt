@@ -17,13 +17,13 @@ INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PA
 PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM,
 DAMAGES, OR OTHER LIABILITY ARISING FROM USE OF THE SOFTWARE.
 
-4. THIRD-PARTY COMPONENTS (FFMPEG / FFPROBE)
-JW Converter may bundle FFmpeg and FFprobe binaries. Those tools are separate software
-with their own licenses. The Windows installer currently ships a Gyan.dev full build under
-the GNU GPL (see THIRD_PARTY_FFMPEG.txt in the installation folder for the exact build
-identity, attribution, and corresponding-source offer). Redistribution and use of those
-binaries is governed by their license terms, not solely by this EULA.
-Additional notes: docs/ffmpeg-licensing.md in the source repository.
+4. THIRD-PARTY COMPONENTS
+The Software may bundle unmodified third-party runtime tools. Those tools are separate
+software with their own licenses; their notices (THIRD_PARTY_FFMPEG.txt and
+THIRD_PARTY_IMAGEMAGICK.txt) are installed alongside the Software. Redistribution and
+use of those binaries is governed by their license terms, not solely by this EULA.
+The corresponding notices and licensing documentation live in the third_party/
+directory of the source repository.
 
 5. ACCEPTANCE
 Clicking “I Agree” or installing the Software indicates that you accept this agreement.
