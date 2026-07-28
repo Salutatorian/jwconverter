@@ -53,11 +53,11 @@ $notes = @"
 - **macOS:** `.dmg` for Apple Silicon (unsigned) — attached by CI; if missing, wait a few minutes for the Build workflow, then refresh. First open: right-click → **Open** (Gatekeeper)
 - **Linux:** AppImage when CI succeeds
 
-From v0.1.2 onward, Windows installs can check GitHub Releases and install updates via **Settings → Updates**.
+From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
 
 ### What's new
-- macOS: static FFmpeg/FFprobe (works without Homebrew)
-- macOS: ImageMagick path resolves inside the .app Resources tree
+- Auto-update on launch with a full-screen blue progress bar
+- Cleaner Audio/Images empty state (less copy, actions in the drop zone)
 - CI attaches Mac/Linux installers to the release tag
 
 ### Notes

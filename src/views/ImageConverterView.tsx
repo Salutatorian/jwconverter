@@ -271,13 +271,10 @@ export function ImageConverterView({
   return (
     <div className="app-shell">
       <header className="stage-header">
-        <p className="stage-kicker">
-          images{appInfo ? ` · v${appInfo.version}` : ""}
-        </p>
         <h1 className="stage-title">JW Converter</h1>
         <p className="stage-sub">
-          Drop photos or a folder — HEIC import OK; HEIC export not available on
-          this build.
+          Local image conversion
+          {appInfo ? ` · v${appInfo.version}` : ""}
         </p>
       </header>
 
@@ -286,44 +283,45 @@ export function ImageConverterView({
         disabled={queue.isAnalyzing || batch.isBusy}
         active={dragActive}
         analyzing={queue.isAnalyzing}
+        actions={
+          <div className="action-row action-row-center">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={queue.isAnalyzing || batch.isBusy}
+              onClick={() => {
+                void handleChooseFiles();
+              }}
+            >
+              {queue.isAnalyzing ? "Analyzing…" : "Choose images"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={queue.isAnalyzing || batch.isBusy}
+              onClick={() => {
+                void handleChooseInputFolder();
+              }}
+            >
+              Choose folder
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!canConvert}
+              onClick={() => {
+                void handleConvert();
+              }}
+            >
+              {batch.isBusy
+                ? "Converting…"
+                : convertibleItems.length > 1
+                  ? `Convert ${convertibleItems.length}`
+                  : "Convert"}
+            </button>
+          </div>
+        }
       />
-
-      <div className="action-row">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={queue.isAnalyzing || batch.isBusy}
-          onClick={() => {
-            void handleChooseFiles();
-          }}
-        >
-          {queue.isAnalyzing ? "Analyzing…" : "Choose images"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={queue.isAnalyzing || batch.isBusy}
-          onClick={() => {
-            void handleChooseInputFolder();
-          }}
-        >
-          Choose folder
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={!canConvert}
-          onClick={() => {
-            void handleConvert();
-          }}
-        >
-          {batch.isBusy
-            ? "Converting…"
-            : convertibleItems.length > 1
-              ? `Convert ${convertibleItems.length}`
-              : "Convert"}
-        </button>
-      </div>
 
       {batch.error ? (
         <p
@@ -356,9 +354,9 @@ export function ImageConverterView({
         }}
       />
 
-      <div className="grid gap-3">
-        <section aria-label="Output format" className="panel">
-          <h2 className="panel-title">Format</h2>
+      <div className="grid gap-2.5">
+        <section aria-label="Output format" className="panel panel-compact">
+          <h2 className="panel-title">Output format</h2>
           <div className="chip-row">
             {IMAGE_OUTPUT_FORMATS.map((item) => (
               <button
@@ -378,14 +376,10 @@ export function ImageConverterView({
               </button>
             ))}
           </div>
-          <p className="panel-hint mt-2">
-            HEIC/HEIF can be imported when Magick can read them. Export is not
-            available in this build.
-          </p>
         </section>
 
         {showsImageQualityControls(format) ? (
-          <section aria-label="Quality" className="panel">
+          <section aria-label="Quality" className="panel panel-compact">
             <h2 className="panel-title">
               {format === "png" ? "Compression" : "Quality"}
             </h2>
@@ -406,11 +400,8 @@ export function ImageConverterView({
           </section>
         ) : null}
 
-        <section aria-label="Resize" className="panel">
+        <section aria-label="Resize" className="panel panel-compact">
           <h2 className="panel-title">Resize</h2>
-          <p className="mb-2 text-xs text-[var(--text-muted)]">
-            Long edge max — never upscales
-          </p>
           <div className="chip-row">
             {IMAGE_RESIZE_PRESETS.map((item) => (
               <button
@@ -418,6 +409,7 @@ export function ImageConverterView({
                 type="button"
                 className="chip"
                 disabled={batch.isBusy}
+                title="Long edge max — never upscales"
                 aria-pressed={resizePreset === item.value}
                 onClick={() => setResizePreset(item.value)}
               >

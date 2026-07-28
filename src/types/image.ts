@@ -34,22 +34,22 @@ export function qualityPresetsForFormat(
     case "jpeg":
     case "avif":
       return [
-        { value: "low", label: "Low · 70" },
-        { value: "medium", label: "Medium · 85" },
-        { value: "high", label: "High · 95" },
+        { value: "low", label: "Low" },
+        { value: "medium", label: "Medium" },
+        { value: "high", label: "High" },
       ];
     case "webp":
       return [
-        { value: "low", label: "Low · 70" },
-        { value: "medium", label: "Medium · 85" },
-        { value: "high", label: "High · 95" },
+        { value: "low", label: "Low" },
+        { value: "medium", label: "Medium" },
+        { value: "high", label: "High" },
         { value: "lossless", label: "Lossless" },
       ];
     case "png":
       return [
-        { value: "low", label: "Fast · 90" },
-        { value: "medium", label: "Balanced · 75" },
-        { value: "high", label: "Small · 50" },
+        { value: "low", label: "Fast" },
+        { value: "medium", label: "Balanced" },
+        { value: "high", label: "Small" },
       ];
     case "tiff":
     case "bmp":

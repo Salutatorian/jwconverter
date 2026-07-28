@@ -24,7 +24,7 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
             ? `Downloading v${availableVersion ?? ""}${
                 downloadPercent != null ? ` · ${downloadPercent}%` : ""
               }. The app will restart when done.`
-            : `Update available: v${availableVersion}. Click Update to install — the app will restart.`}
+            : `Update available: v${availableVersion}. It also installs automatically the next time you open the app.`}
         </p>
       ) : null}
 

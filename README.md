@@ -6,7 +6,7 @@ Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; imag
 
 ## Download
 
-**[Download JW Converter (v0.5.0)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.5.0)**
+**[Download JW Converter (v0.5.2)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.5.2)**
 
 - **Windows:** signed `.exe` installer (recommended day-to-day build + in-app Update)
 - **macOS:** `.dmg` for Apple Silicon — **unsigned**; first launch: right-click the app → **Open** (Gatekeeper). Notarization comes later.
@@ -16,7 +16,7 @@ Grab installers from the latest GitHub Release. On Windows, uninstall anytime fr
 
 From **v0.1.2** onward, the Windows app checks for updates on launch (and every few hours). Open **Settings** to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
 
-## Reddit blurb (for sharing this screenshot)
+## Reddit blurb
 
 ```text
 Made a local-first Windows converter — JW Converter.
@@ -32,6 +32,8 @@ Windows installer with bundled FFmpeg + ImageMagick.
 
 ## Status
 
+**v0.5.2** — Auto-update on launch (blue % bar) + cleaner drop-zone UI.  
+**v0.5.1** — macOS static FFmpeg; Magick Resources path.  
 **v0.5.0** — macOS DMG on Releases (Apple Silicon, unsigned) + CI release uploads.  
 **v0.4.1** — Flat B/W theme; System / Black / White.  
 **v0.4.0** — Cobalt hybrid UI shell.  

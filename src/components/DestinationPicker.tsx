@@ -18,10 +18,10 @@ export function DestinationPicker({
   canUseSourceFolder = false,
 }: DestinationPickerProps) {
   return (
-    <section aria-label="Output destination" className="panel">
+    <section aria-label="Output destination" className="panel panel-compact">
       <h2 className="panel-title">Destination</h2>
       <p
-        className="mt-3 truncate text-sm text-[var(--text)]"
+        className="mt-2.5 truncate text-sm text-[var(--text)]"
         title={destination ?? undefined}
       >
         {destination ?? "No folder selected"}

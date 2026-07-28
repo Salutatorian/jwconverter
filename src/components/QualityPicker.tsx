@@ -28,7 +28,7 @@ export function QualityPicker({
   const showMp3Mode = format === "mp3";
 
   return (
-    <section aria-label="Quality" className="panel">
+    <section aria-label="Quality" className="panel panel-compact">
       <h2 className="panel-title">Quality</h2>
       {showMp3Mode ? (
         <div className="mt-2">

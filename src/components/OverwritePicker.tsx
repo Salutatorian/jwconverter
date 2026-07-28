@@ -12,7 +12,7 @@ export function OverwritePicker({
   onChange,
 }: OverwritePickerProps) {
   return (
-    <section aria-label="If file exists" className="panel">
+    <section aria-label="If file exists" className="panel panel-compact">
       <h2 className="panel-title">If file exists</h2>
       <div className="chip-row">
         {OVERWRITE_POLICIES.map((policy) => (
@@ -21,6 +21,13 @@ export function OverwritePicker({
             type="button"
             className="chip"
             disabled={disabled}
+            title={
+              policy.value === "rename"
+                ? "Keep both files"
+                : policy.value === "skip"
+                  ? "Leave the existing file"
+                  : "Overwrite after a successful convert"
+            }
             aria-pressed={value === policy.value}
             onClick={() => onChange(policy.value)}
           >
@@ -28,10 +35,6 @@ export function OverwritePicker({
           </button>
         ))}
       </div>
-      <p className="panel-hint">
-        Rename keeps both. Skip leaves the existing file. Replace overwrites
-        after a successful convert.
-      </p>
     </section>
   );
 }

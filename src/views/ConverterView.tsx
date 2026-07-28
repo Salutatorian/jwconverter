@@ -282,13 +282,10 @@ export function ConverterView({ appInfo, onBusyChange }: ConverterViewProps) {
   return (
     <div className="app-shell">
       <header className="stage-header">
-        <p className="stage-kicker">
-          audio{appInfo ? ` · v${appInfo.version}` : ""}
-        </p>
         <h1 className="stage-title">JW Converter</h1>
         <p className="stage-sub">
-          Drop files or a folder — originals stay untouched. Convert locally
-          with FFmpeg.
+          Local audio conversion
+          {appInfo ? ` · v${appInfo.version}` : ""}
         </p>
       </header>
 
@@ -297,44 +294,45 @@ export function ConverterView({ appInfo, onBusyChange }: ConverterViewProps) {
         disabled={queue.isAnalyzing || batch.isBusy}
         active={dragActive}
         analyzing={queue.isAnalyzing}
+        actions={
+          <div className="action-row action-row-center">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={queue.isAnalyzing || batch.isBusy}
+              onClick={() => {
+                void handleChooseFiles();
+              }}
+            >
+              {queue.isAnalyzing ? "Analyzing…" : "Choose files"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={queue.isAnalyzing || batch.isBusy}
+              onClick={() => {
+                void handleChooseInputFolder();
+              }}
+            >
+              Choose folder
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!canConvert}
+              onClick={() => {
+                void handleConvert();
+              }}
+            >
+              {batch.isBusy
+                ? "Converting…"
+                : convertibleItems.length > 1
+                  ? `Convert ${convertibleItems.length}`
+                  : "Convert"}
+            </button>
+          </div>
+        }
       />
-
-      <div className="action-row">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={queue.isAnalyzing || batch.isBusy}
-          onClick={() => {
-            void handleChooseFiles();
-          }}
-        >
-          {queue.isAnalyzing ? "Analyzing…" : "Choose files"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={queue.isAnalyzing || batch.isBusy}
-          onClick={() => {
-            void handleChooseInputFolder();
-          }}
-        >
-          Choose folder
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={!canConvert}
-          onClick={() => {
-            void handleConvert();
-          }}
-        >
-          {batch.isBusy
-            ? "Converting…"
-            : convertibleItems.length > 1
-              ? `Convert ${convertibleItems.length}`
-              : "Convert"}
-        </button>
-      </div>
 
       {batch.error ? (
         <p
@@ -367,7 +365,7 @@ export function ConverterView({ appInfo, onBusyChange }: ConverterViewProps) {
         }}
       />
 
-      <div className="grid gap-3">
+      <div className="grid gap-2.5">
         <FormatPicker
           value={format}
           disabled={batch.isBusy}

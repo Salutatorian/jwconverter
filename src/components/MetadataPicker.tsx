@@ -16,44 +16,37 @@ export function MetadataPicker({
   onPreserveCoverChange,
 }: MetadataPickerProps) {
   return (
-    <section aria-label="Metadata" className="panel">
+    <section aria-label="Metadata" className="panel panel-compact">
       <h2 className="panel-title">Metadata</h2>
-      <div className="mt-3 flex flex-col gap-2.5">
-        <label className="flex items-start gap-2.5 text-sm text-[var(--text)]">
+      <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-2">
+        <label className="inline-flex items-center gap-2 text-sm text-[var(--text)]">
           <input
             type="checkbox"
-            className="mt-0.5"
             checked={preserveTags}
             disabled={disabled}
             onChange={(event) => {
               onPreserveTagsChange(event.target.checked);
             }}
           />
-          <span>
-            <span className="font-medium">Preserve tags</span>
-            <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-              Title, artist, album, and other container metadata when possible.
-            </span>
-          </span>
+          <span>Tags</span>
         </label>
-        <label className="flex items-start gap-2.5 text-sm text-[var(--text)]">
+        <label
+          className="inline-flex items-center gap-2 text-sm text-[var(--text)]"
+          title={
+            coverSupported
+              ? "Keep embedded album art when supported"
+              : "This format doesn’t support cover art"
+          }
+        >
           <input
             type="checkbox"
-            className="mt-0.5"
             checked={preserveCover && coverSupported}
             disabled={disabled || !coverSupported}
             onChange={(event) => {
               onPreserveCoverChange(event.target.checked);
             }}
           />
-          <span>
-            <span className="font-medium">Preserve cover artwork</span>
-            <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-              {coverSupported
-                ? "Keep embedded album art when the destination format supports it."
-                : "This format doesn't support embedded cover art."}
-            </span>
-          </span>
+          <span>Cover art</span>
         </label>
       </div>
     </section>

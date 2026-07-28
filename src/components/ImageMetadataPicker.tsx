@@ -10,26 +10,22 @@ export function ImageMetadataPicker({
   onPreserveMetadataChange,
 }: ImageMetadataPickerProps) {
   return (
-    <section aria-label="Metadata" className="panel">
+    <section aria-label="Metadata" className="panel panel-compact">
       <h2 className="panel-title">Metadata</h2>
-      <div className="mt-3 flex flex-col gap-2.5">
-        <label className="flex items-start gap-2.5 text-sm text-[var(--text)]">
+      <div className="mt-2.5">
+        <label
+          className="inline-flex items-center gap-2 text-sm text-[var(--text)]"
+          title="Keep EXIF / ICC when the format supports it"
+        >
           <input
             type="checkbox"
-            className="mt-0.5"
             checked={preserveMetadata}
             disabled={disabled}
             onChange={(event) => {
               onPreserveMetadataChange(event.target.checked);
             }}
           />
-          <span>
-            <span className="font-medium">Preserve metadata</span>
-            <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-              Keep EXIF, ICC profiles, and comments when the output format
-              supports them.
-            </span>
-          </span>
+          <span>Preserve metadata</span>
         </label>
       </div>
     </section>

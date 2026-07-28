@@ -12,7 +12,7 @@ export function BitDepthPicker({
   onChange,
 }: BitDepthPickerProps) {
   return (
-    <section aria-label="Bit depth" className="panel">
+    <section aria-label="Bit depth" className="panel panel-compact">
       <h2 className="panel-title">Bit depth</h2>
       <div className="chip-row">
         {BIT_DEPTH_PRESETS.map((preset) => (
@@ -21,6 +21,11 @@ export function BitDepthPicker({
             type="button"
             className="chip"
             disabled={disabled}
+            title={
+              preset.value === "original"
+                ? "Keep source depth when possible"
+                : undefined
+            }
             aria-pressed={value === preset.value}
             onClick={() => onChange(preset.value)}
           >
@@ -28,10 +33,6 @@ export function BitDepthPicker({
           </button>
         ))}
       </div>
-      <p className="panel-hint">
-        Original keeps the source depth when possible (e.g. 24-bit FLAC → 24-bit
-        WAV).
-      </p>
     </section>
   );
 }

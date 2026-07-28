@@ -1,6 +1,6 @@
 [package]
 name = "jwconverter"
-version = "0.5.1"
+version = "0.5.2"
 description = "JW Converter — local-first audio and image conversion"
 authors = ["JW"]
 edition = "2021"

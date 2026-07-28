@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppShell, type MediaMode } from "./components/AppShell";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { UpdateOverlay } from "./components/UpdateOverlay";
 import { WhatsNewModal } from "./components/WhatsNewModal";
 import { useTheme } from "./hooks/useTheme";
 import { useUpdater } from "./hooks/useUpdater";
@@ -25,6 +26,7 @@ function App() {
   const theme = useTheme();
   const updateAvailable =
     updater.status === "available" || updater.status === "downloading";
+  const showUpdateOverlay = updater.blockingOverlay;
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +66,7 @@ function App() {
       <AppShell
         mode={mode}
         onModeChange={setMode}
-        modeLocked={modeLocked}
+        modeLocked={modeLocked || showUpdateOverlay}
         updateAvailable={updateAvailable}
         onOpenSettings={() => {
           setSettingsOpen(true);
@@ -79,7 +81,7 @@ function App() {
       </AppShell>
 
       <SettingsPanel
-        open={settingsOpen}
+        open={settingsOpen && !showUpdateOverlay}
         onClose={() => {
           setSettingsOpen(false);
         }}
@@ -89,9 +91,11 @@ function App() {
         onThemePreferenceChange={theme.setPreference}
       />
 
-      {whatsNew ? (
+      {whatsNew && !showUpdateOverlay ? (
         <WhatsNewModal entry={whatsNew} onDismiss={dismissWhatsNew} />
       ) : null}
+
+      {showUpdateOverlay ? <UpdateOverlay updater={updater} /> : null}
     </main>
   );
 }

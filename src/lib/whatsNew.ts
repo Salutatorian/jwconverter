@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.5.2",
+    changes: [
+      "Auto-update on launch: full-screen Updating… with blue progress bar and %",
+      "Cleaner Audio/Images UI — shorter copy, actions inside the drop zone",
+    ],
+    debugs: [
+      "If an update fails, use Retry or Continue without updating",
+    ],
+  },
+  {
     version: "0.5.1",
     changes: [
       "macOS: ship static FFmpeg/FFprobe (evermeet) so Audio works without Homebrew",

@@ -111,11 +111,11 @@ export const OUTPUT_FORMATS: ReadonlyArray<{
   { value: "flac", label: "FLAC", enabled: true },
   { value: "wav", label: "WAV", enabled: true },
   { value: "mp3", label: "MP3", enabled: true },
-  { value: "m4a", label: "M4A (AAC)", enabled: true },
-  { value: "aac", label: "AAC (ADTS)", enabled: true },
+  { value: "m4a", label: "M4A", enabled: true },
+  { value: "aac", label: "AAC", enabled: true },
   { value: "opus", label: "Opus", enabled: true },
-  { value: "ogg", label: "OGG (Vorbis)", enabled: true },
-  { value: "alac", label: "ALAC (M4A)", enabled: true },
+  { value: "ogg", label: "OGG", enabled: true },
+  { value: "alac", label: "ALAC", enabled: true },
   { value: "aiff", label: "AIFF", enabled: true },
 ];
 
