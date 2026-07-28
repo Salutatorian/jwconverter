@@ -1,0 +1,29 @@
+[package]
+name = "jwconverter-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Fuzz targets compile the project's pure parsing/naming modules directly via
+# #[path] includes, keeping harness builds hermetic (no Tauri/WebKit chain).
+[dependencies]
+libfuzzer-sys = "0.4"
+serde = { version = "1", features = ["derive"] }
+uuid = { version = "1", features = ["v4"] }
+
+[[bin]]
+name = "progress_fuzzer"
+path = "fuzz_targets/progress_fuzzer.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "path_fuzzer"
+path = "fuzz_targets/path_fuzzer.rs"
+test = false
+doc = false
+
+[workspace]
