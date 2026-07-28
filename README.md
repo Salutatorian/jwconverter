@@ -16,8 +16,6 @@ Grab installers from the latest GitHub Release. On Windows, uninstall anytime fr
 
 From **v0.1.2** onward, the Windows app checks for updates on launch (and every few hours). Open **Settings** to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
 
-![JW Converter UI](docs/assets/jw-converter-ui.png)
-
 ## Reddit blurb (for sharing this screenshot)
 
 ```text
