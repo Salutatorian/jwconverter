@@ -271,4 +271,231 @@ mod tests {
             .iter()
             .any(|w| w.kind == WarningKind::LossyToLossless));
     }
+
+    fn item_jpeg() -> ImagePreflightItem {
+        ImagePreflightItem {
+            source_path: r"C:\photos\a.jpg".into(),
+            relative_subdir: None,
+            width: Some(2000),
+            height: Some(1500),
+            file_size_bytes: Some(400_000),
+            format: Some("JPEG".into()),
+        }
+    }
+
+    fn run_basic(
+        format: ImageOutputFormat,
+        quality: ImageQualityPreset,
+        policy: OverwritePolicy,
+        items: Vec<ImagePreflightItem>,
+    ) -> PreflightReport {
+        run_image_preflight(&ImagePreflightRequest {
+            destination_dir: std::env::temp_dir().to_string_lossy().into_owned(),
+            output_format: format,
+            quality_preset: quality,
+            resize_preset: ImageResizePreset::Original,
+            overwrite_policy: policy,
+            items,
+        })
+        .expect("preflight")
+    }
+
+    #[test]
+    fn lossy_to_lossy_has_no_warning() {
+        let report = run_basic(
+            ImageOutputFormat::Jpeg,
+            ImageQualityPreset::Medium,
+            OverwritePolicy::Rename,
+            vec![item_jpeg()],
+        );
+        assert!(report.warnings.is_empty());
+        assert_eq!(report.file_count, 1);
+    }
+
+    #[test]
+    fn lossless_source_to_lossless_target_no_warning() {
+        let mut item = item_jpeg();
+        item.format = Some("PNG".into());
+        let report = run_basic(
+            ImageOutputFormat::Tiff,
+            ImageQualityPreset::Medium,
+            OverwritePolicy::Rename,
+            vec![item],
+        );
+        assert!(report.warnings.is_empty());
+    }
+
+    #[test]
+    fn empty_destination_is_rejected() {
+        let result = run_image_preflight(&ImagePreflightRequest {
+            destination_dir: "   ".into(),
+            output_format: ImageOutputFormat::Jpeg,
+            quality_preset: ImageQualityPreset::Medium,
+            resize_preset: ImageResizePreset::Original,
+            overwrite_policy: OverwritePolicy::Rename,
+            items: vec![item_jpeg()],
+        });
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn missing_dimensions_fall_back_to_source_size() {
+        let mut item = item_jpeg();
+        item.width = None;
+        item.height = None;
+        let report = run_basic(
+            ImageOutputFormat::Jpeg,
+            ImageQualityPreset::Medium,
+            OverwritePolicy::Rename,
+            vec![item],
+        );
+        assert_eq!(report.estimated_output_bytes, 400_000);
+    }
+
+    #[test]
+    fn resize_reduces_estimate() {
+        let small = run_image_preflight(&ImagePreflightRequest {
+            destination_dir: std::env::temp_dir().to_string_lossy().into_owned(),
+            output_format: ImageOutputFormat::Jpeg,
+            quality_preset: ImageQualityPreset::Medium,
+            resize_preset: ImageResizePreset::Max1024,
+            overwrite_policy: OverwritePolicy::Rename,
+            items: vec![item_jpeg()],
+        })
+        .expect("preflight");
+        let original = run_basic(
+            ImageOutputFormat::Jpeg,
+            ImageQualityPreset::Medium,
+            OverwritePolicy::Rename,
+            vec![item_jpeg()],
+        );
+        assert!(small.estimated_output_bytes < original.estimated_output_bytes);
+    }
+
+    #[test]
+    fn target_dimensions_never_upscale() {
+        assert_eq!(
+            target_dimensions(640, 480, ImageResizePreset::Max2048),
+            (640, 480)
+        );
+    }
+
+    #[test]
+    fn target_dimensions_portrait_uses_height_as_long_edge() {
+        assert_eq!(
+            target_dimensions(3000, 4000, ImageResizePreset::Max1920),
+            (1440, 1920)
+        );
+    }
+
+    #[test]
+    fn target_dimensions_zero_long_edge_is_safe() {
+        assert_eq!(target_dimensions(0, 0, ImageResizePreset::Max1024), (0, 0));
+    }
+
+    #[test]
+    fn target_dimensions_tiny_source_clamps_to_one_pixel() {
+        let (w, h) = target_dimensions(2, 1, ImageResizePreset::Max1024);
+        assert_eq!((w, h), (2, 1));
+        let (w, h) = target_dimensions(5000, 1, ImageResizePreset::Max1024);
+        assert_eq!(w, 1024);
+        assert!(h >= 1);
+    }
+
+    #[test]
+    fn estimate_matrix_monotonic_in_quality() {
+        let pixels = |(w, h): (u32, u32)| u64::from(w) * u64::from(h);
+        let dims = (2000, 1500);
+        for format in [
+            ImageOutputFormat::Jpeg,
+            ImageOutputFormat::Webp,
+            ImageOutputFormat::Avif,
+        ] {
+            let low = estimate_output_bytes(dims.0, dims.1, format, ImageQualityPreset::Low);
+            let high = estimate_output_bytes(dims.0, dims.1, format, ImageQualityPreset::High);
+            assert!(high > low, "{format:?}");
+        }
+        let tiff = estimate_output_bytes(2000, 1500, ImageOutputFormat::Tiff, ImageQualityPreset::Medium);
+        assert_eq!(tiff, pixels(dims) * 3);
+        let webp_lossless =
+            estimate_output_bytes(2000, 1500, ImageOutputFormat::Webp, ImageQualityPreset::Lossless);
+        assert_eq!(webp_lossless, pixels(dims) * 2);
+        let gif = estimate_output_bytes(2000, 1500, ImageOutputFormat::Gif, ImageQualityPreset::Medium);
+        assert_eq!(gif, (pixels(dims) as f64 * 0.5) as u64);
+    }
+
+    #[test]
+    fn source_is_lossy_recognizes_lossy_containers() {
+        for lossy in ["JPEG", "JPG", "WEBP", "HEIC", "HEIF", "AVIF", "JP2", "JXL"] {
+            assert!(source_is_lossy(Some(lossy)), "{lossy}");
+        }
+        for lossless in ["PNG", "TIFF", "BMP", "GIF", ""] {
+            assert!(!source_is_lossy(Some(lossless)), "{lossless}");
+        }
+        assert!(!source_is_lossy(None));
+    }
+
+    #[test]
+    fn dest_dir_resolution_strips_traversal_and_drives() {
+        let root = PathBuf::from(r"D:\out");
+        // `..` segments are dropped, the rest of the path is kept.
+        assert_eq!(
+            resolve_dest_dir_best_effort(&root, Some(r"..\..\evil")),
+            root.join("evil")
+        );
+        // Drive prefix segment is dropped, folder segment kept.
+        assert_eq!(
+            resolve_dest_dir_best_effort(&root, Some(r"C:\abs")),
+            root.join("abs")
+        );
+        assert_eq!(
+            resolve_dest_dir_best_effort(&root, Some(r"album/sub")),
+            root.join("album").join("sub")
+        );
+        assert_eq!(resolve_dest_dir_best_effort(&root, None), root);
+        assert_eq!(resolve_dest_dir_best_effort(&root, Some("  ")), root);
+    }
+
+    #[test]
+    fn skip_policy_counts_existing_outputs() {
+        let dir = std::env::temp_dir().join(format!("jw-img-preflight-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        std::fs::write(dir.join("a.jpg"), b"existing").expect("write existing");
+
+        let report = run_image_preflight(&ImagePreflightRequest {
+            destination_dir: dir.to_string_lossy().into_owned(),
+            output_format: ImageOutputFormat::Jpeg,
+            quality_preset: ImageQualityPreset::Medium,
+            resize_preset: ImageResizePreset::Original,
+            overwrite_policy: OverwritePolicy::Skip,
+            items: vec![ImagePreflightItem {
+                source_path: dir.join("a.png").to_string_lossy().into_owned(),
+                relative_subdir: None,
+                width: Some(100),
+                height: Some(100),
+                file_size_bytes: Some(10_000),
+                format: Some("PNG".into()),
+            }],
+        })
+        .expect("preflight");
+
+        assert_eq!(report.file_count, 0);
+        assert_eq!(report.skipped_existing, 1);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn source_bytes_accumulate_with_saturation() {
+        let mut big = item_jpeg();
+        big.file_size_bytes = Some(u64::MAX);
+        let report = run_basic(
+            ImageOutputFormat::Jpeg,
+            ImageQualityPreset::Medium,
+            OverwritePolicy::Rename,
+            vec![big, item_jpeg()],
+        );
+        assert_eq!(report.source_bytes, u64::MAX);
+        assert_eq!(report.file_count, 2);
+    }
 }

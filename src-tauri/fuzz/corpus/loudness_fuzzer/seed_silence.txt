@@ -1,0 +1,4 @@
+[silencedetect @ 0000017b2f2d4c80] silence_start: 0.00
+[silencedetect @ 0000017b2f2d4c80] silence_end: 2.52 | silence_duration: 2.52
+[silencedetect @ 0000017b2f2d4c80] silence_start: 5.10
+[silencedetect @ 0000017b2f2d4c80] silence_end: 7.75 | silence_duration: 2.65

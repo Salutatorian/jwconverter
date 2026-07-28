@@ -322,6 +322,65 @@ mod tests {
     }
 
     #[test]
+    fn raw_detected_from_stderr_keywords() {
+        // Path alone isn't RAW; stderr reveals LibRaw involvement.
+        let msg = friendly_image_error(
+            r"C:\photos\image.dat",
+            "dng: failed to read embedded preview via libraw",
+        );
+        assert!(msg.contains("camera RAW"));
+    }
+
+    #[test]
+    fn no_delegate_message_includes_stderr_tip() {
+        let msg = friendly_image_error(
+            r"C:\photos\scan.xyz",
+            "magick: no decode delegate for this image format `XYZ'",
+        );
+        assert!(msg.starts_with("Couldn't read this image:"));
+        assert!(msg.contains("no decode delegate"));
+        assert!(!msg.contains("camera RAW"));
+    }
+
+    #[test]
+    fn empty_stderr_gives_generic_message() {
+        let msg = friendly_image_error(r"C:\photos\a.png", "");
+        assert_eq!(msg, "ImageMagick could not process this image.");
+    }
+
+    #[test]
+    fn parse_byte_size_variants() {
+        assert_eq!(parse_byte_size("123"), Some(123));
+        assert_eq!(parse_byte_size("0"), Some(0));
+        assert_eq!(parse_byte_size("45MiB"), Some(45));
+        assert_eq!(parse_byte_size("7.5KB"), Some(7));
+        assert_eq!(parse_byte_size("  2048  "), Some(2048));
+        assert_eq!(parse_byte_size("abc"), None);
+        assert_eq!(parse_byte_size(""), None);
+        assert_eq!(parse_byte_size("MB"), None);
+    }
+
+    #[test]
+    fn raw_extension_matrix() {
+        for ext in ["cr2", "cr3", "nef", "arw", "dng", "orf", "rw2", "raf", "pef", "srw"] {
+            let path = format!(r"C:\photos\IMG_0001.{ext}");
+            assert!(is_likely_raw_path(&path), "{ext}");
+        }
+        assert!(is_likely_raw_path(r"C:\photos\IMG_0001.CR2")); // case-insensitive
+        assert!(!is_likely_raw_path(r"C:\photos\photo.png"));
+        assert!(!is_likely_raw_path(r"C:\photos\photo"));
+        assert!(!is_likely_raw_path(""));
+    }
+
+    #[test]
+    fn first_stderr_line_skips_blank_lines() {
+        assert_eq!(first_stderr_line("\n\n  \nreal error\nmore"), Some("real error"));
+        assert_eq!(first_stderr_line(""), None);
+        assert_eq!(first_stderr_line("   \n  "), None);
+        assert_eq!(first_stderr_line("single"), Some("single"));
+    }
+
+    #[test]
     fn auto_orient_swaps_phone_jpeg_dimensions() {
         let Some(magick_path) = resolve_magick() else {
             eprintln!("skip: magick not available");

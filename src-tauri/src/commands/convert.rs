@@ -2,8 +2,8 @@ use serde::Deserialize;
 use tauri::{AppHandle, State};
 
 use crate::engine::job::{
-    BitDepthPreset, ConversionJob, JobStatus, Mp3EncodingMode, OutputFormat, OverwritePolicy,
-    QualityPreset,
+    BitDepthPreset, ConversionJob, JobStatus, LoudnessPreset, Mp3EncodingMode, NormalizeMode,
+    OutputFormat, OverwritePolicy, QualityPreset,
 };
 use crate::engine::queue::{self, QueueItem};
 use crate::state::AppState;
@@ -29,6 +29,12 @@ pub struct ConversionRequest {
     pub preserve_tags: bool,
     #[serde(default = "default_true")]
     pub preserve_cover: bool,
+    #[serde(default)]
+    pub normalize: NormalizeMode,
+    #[serde(default)]
+    pub loudness_preset: LoudnessPreset,
+    #[serde(default)]
+    pub trim_silence: bool,
 }
 
 fn default_true() -> bool {
@@ -71,6 +77,9 @@ fn build_queue_item(request: ConversionRequest) -> Result<QueueItem, String> {
             bit_depth_preset: request.bit_depth_preset,
             preserve_tags: request.preserve_tags,
             preserve_cover: request.preserve_cover,
+            normalize: request.normalize,
+            loudness_preset: request.loudness_preset,
+            trim_silence: request.trim_silence,
             status: JobStatus::Queued,
         },
         source_duration_seconds: request.source_duration_seconds,
@@ -123,4 +132,82 @@ pub fn cancel_conversion(state: State<'_, AppState>, job_id: String) -> Result<(
 #[tauri::command]
 pub fn is_batch_running(state: State<'_, AppState>) -> bool {
     queue::is_batch_running(&state)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn request(source: &str, destination: &str) -> ConversionRequest {
+        ConversionRequest {
+            source_path: source.to_string(),
+            destination_dir: destination.to_string(),
+            output_format: OutputFormat::Flac,
+            source_duration_seconds: Some(1.0),
+            relative_subdir: None,
+            overwrite_policy: OverwritePolicy::Rename,
+            quality_preset: QualityPreset::Medium,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
+            bit_depth_preset: BitDepthPreset::Original,
+            preserve_tags: true,
+            preserve_cover: true,
+            normalize: NormalizeMode::Off,
+            loudness_preset: LoudnessPreset::Streaming,
+            trim_silence: false,
+        }
+    }
+
+    #[test]
+    fn empty_source_or_destination_rejected() {
+        assert!(build_queue_item(request("", "out")).is_err());
+        assert!(build_queue_item(request("in.wav", "")).is_err());
+        assert!(build_queue_item(request("   ", "out")).is_err());
+        assert!(build_queue_item(request("in.wav", "  ")).is_err());
+    }
+
+    #[test]
+    fn paths_are_trimmed() {
+        let item = build_queue_item(request("  in.wav  ", "  out  ")).expect("item");
+        assert_eq!(item.job.source_path, "in.wav");
+        assert_eq!(item.job.destination_dir, "out");
+    }
+
+    #[test]
+    fn subdir_is_normalized_and_empty_becomes_none() {
+        let mut req = request("in.wav", "out");
+        req.relative_subdir = Some(r"/Album A/\".to_string());
+        let item = build_queue_item(req).expect("item");
+        assert_eq!(item.job.relative_subdir.as_deref(), Some("Album A"));
+
+        let mut req = request("in.wav", "out");
+        req.relative_subdir = Some(r"\\".to_string());
+        let item = build_queue_item(req).expect("item");
+        assert_eq!(item.job.relative_subdir, None);
+
+        let mut req = request("in.wav", "out");
+        req.relative_subdir = Some("   ".to_string());
+        let item = build_queue_item(req).expect("item");
+        assert_eq!(item.job.relative_subdir, None);
+    }
+
+    #[test]
+    fn job_starts_queued_with_unique_ids() {
+        let first = build_queue_item(request("a.wav", "out")).expect("item");
+        let second = build_queue_item(request("a.wav", "out")).expect("item");
+        assert_eq!(first.job.status, JobStatus::Queued);
+        assert_ne!(first.job.id, second.job.id);
+        assert!(!first.job.id.is_empty());
+    }
+
+    #[test]
+    fn processing_options_pass_through() {
+        let mut req = request("in.wav", "out");
+        req.normalize = NormalizeMode::TwoPass;
+        req.loudness_preset = LoudnessPreset::EbuR128;
+        req.trim_silence = true;
+        let item = build_queue_item(req).expect("item");
+        assert_eq!(item.job.normalize, NormalizeMode::TwoPass);
+        assert_eq!(item.job.loudness_preset, LoudnessPreset::EbuR128);
+        assert!(item.job.trim_silence);
+    }
 }

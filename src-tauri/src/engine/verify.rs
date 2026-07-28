@@ -90,3 +90,62 @@ fn codec_matches(plan: &EncoderPlan, codec: Option<&str>) -> bool {
         crate::engine::job::OutputFormat::Aiff => codec == "pcm_s16be" || codec.starts_with("pcm_"),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::job::{BitDepthPreset, Mp3EncodingMode, OutputFormat, QualityPreset};
+    use crate::engine::planner;
+
+    fn plan(format: OutputFormat) -> EncoderPlan {
+        planner::plan_for(
+            format,
+            QualityPreset::Medium,
+            BitDepthPreset::Original,
+            None,
+            Mp3EncodingMode::Cbr,
+        )
+    }
+
+    #[test]
+    fn codec_matches_accepts_expected_codecs() {
+        assert!(codec_matches(&plan(OutputFormat::Flac), Some("flac")));
+        assert!(codec_matches(&plan(OutputFormat::Mp3), Some("mp3")));
+        assert!(codec_matches(&plan(OutputFormat::M4a), Some("aac")));
+        assert!(codec_matches(&plan(OutputFormat::Aac), Some("aac")));
+        assert!(codec_matches(&plan(OutputFormat::Opus), Some("opus")));
+        assert!(codec_matches(&plan(OutputFormat::Ogg), Some("vorbis")));
+        assert!(codec_matches(&plan(OutputFormat::Alac), Some("alac")));
+        assert!(codec_matches(&plan(OutputFormat::Wav), Some("pcm_s16le")));
+        assert!(codec_matches(&plan(OutputFormat::Wav), Some("pcm_s24le")));
+        assert!(codec_matches(&plan(OutputFormat::Aiff), Some("pcm_s16be")));
+        assert!(codec_matches(&plan(OutputFormat::Aiff), Some("pcm_f32be")));
+    }
+
+    #[test]
+    fn codec_matches_rejects_wrong_codecs() {
+        assert!(!codec_matches(&plan(OutputFormat::Flac), Some("mp3")));
+        assert!(!codec_matches(&plan(OutputFormat::Mp3), Some("aac")));
+        assert!(!codec_matches(&plan(OutputFormat::Opus), Some("vorbis")));
+        assert!(!codec_matches(&plan(OutputFormat::Ogg), Some("opus")));
+        assert!(!codec_matches(&plan(OutputFormat::Wav), Some("flac")));
+        assert!(!codec_matches(&plan(OutputFormat::Alac), Some("aac")));
+    }
+
+    #[test]
+    fn codec_matches_rejects_missing_codec() {
+        for format in [
+            OutputFormat::Wav,
+            OutputFormat::Flac,
+            OutputFormat::Mp3,
+            OutputFormat::M4a,
+            OutputFormat::Aac,
+            OutputFormat::Opus,
+            OutputFormat::Ogg,
+            OutputFormat::Alac,
+            OutputFormat::Aiff,
+        ] {
+            assert!(!codec_matches(&plan(format), None), "{format:?}");
+        }
+    }
+}

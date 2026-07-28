@@ -4,6 +4,7 @@
 pub mod ffmpeg;
 pub mod ffprobe;
 pub mod imagemagick;
+pub mod loudness;
 pub mod magick_policy;
 pub mod paths;
 pub mod progress;

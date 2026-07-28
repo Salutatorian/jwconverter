@@ -43,3 +43,56 @@ impl std::fmt::Display for AppError {
 }
 
 impl std::error::Error for AppError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_uses_detail_for_detail_variants() {
+        let variants = [
+            AppError::UnsupportedFormat { detail: "d".into() },
+            AppError::DecodeFailure { detail: "d".into() },
+            AppError::EncoderUnavailable { detail: "d".into() },
+            AppError::MediaToolMissing { detail: "d".into() },
+            AppError::PermissionDenied { detail: "d".into() },
+            AppError::DiskFull { detail: "d".into() },
+            AppError::SourceMissing { detail: "d".into() },
+            AppError::DestinationUnavailable { detail: "d".into() },
+            AppError::OutputExists { detail: "d".into() },
+            AppError::FfmpegFailure { detail: "d".into() },
+            AppError::VerificationFailure { detail: "d".into() },
+        ];
+        for variant in variants {
+            assert_eq!(variant.to_string(), "d");
+        }
+    }
+
+    #[test]
+    fn display_for_fixed_variants() {
+        assert_eq!(
+            AppError::NotImplemented {
+                feature: "Video".into()
+            }
+            .to_string(),
+            "Video is not implemented yet"
+        );
+        assert_eq!(
+            AppError::ConversionCancelled.to_string(),
+            "Conversion cancelled"
+        );
+    }
+
+    #[test]
+    fn serde_kind_tag_is_camel_case() {
+        let value = serde_json::to_value(AppError::SourceMissing {
+            detail: "gone".into(),
+        })
+        .expect("serialize");
+        assert_eq!(value["kind"], "sourceMissing");
+        assert_eq!(value["detail"], "gone");
+
+        let cancelled = serde_json::to_value(AppError::ConversionCancelled).expect("serialize");
+        assert_eq!(cancelled["kind"], "conversionCancelled");
+    }
+}

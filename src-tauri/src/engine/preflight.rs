@@ -561,4 +561,293 @@ mod tests {
             .iter()
             .all(|w| w.kind != WarningKind::LossyToLossless));
     }
+
+    fn hints(bit_depth: Option<u32>, sample_format: Option<&str>) -> SourcePcmHints {
+        SourcePcmHints {
+            sample_format: sample_format.map(str::to_string),
+            bits_per_raw_sample: bit_depth,
+            bit_depth,
+        }
+    }
+
+    fn wav_plan(bit_depth: BitDepthPreset) -> EncoderPlan {
+        planner::plan_for(
+            OutputFormat::Wav,
+            QualityPreset::Medium,
+            bit_depth,
+            None,
+            Mp3EncodingMode::Cbr,
+        )
+    }
+
+    #[test]
+    fn estimate_wav_pcm_is_exact() {
+        let plan = wav_plan(BitDepthPreset::Bit16);
+        let no_hints = hints(None, None);
+        // 10s * 44100 * 2ch * 2 bytes + 44 header.
+        let est = estimate_output_bytes(&plan, Some(10.0), Some(44100), Some(2), &no_hints)
+            .expect("estimate");
+        assert_eq!(est, 10 * 44100 * 2 * 2 + 44);
+    }
+
+    #[test]
+    fn estimate_defaults_to_cd_audio_when_stream_info_missing() {
+        let plan = wav_plan(BitDepthPreset::Bit16);
+        let no_hints = hints(None, None);
+        let est = estimate_output_bytes(&plan, Some(1.0), None, None, &no_hints).expect("estimate");
+        assert_eq!(est, 44100 * 2 * 2 + 44);
+    }
+
+    #[test]
+    fn estimate_none_without_duration() {
+        let plan = wav_plan(BitDepthPreset::Bit16);
+        let no_hints = hints(None, None);
+        assert!(estimate_output_bytes(&plan, None, Some(44100), Some(2), &no_hints).is_none());
+        assert!(estimate_output_bytes(&plan, Some(0.0), Some(44100), Some(2), &no_hints).is_none());
+        assert!(estimate_output_bytes(&plan, Some(-1.0), Some(44100), Some(2), &no_hints).is_none());
+    }
+
+    #[test]
+    fn estimate_flac_and_alac_scale_from_pcm() {
+        let no_hints = hints(Some(16), None);
+        let flac = planner::plan_for(
+            OutputFormat::Flac,
+            QualityPreset::Medium,
+            BitDepthPreset::Original,
+            None,
+            Mp3EncodingMode::Cbr,
+        );
+        let alac = planner::plan_for(
+            OutputFormat::Alac,
+            QualityPreset::Medium,
+            BitDepthPreset::Original,
+            None,
+            Mp3EncodingMode::Cbr,
+        );
+        let pcm = 10.0 * 44100.0 * 2.0 * 2.0;
+        let flac_est =
+            estimate_output_bytes(&flac, Some(10.0), Some(44100), Some(2), &no_hints).expect("flac");
+        let alac_est =
+            estimate_output_bytes(&alac, Some(10.0), Some(44100), Some(2), &no_hints).expect("alac");
+        assert_eq!(flac_est, (pcm * 0.55) as u64);
+        assert_eq!(alac_est, (pcm * 0.60) as u64);
+    }
+
+    #[test]
+    fn estimate_lossy_uses_bitrate_map() {
+        let mp3 = planner::plan_for(
+            OutputFormat::Mp3,
+            QualityPreset::Medium,
+            BitDepthPreset::Original,
+            None,
+            Mp3EncodingMode::Cbr,
+        );
+        let no_hints = hints(None, None);
+        let est = estimate_output_bytes(&mp3, Some(10.0), Some(44100), Some(2), &no_hints)
+            .expect("estimate");
+        // 192 kbps CBR for 10 seconds.
+        assert_eq!(est, (10.0 * 192_000.0 / 8.0) as u64);
+    }
+
+    #[test]
+    fn lossy_bitrate_map_covers_all_lossy_formats() {
+        assert_eq!(
+            lossy_bitrate_bps(OutputFormat::Mp3, QualityPreset::Low, Mp3EncodingMode::Cbr),
+            Some(128_000)
+        );
+        assert_eq!(
+            lossy_bitrate_bps(OutputFormat::Mp3, QualityPreset::High, Mp3EncodingMode::Cbr),
+            Some(320_000)
+        );
+        assert_eq!(
+            lossy_bitrate_bps(OutputFormat::Mp3, QualityPreset::Medium, Mp3EncodingMode::Vbr),
+            Some(190_000)
+        );
+        assert_eq!(
+            lossy_bitrate_bps(OutputFormat::M4a, QualityPreset::High, Mp3EncodingMode::Cbr),
+            Some(256_000)
+        );
+        assert_eq!(
+            lossy_bitrate_bps(OutputFormat::Opus, QualityPreset::Low, Mp3EncodingMode::Cbr),
+            Some(96_000)
+        );
+        assert_eq!(
+            lossy_bitrate_bps(OutputFormat::Ogg, QualityPreset::High, Mp3EncodingMode::Cbr),
+            Some(224_000)
+        );
+        assert_eq!(
+            lossy_bitrate_bps(OutputFormat::Flac, QualityPreset::Medium, Mp3EncodingMode::Cbr),
+            None
+        );
+        assert_eq!(
+            lossy_bitrate_bps(OutputFormat::Wav, QualityPreset::Medium, Mp3EncodingMode::Cbr),
+            None
+        );
+    }
+
+    #[test]
+    fn pcm_bytes_per_sample_branches() {
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Bit16, &hints(None, None)), 2);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Bit24, &hints(None, None)), 3);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Float32, &hints(None, None)), 4);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(Some(8), None)), 1);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(Some(16), None)), 2);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(Some(24), None)), 3);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(Some(32), None)), 4);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(None, Some("f64"))), 8);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(None, Some("flt"))), 4);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(None, Some("s24"))), 3);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(None, Some("u8"))), 1);
+        assert_eq!(pcm_bytes_per_sample(BitDepthPreset::Original, &hints(None, Some("???"))), 3);
+    }
+
+    #[test]
+    fn source_is_lossy_codec_and_format_matrix() {
+        for codec in ["mp3", "aac", "opus", "vorbis", "wmav2", "ac3", "eac3", "dts"] {
+            assert!(source_is_lossy(Some(codec), None), "{codec}");
+        }
+        for codec in ["flac", "alac", "pcm_s16le", "pcm_s24be"] {
+            assert!(!source_is_lossy(Some(codec), None), "{codec}");
+        }
+        assert!(source_is_lossy(None, Some("mp3")));
+        assert!(source_is_lossy(None, Some("wma")));
+        assert!(source_is_lossy(Some("aac"), Some("m4a")));
+        assert!(source_is_lossy(Some("vorbis"), Some("ogg")));
+        // Container alone without a lossy codec hint is not enough.
+        assert!(!source_is_lossy(Some("flac"), Some("ogg")));
+        assert!(!source_is_lossy(None, None));
+        // ffprobe format_name lists are comma-separated.
+        assert!(source_is_lossy(None, Some("mp3,mov,mp4,m4a")));
+    }
+
+    #[test]
+    fn forced_target_bits_only_for_explicit_presets() {
+        assert_eq!(forced_target_bits(BitDepthPreset::Original), None);
+        assert_eq!(forced_target_bits(BitDepthPreset::Bit16), Some(16));
+        assert_eq!(forced_target_bits(BitDepthPreset::Bit24), Some(24));
+        assert_eq!(forced_target_bits(BitDepthPreset::Float32), Some(32));
+    }
+
+    #[test]
+    fn upsample_detection_boundaries() {
+        assert!(is_bit_depth_upsample(
+            BitDepthPreset::Bit24,
+            OutputFormat::Wav,
+            &hints(Some(16), None)
+        ));
+        assert!(!is_bit_depth_upsample(
+            BitDepthPreset::Bit16,
+            OutputFormat::Wav,
+            &hints(Some(16), None)
+        ));
+        assert!(!is_bit_depth_upsample(
+            BitDepthPreset::Bit16,
+            OutputFormat::Wav,
+            &hints(Some(24), None)
+        ));
+        assert!(!is_bit_depth_upsample(
+            BitDepthPreset::Original,
+            OutputFormat::Wav,
+            &hints(Some(16), None)
+        ));
+        // Never an upsample concern for non-PCM targets.
+        assert!(!is_bit_depth_upsample(
+            BitDepthPreset::Float32,
+            OutputFormat::Mp3,
+            &hints(Some(8), None)
+        ));
+        // Unknown source depth: no warning.
+        assert!(!is_bit_depth_upsample(
+            BitDepthPreset::Bit24,
+            OutputFormat::Wav,
+            &hints(None, None)
+        ));
+    }
+
+    #[test]
+    fn audio_dest_dir_resolution_rules() {
+        let root = PathBuf::from(r"D:\out");
+        // A drive-prefixed segment aborts to root entirely.
+        assert_eq!(
+            resolve_dest_dir_best_effort(&root, Some(r"album\C:\evil")),
+            root
+        );
+        // Traversal segments are skipped, remaining folders kept.
+        assert_eq!(
+            resolve_dest_dir_best_effort(&root, Some(r"..\album")),
+            root.join("album")
+        );
+        assert_eq!(resolve_dest_dir_best_effort(&root, Some("...")), root.join("..."));
+        assert_eq!(resolve_dest_dir_best_effort(&root, None), root);
+    }
+
+    #[test]
+    fn skip_policy_counts_existing_and_skips_estimates() {
+        let dir = std::env::temp_dir().join(format!("jw-audio-preflight-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("tmpdir");
+        std::fs::write(dir.join("track.flac"), b"existing").expect("write existing");
+
+        let mut item = item_mp3();
+        item.source_path = dir.join("track.mp3").to_string_lossy().into_owned();
+
+        let report = run_preflight(&PreflightRequest {
+            destination_dir: dir.to_string_lossy().into_owned(),
+            output_format: OutputFormat::Flac,
+            quality_preset: QualityPreset::Medium,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
+            bit_depth_preset: BitDepthPreset::Original,
+            overwrite_policy: OverwritePolicy::Skip,
+            items: vec![item],
+        })
+        .expect("preflight");
+
+        assert_eq!(report.file_count, 0);
+        assert_eq!(report.skipped_existing, 1);
+        assert_eq!(report.estimated_output_bytes, 0);
+        assert!(!report.disk_blocked);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn empty_destination_dir_is_rejected() {
+        let result = run_preflight(&PreflightRequest {
+            destination_dir: "  ".into(),
+            output_format: OutputFormat::Flac,
+            quality_preset: QualityPreset::Medium,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
+            bit_depth_preset: BitDepthPreset::Original,
+            overwrite_policy: OverwritePolicy::Rename,
+            items: vec![item_mp3()],
+        });
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn estimates_accumulate_with_saturation() {
+        let mut huge = item_mp3();
+        huge.duration_seconds = Some(f64::MAX);
+        let report = run_preflight(&PreflightRequest {
+            destination_dir: std::env::temp_dir().to_string_lossy().into_owned(),
+            output_format: OutputFormat::Mp3,
+            quality_preset: QualityPreset::Medium,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
+            bit_depth_preset: BitDepthPreset::Original,
+            overwrite_policy: OverwritePolicy::Rename,
+            items: vec![huge, item_mp3()],
+        })
+        .expect("preflight");
+        assert_eq!(report.file_count, 2);
+        assert!(report.estimated_output_bytes > 0);
+        assert!(report.required_bytes >= report.estimated_output_bytes);
+    }
+
+    #[test]
+    fn free_space_reads_real_directory() {
+        let free = free_space_bytes(&std::env::temp_dir());
+        #[cfg(windows)]
+        assert!(free.expect("free space") > 0);
+        #[cfg(not(windows))]
+        assert!(free.is_err());
+    }
 }

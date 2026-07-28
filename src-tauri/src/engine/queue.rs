@@ -469,3 +469,104 @@ pub fn is_batch_running(state: &AppState) -> bool {
         .map(|q| q.worker_running)
         .unwrap_or(false)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_queue_state_is_idle() {
+        let queue = QueueState::default();
+        assert!(queue.items.is_empty());
+        assert!(!queue.worker_running);
+        assert_eq!(queue.batch_id, None);
+        assert_eq!(queue.total, 0);
+        assert_eq!(queue.parallelism, 1);
+        assert!(queue.active_job_ids.is_empty());
+        assert!(!queue.cancel_remaining.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn snapshot_is_none_without_batch_id() {
+        let queue = QueueState::default();
+        assert!(snapshot_batch(&queue, BatchStatus::Running, None).is_none());
+    }
+
+    #[test]
+    fn snapshot_reflects_counters() {
+        let mut queue = QueueState::default();
+        queue.batch_id = Some("batch-1".to_string());
+        queue.total = 10;
+        queue.completed = 3;
+        queue.failed = 1;
+        queue.skipped = 2;
+        queue.cancelled = 1;
+        queue.active_job_ids.insert("job-x".to_string());
+
+        let event = snapshot_batch(&queue, BatchStatus::Running, Some("msg".to_string()))
+            .expect("snapshot");
+        assert_eq!(event.batch_id, "batch-1");
+        assert_eq!(event.total, 10);
+        assert_eq!(event.completed, 3);
+        assert_eq!(event.failed, 1);
+        assert_eq!(event.skipped, 2);
+        assert_eq!(event.cancelled, 1);
+        assert_eq!(event.remaining, 0);
+        assert_eq!(event.active_count, 1);
+        assert_eq!(event.current_job_id.as_deref(), Some("job-x"));
+        assert_eq!(event.parallelism, 1);
+        assert_eq!(event.status, BatchStatus::Running);
+        assert_eq!(event.message.as_deref(), Some("msg"));
+    }
+
+    #[test]
+    fn batch_status_serialization_is_camel_case() {
+        assert_eq!(
+            serde_json::to_string(&BatchStatus::Running).expect("ser"),
+            "\"running\""
+        );
+        assert_eq!(
+            serde_json::to_string(&BatchStatus::Cancelled).expect("ser"),
+            "\"cancelled\""
+        );
+    }
+
+    #[test]
+    fn cancel_without_batch_is_error() {
+        let state = AppState::default();
+        assert!(cancel_queue(&state).is_err());
+    }
+
+    #[test]
+    fn cancel_sets_flag_for_running_batch() {
+        let state = AppState::default();
+        {
+            let mut queue = state.queue.lock().expect("queue lock");
+            queue.worker_running = true;
+            queue.batch_id = Some("batch-9".to_string());
+        }
+        assert!(is_batch_running(&state));
+        cancel_queue(&state).expect("cancel");
+        let queue = state.queue.lock().expect("queue lock");
+        assert!(queue.cancel_remaining.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn cancel_current_job_without_active_job_errors() {
+        let state = AppState::default();
+        assert!(cancel_current_job(&state).is_err());
+    }
+
+    #[test]
+    fn cancel_current_job_cancels_registered_active() {
+        let state = AppState::default();
+        let active = state.register("job-live".to_string());
+        {
+            let mut queue = state.queue.lock().expect("queue lock");
+            queue.worker_running = true;
+            queue.active_job_ids.insert("job-live".to_string());
+        }
+        cancel_current_job(&state).expect("cancel current");
+        assert!(active.cancel_flag.load(Ordering::SeqCst));
+    }
+}

@@ -193,3 +193,184 @@ pub struct ImageConversionJob {
     pub preserve_metadata: bool,
     pub status: JobStatus,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_format_has_distinct_extension() {
+        let formats = [
+            ImageOutputFormat::Jpeg,
+            ImageOutputFormat::Png,
+            ImageOutputFormat::Webp,
+            ImageOutputFormat::Tiff,
+            ImageOutputFormat::Bmp,
+            ImageOutputFormat::Gif,
+            ImageOutputFormat::Avif,
+        ];
+        let mut extensions: Vec<&str> = formats.iter().map(|f| f.extension()).collect();
+        extensions.sort_unstable();
+        extensions.dedup();
+        assert_eq!(extensions.len(), formats.len());
+        assert_eq!(ImageOutputFormat::Jpeg.extension(), "jpg");
+    }
+
+    #[test]
+    fn lossy_classification_depends_on_quality_for_webp() {
+        assert!(ImageOutputFormat::Jpeg.is_lossy_with(ImageQualityPreset::Medium));
+        assert!(ImageOutputFormat::Gif.is_lossy_with(ImageQualityPreset::Medium));
+        assert!(ImageOutputFormat::Avif.is_lossy_with(ImageQualityPreset::Medium));
+        assert!(ImageOutputFormat::Webp.is_lossy_with(ImageQualityPreset::Medium));
+        assert!(!ImageOutputFormat::Webp.is_lossy_with(ImageQualityPreset::Lossless));
+        assert!(!ImageOutputFormat::Png.is_lossy_with(ImageQualityPreset::Medium));
+        assert!(!ImageOutputFormat::Tiff.is_lossy_with(ImageQualityPreset::Medium));
+        assert!(!ImageOutputFormat::Bmp.is_lossy_with(ImageQualityPreset::Medium));
+    }
+
+    #[test]
+    fn quality_controls_shown_for_formats_with_meaningful_knob() {
+        assert!(ImageOutputFormat::Jpeg.shows_quality_controls());
+        assert!(ImageOutputFormat::Png.shows_quality_controls());
+        assert!(ImageOutputFormat::Webp.shows_quality_controls());
+        assert!(ImageOutputFormat::Avif.shows_quality_controls());
+        assert!(!ImageOutputFormat::Tiff.shows_quality_controls());
+        assert!(!ImageOutputFormat::Bmp.shows_quality_controls());
+        assert!(!ImageOutputFormat::Gif.shows_quality_controls());
+    }
+
+    #[test]
+    fn magick_format_names_are_uppercase() {
+        assert_eq!(ImageOutputFormat::Jpeg.magick_format(), "JPEG");
+        assert_eq!(ImageOutputFormat::Webp.magick_format(), "WEBP");
+        assert_eq!(ImageOutputFormat::Avif.magick_format(), "AVIF");
+    }
+
+    #[test]
+    fn matches_identified_accepts_known_aliases() {
+        assert!(ImageOutputFormat::Jpeg.matches_identified("JPG"));
+        assert!(ImageOutputFormat::Jpeg.matches_identified("jpeg"));
+        assert!(ImageOutputFormat::Gif.matches_identified("GIF87"));
+        assert!(ImageOutputFormat::Bmp.matches_identified("BMP2"));
+        assert!(ImageOutputFormat::Bmp.matches_identified("BMP3"));
+        assert!(!ImageOutputFormat::Png.matches_identified("PNG24"));
+        assert!(!ImageOutputFormat::Webp.matches_identified("JPEG"));
+    }
+
+    #[test]
+    fn normalize_for_coerces_lossless_off_unsupported_formats() {
+        assert_eq!(
+            ImageQualityPreset::Lossless.normalize_for(ImageOutputFormat::Webp),
+            ImageQualityPreset::Lossless
+        );
+        assert_eq!(
+            ImageQualityPreset::Lossless.normalize_for(ImageOutputFormat::Jpeg),
+            ImageQualityPreset::Medium
+        );
+        assert_eq!(
+            ImageQualityPreset::High.normalize_for(ImageOutputFormat::Jpeg),
+            ImageQualityPreset::High
+        );
+    }
+
+    #[test]
+    fn magick_quality_matrix() {
+        assert_eq!(
+            ImageQualityPreset::Low.magick_quality_for(ImageOutputFormat::Jpeg),
+            Some(70)
+        );
+        assert_eq!(
+            ImageQualityPreset::Medium.magick_quality_for(ImageOutputFormat::Jpeg),
+            Some(85)
+        );
+        assert_eq!(
+            ImageQualityPreset::High.magick_quality_for(ImageOutputFormat::Jpeg),
+            Some(95)
+        );
+        // Lossless coerces to Medium outside WebP.
+        assert_eq!(
+            ImageQualityPreset::Lossless.magick_quality_for(ImageOutputFormat::Jpeg),
+            Some(85)
+        );
+        assert_eq!(
+            ImageQualityPreset::Lossless.magick_quality_for(ImageOutputFormat::Webp),
+            None
+        );
+        assert_eq!(
+            ImageQualityPreset::Medium.magick_quality_for(ImageOutputFormat::Webp),
+            Some(85)
+        );
+        // PNG: higher preset means more compression effort (lower Magick number).
+        assert_eq!(
+            ImageQualityPreset::Low.magick_quality_for(ImageOutputFormat::Png),
+            Some(90)
+        );
+        assert_eq!(
+            ImageQualityPreset::High.magick_quality_for(ImageOutputFormat::Png),
+            Some(50)
+        );
+        assert_eq!(
+            ImageQualityPreset::Medium.magick_quality_for(ImageOutputFormat::Tiff),
+            None
+        );
+        assert_eq!(
+            ImageQualityPreset::Medium.magick_quality_for(ImageOutputFormat::Bmp),
+            None
+        );
+        assert_eq!(
+            ImageQualityPreset::Medium.magick_quality_for(ImageOutputFormat::Gif),
+            None
+        );
+        assert_eq!(
+            ImageQualityPreset::High.magick_quality_for(ImageOutputFormat::Avif),
+            Some(95)
+        );
+    }
+
+    #[test]
+    fn resize_preset_edges() {
+        assert_eq!(ImageResizePreset::Original.max_long_edge(), None);
+        assert_eq!(ImageResizePreset::Max2048.max_long_edge(), Some(2048));
+        assert_eq!(ImageResizePreset::Max1920.max_long_edge(), Some(1920));
+        assert_eq!(ImageResizePreset::Max1280.max_long_edge(), Some(1280));
+        assert_eq!(ImageResizePreset::Max1024.max_long_edge(), Some(1024));
+    }
+
+    #[test]
+    fn magick_geometry_shrinks_only() {
+        assert_eq!(ImageResizePreset::Original.magick_geometry(), None);
+        assert_eq!(
+            ImageResizePreset::Max1920.magick_geometry(),
+            Some("1920x1920>".to_string())
+        );
+        assert_eq!(
+            ImageResizePreset::Max1024.magick_geometry(),
+            Some("1024x1024>".to_string())
+        );
+    }
+
+    #[test]
+    fn resize_preset_deserializes_from_numeric_strings() {
+        let parsed: ImageResizePreset = serde_json::from_str("\"1920\"").expect("parse");
+        assert_eq!(parsed, ImageResizePreset::Max1920);
+        let parsed: ImageResizePreset = serde_json::from_str("\"original\"").expect("parse");
+        assert_eq!(parsed, ImageResizePreset::Original);
+    }
+
+    #[test]
+    fn job_defaults_are_sane() {
+        let job: ImageConversionJob = serde_json::from_value(serde_json::json!({
+            "id": "1",
+            "sourcePath": "a.png",
+            "destinationDir": "out",
+            "outputFormat": "webp",
+            "status": "idle"
+        }))
+        .expect("job parses");
+        assert_eq!(job.quality_preset, ImageQualityPreset::Medium);
+        assert_eq!(job.resize_preset, ImageResizePreset::Original);
+        assert_eq!(job.overwrite_policy, OverwritePolicy::Rename);
+        assert!(job.preserve_metadata);
+        assert_eq!(job.relative_subdir, None);
+    }
+}

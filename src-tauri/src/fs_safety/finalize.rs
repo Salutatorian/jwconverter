@@ -196,6 +196,59 @@ mod tests {
     }
 
     #[test]
+    fn finalize_refuses_unmarked_temp() {
+        let dir = test_dir();
+        let final_path = dir.join("song.flac");
+        let impostor = dir.join("not-our-temp.flac");
+        std::fs::write(&impostor, b"data").expect("write impostor");
+
+        let result = finalize_output_with_policy(&impostor, &final_path, false);
+        assert!(result.is_err());
+        // Impostor must be left alone — cleanup only handles our temp files.
+        assert!(impostor.is_file());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn finalize_refuses_existing_destination_without_replace() {
+        let dir = test_dir();
+        let final_path = dir.join("song.flac");
+        std::fs::write(&final_path, b"old").expect("write final");
+
+        let temp_path = dir.join(format!("song.jwconverting-{}.flac", uuid::Uuid::new_v4()));
+        std::fs::write(&temp_path, b"new").expect("write temp");
+
+        let result = finalize_output_with_policy(&temp_path, &final_path, false);
+        assert!(result.is_err());
+        // Destination untouched; temp still present for caller cleanup.
+        assert_eq!(std::fs::read(&final_path).expect("read final"), b"old");
+        assert!(temp_path.is_file());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn unique_final_path_increments_index() {
+        let dir = test_dir();
+        std::fs::write(dir.join("song.flac"), b"a").expect("write 0");
+        std::fs::write(dir.join("song (1).flac"), b"b").expect("write 1");
+
+        let unique = unique_final_path(&dir, "song", "flac");
+        assert_eq!(unique, dir.join("song (2).flac"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn unique_final_path_fresh_name_when_free() {
+        let dir = test_dir();
+        let unique = unique_final_path(&dir, "fresh", "mp3");
+        assert_eq!(unique, dir.join("fresh.mp3"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn finalize_restore_after_failed_promote_removes_partial() {
         let dir = test_dir();
         let final_path = dir.join("song.flac");

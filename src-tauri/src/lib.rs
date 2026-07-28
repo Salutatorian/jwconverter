@@ -11,6 +11,7 @@ mod state;
 
 use commands::analyze::{analyze_file, get_media_tools_info};
 use commands::app_info::get_app_info;
+use commands::audio_tools::{detect_silence, measure_loudness};
 use commands::convert::{
     cancel_batch, cancel_conversion, is_batch_running, start_batch, start_conversion,
 };
@@ -40,6 +41,8 @@ pub fn run() {
             discover_audio_paths,
             discover_image_paths,
             analyze_image,
+            measure_loudness,
+            detect_silence,
             start_image_batch,
             cancel_image_batch,
             is_image_batch_running,

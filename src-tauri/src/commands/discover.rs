@@ -116,3 +116,138 @@ fn is_audio_file(path: &Path) -> bool {
         })
         .unwrap_or(false)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_tree() -> PathBuf {
+        let root = std::env::temp_dir().join(format!("jw-discover-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(root.join("Album A").join("Disc 1")).expect("tree");
+        std::fs::create_dir_all(root.join("Album B")).expect("tree");
+        std::fs::write(root.join("top.mp3"), b"x").expect("file");
+        std::fs::write(root.join("notes.txt"), b"x").expect("file");
+        std::fs::write(root.join("Album A").join("song.FLAC"), b"x").expect("file");
+        std::fs::write(
+            root.join("Album A").join("Disc 1").join("deep.wav"),
+            b"x",
+        )
+        .expect("file");
+        std::fs::write(root.join("Album B").join("cover.png"), b"x").expect("file");
+        root
+    }
+
+    #[test]
+    fn extension_matching_is_case_insensitive() {
+        assert!(is_audio_file(Path::new("song.mp3")));
+        assert!(is_audio_file(Path::new("song.FLAC")));
+        assert!(is_audio_file(Path::new("song.M4A")));
+        assert!(is_audio_file(Path::new("track.dsf")));
+        assert!(!is_audio_file(Path::new("cover.png")));
+        assert!(!is_audio_file(Path::new("notes.txt")));
+        assert!(!is_audio_file(Path::new("no_extension")));
+        assert!(!is_audio_file(Path::new("")));
+    }
+
+    #[test]
+    fn every_listed_extension_is_accepted() {
+        for ext in AUDIO_EXTENSIONS {
+            let path = format!("file.{ext}");
+            assert!(is_audio_file(Path::new(&path)), "{ext}");
+        }
+    }
+
+    #[test]
+    fn relative_subdir_uses_forward_slashes() {
+        let root = PathBuf::from("root");
+        let file = root.join("Album A").join("Disc 1").join("song.wav");
+        assert_eq!(
+            relative_subdir(&root, &file).as_deref(),
+            Some("Album A/Disc 1")
+        );
+
+        let top = root.join("song.wav");
+        assert_eq!(relative_subdir(&root, &top), None);
+    }
+
+    #[test]
+    fn discover_single_file_directly() {
+        let root = temp_tree();
+        let file = root.join("top.mp3");
+        let found = discover_audio_paths(vec![file.to_string_lossy().into_owned()], false)
+            .expect("discover");
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].filename, "top.mp3");
+        assert_eq!(found[0].relative_subdir, None);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn discover_ignores_missing_and_non_audio_paths() {
+        let root = temp_tree();
+        let found = discover_audio_paths(
+            vec![
+                root.join("does-not-exist.mp3").to_string_lossy().into_owned(),
+                root.join("notes.txt").to_string_lossy().into_owned(),
+                "   ".to_string(),
+            ],
+            false,
+        )
+        .expect("discover");
+        assert!(found.is_empty());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn non_recursive_scan_stays_at_top_level() {
+        let root = temp_tree();
+        let found = discover_audio_paths(vec![root.to_string_lossy().into_owned()], false)
+            .expect("discover");
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].filename, "top.mp3");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn recursive_scan_collects_nested_audio_with_subdirs() {
+        let root = temp_tree();
+        let found = discover_audio_paths(vec![root.to_string_lossy().into_owned()], true)
+            .expect("discover");
+        assert_eq!(found.len(), 3);
+
+        let by_name: std::collections::HashMap<&str, &DiscoveredAudio> =
+            found.iter().map(|d| (d.filename.as_str(), d)).collect();
+        assert_eq!(by_name["top.mp3"].relative_subdir, None);
+        assert_eq!(
+            by_name["song.FLAC"].relative_subdir.as_deref(),
+            Some("Album A")
+        );
+        assert_eq!(
+            by_name["deep.wav"].relative_subdir.as_deref(),
+            Some("Album A/Disc 1")
+        );
+
+        // Sorted case-insensitively for deterministic batching.
+        let mut sorted = found.clone();
+        sorted.sort_by(|a, b| a.path.to_lowercase().cmp(&b.path.to_lowercase()));
+        assert_eq!(
+            found.iter().map(|d| &d.path).collect::<Vec<_>>(),
+            sorted.iter().map(|d| &d.path).collect::<Vec<_>>()
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn duplicate_inputs_dedup_case_insensitively() {
+        let root = temp_tree();
+        let file = root.join("top.mp3");
+        let upper = file.to_string_lossy().to_uppercase();
+        let found = discover_audio_paths(
+            vec![file.to_string_lossy().into_owned(), upper],
+            false,
+        )
+        .expect("discover");
+        assert_eq!(found.len(), 1);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}

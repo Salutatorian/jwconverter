@@ -54,3 +54,45 @@ impl AppState {
         true
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+
+    #[test]
+    fn register_tracks_active_process() {
+        let state = AppState::default();
+        let active = state.register("job-1".to_string());
+        assert!(!active.cancel_flag.load(Ordering::SeqCst));
+
+        // A second lookup through request_cancel sees the same flag object.
+        assert!(state.request_cancel("job-1"));
+        assert!(active.cancel_flag.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn request_cancel_unknown_job_is_false() {
+        let state = AppState::default();
+        assert!(!state.request_cancel("nope"));
+    }
+
+    #[test]
+    fn remove_forgets_registration() {
+        let state = AppState::default();
+        state.register("job-2".to_string());
+        state.remove("job-2");
+        assert!(!state.request_cancel("job-2"));
+    }
+
+    #[test]
+    fn default_state_has_empty_queues() {
+        let state = AppState::default();
+        let queue = state.queue.lock().expect("queue lock");
+        assert!(queue.items.is_empty());
+        assert!(!queue.worker_running);
+        drop(queue);
+        let image_queue = state.image_queue.lock().expect("image queue lock");
+        assert!(!image_queue.worker_running);
+    }
+}

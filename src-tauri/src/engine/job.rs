@@ -45,6 +45,30 @@ pub enum Mp3EncodingMode {
     Vbr,
 }
 
+/// Loudness normalization mode for the audio conversion pipeline.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum NormalizeMode {
+    /// No loudness processing.
+    #[default]
+    Off,
+    /// Single-pass dynamic loudnorm (fast, less precise).
+    OnePass,
+    /// Measure-then-convert linear loudnorm (slower, sample-accurate).
+    TwoPass,
+}
+
+/// Loudness target preset for normalization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum LoudnessPreset {
+    /// -14 LUFS / -1 dBTP (streaming platforms).
+    #[default]
+    Streaming,
+    /// -23 LUFS / -1 dBTP (broadcast EBU R128).
+    EbuR128,
+}
+
 /// PCM bit depth for WAV / AIFF. Ignored for other formats.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -85,6 +109,15 @@ pub struct ConversionJob {
     /// Keep embedded cover art when the destination format supports it.
     #[serde(default = "default_true")]
     pub preserve_cover: bool,
+    /// Loudness normalization applied during conversion.
+    #[serde(default)]
+    pub normalize: NormalizeMode,
+    /// Target preset used when `normalize` is not Off.
+    #[serde(default)]
+    pub loudness_preset: LoudnessPreset,
+    /// Remove silent regions detected by an analysis pre-pass.
+    #[serde(default)]
+    pub trim_silence: bool,
     pub status: JobStatus,
 }
 

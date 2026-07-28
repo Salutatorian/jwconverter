@@ -226,6 +226,190 @@ fn infer_bit_depth(sample_fmt: Option<&str>) -> Option<u32> {
 }
 
 #[cfg(test)]
+mod parse_tests {
+    use super::*;
+
+    fn probe(
+        format: Option<ProbeFormat>,
+        streams: Option<Vec<ProbeStream>>,
+    ) -> ProbeOutput {
+        ProbeOutput { format, streams }
+    }
+
+    fn audio_stream() -> ProbeStream {
+        ProbeStream {
+            codec_type: Some("audio".to_string()),
+            codec_name: Some("pcm_s16le".to_string()),
+            sample_rate: Some("44100".to_string()),
+            channels: Some(2),
+            sample_fmt: Some("s16".to_string()),
+            bits_per_raw_sample: Some("16".to_string()),
+            bits_per_sample: None,
+            bit_rate: Some("1411200".to_string()),
+            channel_layout: Some("stereo".to_string()),
+        }
+    }
+
+    fn probe_format() -> ProbeFormat {
+        ProbeFormat {
+            format_name: Some("wav".to_string()),
+            duration: Some("2.0".to_string()),
+            size: Some("352800".to_string()),
+            bit_rate: Some("1411200".to_string()),
+        }
+    }
+
+    fn fake_path() -> PathBuf {
+        PathBuf::from("__jw_no_such_file__/song.wav")
+    }
+
+    #[test]
+    fn parses_a_wellformed_probe() {
+        let output = probe(Some(probe_format()), Some(vec![audio_stream()]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.filename, "song.wav");
+        assert_eq!(info.format.as_deref(), Some("wav"));
+        assert_eq!(info.codec.as_deref(), Some("pcm_s16le"));
+        assert_eq!(info.duration_seconds, Some(2.0));
+        assert_eq!(info.sample_rate, Some(44100));
+        assert_eq!(info.channels, Some(2));
+        assert_eq!(info.file_size_bytes, Some(352800));
+        assert_eq!(info.bitrate, Some(1411200));
+        assert_eq!(info.bit_depth, Some(16));
+        assert_eq!(info.bits_per_raw_sample, Some(16));
+        assert_eq!(info.channel_layout.as_deref(), Some("stereo"));
+    }
+
+    #[test]
+    fn format_name_takes_first_of_comma_list() {
+        let mut format = probe_format();
+        format.format_name = Some("mov,mp4,m4a,3gp,3g2,mj2".to_string());
+        let output = probe(Some(format), Some(vec![audio_stream()]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.format.as_deref(), Some("mov"));
+    }
+
+    #[test]
+    fn rejects_probe_without_audio_stream() {
+        let mut video = audio_stream();
+        video.codec_type = Some("video".to_string());
+        let output = probe(Some(probe_format()), Some(vec![video]));
+        assert!(parse_probe_output(&fake_path(), &output).is_err());
+
+        let no_streams = probe(Some(probe_format()), None);
+        assert!(parse_probe_output(&fake_path(), &no_streams).is_err());
+
+        let empty_streams = probe(Some(probe_format()), Some(vec![]));
+        assert!(parse_probe_output(&fake_path(), &empty_streams).is_err());
+    }
+
+    #[test]
+    fn invalid_duration_values_become_none() {
+        for raw in ["nan", "inf", "-3.5", "garbage", "N/A"] {
+            let mut format = probe_format();
+            format.duration = Some(raw.to_string());
+            let output = probe(Some(format), Some(vec![audio_stream()]));
+            let info = parse_probe_output(&fake_path(), &output).expect("parse");
+            assert_eq!(info.duration_seconds, None, "{raw}");
+        }
+    }
+
+    #[test]
+    fn unparseable_size_falls_back_to_filesystem() {
+        let mut format = probe_format();
+        format.size = Some("not-a-number".to_string());
+        let output = probe(Some(format), Some(vec![audio_stream()]));
+        // Path does not exist, so fallback metadata lookup yields None.
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.file_size_bytes, None);
+    }
+
+    #[test]
+    fn bitrate_prefers_stream_then_format_and_filters_zero() {
+        // Stream bitrate wins.
+        let output = probe(Some(probe_format()), Some(vec![audio_stream()]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.bitrate, Some(1411200));
+
+        // Missing stream bitrate falls back to format bitrate.
+        let mut stream = audio_stream();
+        stream.bit_rate = None;
+        let output = probe(Some(probe_format()), Some(vec![stream]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.bitrate, Some(1411200));
+
+        // Zero stream bitrate does NOT fall back; result is filtered to None.
+        let mut stream = audio_stream();
+        stream.bit_rate = Some("0".to_string());
+        let output = probe(Some(probe_format()), Some(vec![stream]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.bitrate, None);
+
+        // Both missing → None.
+        let mut stream = audio_stream();
+        stream.bit_rate = None;
+        let mut format = probe_format();
+        format.bit_rate = None;
+        let output = probe(Some(format), Some(vec![stream]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.bitrate, None);
+    }
+
+    #[test]
+    fn bit_depth_resolution_order() {
+        // bits_per_raw_sample string wins.
+        let mut stream = audio_stream();
+        stream.bits_per_raw_sample = Some("24".to_string());
+        stream.bits_per_sample = Some(16);
+        stream.sample_fmt = Some("s16".to_string());
+        let output = probe(None, Some(vec![stream]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.bit_depth, Some(24));
+
+        // Falls back to bits_per_sample number.
+        let mut stream = audio_stream();
+        stream.bits_per_raw_sample = None;
+        stream.bits_per_sample = Some(20);
+        let output = probe(None, Some(vec![stream]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.bit_depth, Some(20));
+
+        // Falls back to sample format inference.
+        let mut stream = audio_stream();
+        stream.bits_per_raw_sample = None;
+        stream.bits_per_sample = None;
+        stream.sample_fmt = Some("flt".to_string());
+        let output = probe(None, Some(vec![stream]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.bit_depth, Some(32));
+    }
+
+    #[test]
+    fn sample_rate_garbage_is_none() {
+        let mut stream = audio_stream();
+        stream.sample_rate = Some("not a rate".to_string());
+        let output = probe(None, Some(vec![stream]));
+        let info = parse_probe_output(&fake_path(), &output).expect("parse");
+        assert_eq!(info.sample_rate, None);
+    }
+
+    #[test]
+    fn infer_bit_depth_matrix() {
+        assert_eq!(infer_bit_depth(Some("f64")), Some(64));
+        assert_eq!(infer_bit_depth(Some("dbl")), Some(64));
+        assert_eq!(infer_bit_depth(Some("f32")), Some(32));
+        assert_eq!(infer_bit_depth(Some("flt")), Some(32));
+        assert_eq!(infer_bit_depth(Some("s32")), Some(32));
+        assert_eq!(infer_bit_depth(Some("s24")), Some(24));
+        assert_eq!(infer_bit_depth(Some("s16")), Some(16));
+        assert_eq!(infer_bit_depth(Some("u8")), Some(8));
+        assert_eq!(infer_bit_depth(Some("S16P")), Some(16));
+        assert_eq!(infer_bit_depth(Some("xyz")), None);
+        assert_eq!(infer_bit_depth(None), None);
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::path::PathBuf;

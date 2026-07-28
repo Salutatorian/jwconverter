@@ -9,9 +9,11 @@ use serde::Serialize;
 
 use crate::errors::AppError;
 use crate::fs_safety::{finalize, temp};
-use crate::media::ffmpeg;
+use crate::media::{ffmpeg, loudness};
 
-use super::job::{ConversionJob, JobStatus, OutputFormat, OverwritePolicy};
+use super::job::{
+    ConversionJob, JobStatus, LoudnessPreset, NormalizeMode, OutputFormat, OverwritePolicy,
+};
 use super::planner::{self, EncoderPlan};
 use super::verify::{self, VerificationContext};
 
@@ -64,13 +66,15 @@ pub fn run_job(
         None
     };
 
-    let plan = planner::plan_for(
+    let mut plan = planner::plan_for(
         job.output_format,
         job.quality_preset,
         job.bit_depth_preset,
         source_hints.as_ref(),
         job.mp3_encoding_mode,
     );
+    plan.audio_filters = build_audio_filters(job, &source, source_duration_seconds, active, callbacks)?;
+
     let stem = source
         .file_stem()
         .and_then(|s| s.to_str())
@@ -203,6 +207,75 @@ pub fn run_job(
         output_path: final_path.to_string_lossy().into_owned(),
         status: JobStatus::Completed,
     })
+}
+
+/// Analysis pre-passes (loudness measurement, silence detection) that run
+/// before encoding and produce the audio filter chain for the plan.
+/// Source is read-only input to both passes.
+fn build_audio_filters(
+    job: &ConversionJob,
+    source: &Path,
+    source_duration_seconds: Option<f64>,
+    active: &ActiveProcess,
+    callbacks: &RunCallbacks,
+) -> Result<Vec<String>, AppError> {
+    let needs_normalize = !matches!(job.normalize, NormalizeMode::Off);
+    if !needs_normalize && !job.trim_silence {
+        return Ok(Vec::new());
+    }
+
+    (callbacks.on_status)(JobStatus::Analyzing);
+    if active.cancel_flag.load(Ordering::SeqCst) {
+        return Err(AppError::ConversionCancelled);
+    }
+
+    let ffmpeg = ffmpeg::resolve_ffmpeg_required()?;
+    let mut filters = Vec::new();
+
+    if needs_normalize {
+        let target = match job.loudness_preset {
+            LoudnessPreset::Streaming => loudness::LoudnessTarget::streaming(),
+            LoudnessPreset::EbuR128 => loudness::LoudnessTarget::ebu_r128(),
+        };
+        let filter = if matches!(job.normalize, NormalizeMode::TwoPass) {
+            let measured = loudness::measure_loudness(&ffmpeg, source, &target)?;
+            loudness::build_loudnorm_filter(&target, Some(&measured))
+        } else {
+            loudness::build_loudnorm_filter(&target, None)
+        };
+        match filter {
+            Some(filter) => filters.push(filter),
+            None => {
+                return Err(AppError::UnsupportedFormat {
+                    detail: "Could not build a loudness filter for this file.".to_string(),
+                });
+            }
+        }
+    }
+
+    if job.trim_silence {
+        if active.cancel_flag.load(Ordering::SeqCst) {
+            return Err(AppError::ConversionCancelled);
+        }
+        let duration = source_duration_seconds.ok_or_else(|| AppError::UnsupportedFormat {
+            detail: "Silence trim needs the source duration. Analyze the file first.".to_string(),
+        })?;
+        let spans = loudness::detect_silence(
+            &ffmpeg,
+            source,
+            loudness::DEFAULT_SILENCE_NOISE_DB,
+            loudness::DEFAULT_SILENCE_MIN_DURATION,
+        )?;
+        let segments = loudness::keep_segments(&spans, duration);
+        let filter = loudness::build_trim_filter(&segments).ok_or_else(|| {
+            AppError::UnsupportedFormat {
+                detail: "This file is silence from start to finish — nothing to keep.".to_string(),
+            }
+        })?;
+        filters.push(filter);
+    }
+
+    Ok(filters)
 }
 
 fn validate_source(path: &Path) -> Result<(), AppError> {
@@ -375,6 +448,9 @@ mod tests {
             bit_depth_preset: crate::engine::job::BitDepthPreset::Original,
             preserve_tags: true,
             preserve_cover: true,
+            normalize: NormalizeMode::Off,
+            loudness_preset: LoudnessPreset::Streaming,
+            trim_silence: false,
             status: JobStatus::Queued,
         }
     }
@@ -419,6 +495,109 @@ mod tests {
         let a = PathBuf::from(r"C:\music\song.wav");
         let b = PathBuf::from(r"C:\music\song.wav");
         assert!(paths_equal_file(&a, &b));
+    }
+
+    #[test]
+    fn paths_equal_file_normalizes_case_and_slashes() {
+        let a = PathBuf::from(r"C:\Music\Song.wav");
+        let b = PathBuf::from("C:/music/song.wav");
+        assert!(paths_equal_file(&a, &b));
+
+        let c = PathBuf::from(r"C:\music\other.wav");
+        assert!(!paths_equal_file(&a, &c));
+    }
+
+    #[test]
+    fn resolve_destination_dir_skips_dot_segments() {
+        let root = PathBuf::from(r"D:\Music\Out");
+        let resolved = resolve_destination_dir(&root, Some(r".\Album\..\Album")).expect("ok");
+        assert_eq!(resolved, root.join("Album").join("Album"));
+    }
+
+    #[test]
+    fn resolve_destination_dir_blank_is_root() {
+        let root = PathBuf::from(r"D:\Music\Out");
+        assert_eq!(
+            resolve_destination_dir(&root, None).expect("ok"),
+            root
+        );
+        assert_eq!(
+            resolve_destination_dir(&root, Some("   ")).expect("ok"),
+            root
+        );
+    }
+
+    #[test]
+    fn audio_filters_empty_when_processing_off() {
+        let out_dir = test_out_dir();
+        let job = test_job(
+            Path::new("input.wav"),
+            &out_dir,
+            OutputFormat::Flac,
+            OverwritePolicy::Rename,
+        );
+        let (active, callbacks) = active_and_callbacks();
+        let filters = build_audio_filters(&job, Path::new("input.wav"), Some(2.0), &active, &callbacks)
+            .expect("no processing");
+        assert!(filters.is_empty());
+        let _ = std::fs::remove_dir_all(&out_dir);
+    }
+
+    #[test]
+    fn audio_filters_one_pass_needs_no_source_probe() {
+        let Some(_) = crate::media::paths::resolve_ffmpeg() else {
+            eprintln!("skip: ffmpeg not available");
+            return;
+        };
+        let out_dir = test_out_dir();
+        let mut job = test_job(
+            Path::new("input.wav"),
+            &out_dir,
+            OutputFormat::Flac,
+            OverwritePolicy::Rename,
+        );
+        job.normalize = NormalizeMode::OnePass;
+        job.loudness_preset = LoudnessPreset::Streaming;
+        let (active, callbacks) = active_and_callbacks();
+        let filters = build_audio_filters(&job, Path::new("input.wav"), Some(2.0), &active, &callbacks)
+            .expect("one pass filter");
+        assert_eq!(filters.len(), 1);
+        assert!(filters[0].starts_with("loudnorm=I=-14:TP=-1:LRA=11"));
+        let _ = std::fs::remove_dir_all(&out_dir);
+    }
+
+    #[test]
+    fn audio_filters_trim_requires_duration() {
+        let out_dir = test_out_dir();
+        let mut job = test_job(
+            Path::new("input.wav"),
+            &out_dir,
+            OutputFormat::Flac,
+            OverwritePolicy::Rename,
+        );
+        job.trim_silence = true;
+        let (active, callbacks) = active_and_callbacks();
+        let result = build_audio_filters(&job, Path::new("input.wav"), None, &active, &callbacks);
+        // Missing FFmpeg (tool error) or missing duration — both must fail.
+        assert!(result.is_err());
+        let _ = std::fs::remove_dir_all(&out_dir);
+    }
+
+    #[test]
+    fn audio_filters_cancel_flag_aborts_prepass() {
+        let out_dir = test_out_dir();
+        let mut job = test_job(
+            Path::new("input.wav"),
+            &out_dir,
+            OutputFormat::Flac,
+            OverwritePolicy::Rename,
+        );
+        job.normalize = NormalizeMode::OnePass;
+        let (active, callbacks) = active_and_callbacks();
+        active.cancel_flag.store(true, Ordering::SeqCst);
+        let result = build_audio_filters(&job, Path::new("input.wav"), Some(2.0), &active, &callbacks);
+        assert!(matches!(result, Err(AppError::ConversionCancelled)));
+        let _ = std::fs::remove_dir_all(&out_dir);
     }
 
     #[test]

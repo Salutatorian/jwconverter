@@ -47,3 +47,44 @@ pub fn ensure_policy_file(magick_dir: &Path) -> Result<PathBuf, AppError> {
     })?;
     Ok(path)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn policy_denies_network_and_scripting() {
+        for pattern in ["HTTP", "HTTPS", "URL", "FTP", "MVG", "MSL", "TEXT", "LABEL"] {
+            assert!(
+                POLICY_XML.contains(&format!("rights=\"none\" pattern=\"{pattern}\"")),
+                "policy must deny {pattern}"
+            );
+        }
+        assert!(POLICY_XML.contains("domain=\"delegate\" rights=\"none\" pattern=\"*\""));
+        // Indirection reads (@file) are blocked.
+        assert!(POLICY_XML.contains("domain=\"path\" rights=\"none\" pattern=\"@*\""));
+    }
+
+    #[test]
+    fn policy_sets_resource_caps() {
+        for cap in ["memory", "map", "width", "height", "area", "disk", "file", "thread", "time"] {
+            assert!(
+                POLICY_XML.contains(&format!("domain=\"resource\" name=\"{cap}\"")),
+                "policy must cap {cap}"
+            );
+        }
+    }
+
+    #[test]
+    fn ensure_policy_file_writes_contents() {
+        let dir = std::env::temp_dir().join(format!("jw-policy-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).expect("tmpdir");
+
+        let path = ensure_policy_file(&dir).expect("write policy");
+        assert!(path.is_file());
+        let written = fs::read_to_string(&path).expect("read policy");
+        assert_eq!(written, POLICY_XML);
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+}

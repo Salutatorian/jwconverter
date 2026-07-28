@@ -390,3 +390,63 @@ pub fn is_batch_running(state: &AppState) -> bool {
         .map(|q| q.worker_running)
         .unwrap_or(false)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+
+    #[test]
+    fn default_image_queue_state_is_idle() {
+        let queue = ImageQueueState::default();
+        assert!(queue.items.is_empty());
+        assert!(!queue.worker_running);
+        assert_eq!(queue.batch_id, None);
+        assert!(queue.active_job_ids.is_empty());
+        assert!(!queue.cancel_remaining.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn snapshot_none_without_batch_id() {
+        let queue = ImageQueueState::default();
+        assert!(snapshot_batch(&queue, BatchStatus::Running, None).is_none());
+    }
+
+    #[test]
+    fn snapshot_reflects_counters() {
+        let mut queue = ImageQueueState::default();
+        queue.batch_id = Some("img-batch".to_string());
+        queue.total = 4;
+        queue.completed = 2;
+        queue.failed = 1;
+        queue.active_job_ids.insert("img-job".to_string());
+
+        let event = snapshot_batch(&queue, BatchStatus::Running, None).expect("snapshot");
+        assert_eq!(event.batch_id, "img-batch");
+        assert_eq!(event.total, 4);
+        assert_eq!(event.completed, 2);
+        assert_eq!(event.failed, 1);
+        assert_eq!(event.active_count, 1);
+        assert_eq!(event.current_job_id.as_deref(), Some("img-job"));
+    }
+
+    #[test]
+    fn cancel_without_batch_is_error() {
+        let state = AppState::default();
+        assert!(cancel_queue(&state).is_err());
+    }
+
+    #[test]
+    fn cancel_sets_flag_for_running_batch() {
+        let state = AppState::default();
+        {
+            let mut queue = state.image_queue.lock().expect("queue lock");
+            queue.worker_running = true;
+            queue.batch_id = Some("img-batch".to_string());
+        }
+        assert!(is_batch_running(&state));
+        cancel_queue(&state).expect("cancel");
+        let queue = state.image_queue.lock().expect("queue lock");
+        assert!(queue.cancel_remaining.load(Ordering::SeqCst));
+    }
+}

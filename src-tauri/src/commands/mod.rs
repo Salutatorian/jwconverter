@@ -3,6 +3,7 @@
 
 pub mod analyze;
 pub mod app_info;
+pub mod audio_tools;
 pub mod convert;
 pub mod discover;
 pub mod image_convert;
