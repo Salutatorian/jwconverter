@@ -2,4 +2,5 @@
 }{{
 silence_start: abc
 silence_end: -4
-silence_start: 99999999999999999999
+silence_start: 1.25
+silence_end: 2.0
