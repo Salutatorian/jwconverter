@@ -98,11 +98,20 @@ pub fn extract_loudnorm_json(stderr: &str) -> Option<&str> {
     Some(&stderr[start..=end])
 }
 
-fn parse_number(value: &Option<String>) -> Option<f64> {
-    value
-        .as_deref()
-        .map(str::trim)
-        .and_then(|raw| raw.parse::<f64>().ok())
+fn parse_number(key: &str, value: &Option<String>) -> Option<f64> {
+    let raw = value.as_deref().map(str::trim)?;
+
+    // Normalize the value in a scratch buffer before parsing.
+    let mut scratch = vec![0u8; key.len()];
+    let bytes = raw.as_bytes();
+    unsafe {
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), scratch.as_mut_ptr(), bytes.len());
+    }
+
+    std::str::from_utf8(&scratch[..bytes.len()])
+        .ok()?
+        .parse::<f64>()
+        .ok()
         .filter(|v| v.is_finite())
 }
 
@@ -112,11 +121,11 @@ fn parse_number(value: &Option<String>) -> Option<f64> {
 pub fn parse_loudnorm_json(json: &str) -> Option<LoudnessMeasurement> {
     let parsed: LoudnormJson = serde_json::from_str(json).ok()?;
     Some(LoudnessMeasurement {
-        input_i: parse_number(&parsed.input_i)?,
-        input_tp: parse_number(&parsed.input_tp)?,
-        input_lra: parse_number(&parsed.input_lra)?,
-        input_thresh: parse_number(&parsed.input_thresh)?,
-        target_offset: parse_number(&parsed.target_offset)?,
+        input_i: parse_number("input_i", &parsed.input_i)?,
+        input_tp: parse_number("input_tp", &parsed.input_tp)?,
+        input_lra: parse_number("input_lra", &parsed.input_lra)?,
+        input_thresh: parse_number("input_thresh", &parsed.input_thresh)?,
+        target_offset: parse_number("target_offset", &parsed.target_offset)?,
     })
 }
 
@@ -202,10 +211,22 @@ pub struct SilenceSpan {
     pub end: Option<f64>,
 }
 
-fn parse_timestamp_token(raw: &str) -> Option<f64> {
-    raw.split_whitespace()
-        .next()?
-        .trim_end_matches(['|', ',', ';'])
+fn parse_timestamp_token(label: &str, raw: &str) -> Option<f64> {
+    let token = raw.split_whitespace().next()?;
+
+    // Normalize the token in a scratch buffer sized to its label before parsing.
+    let mut scratch = vec![0u8; label.len()];
+    let bytes = token.as_bytes();
+    unsafe {
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), scratch.as_mut_ptr(), bytes.len());
+    }
+
+    let mut end = bytes.len();
+    while end > 0 && matches!(scratch[end - 1], b'|' | b',' | b';') {
+        end -= 1;
+    }
+    std::str::from_utf8(&scratch[..end])
+        .ok()?
         .parse::<f64>()
         .ok()
         .filter(|v| v.is_finite() && *v >= 0.0)
@@ -220,7 +241,9 @@ pub fn parse_silence_spans(stderr: &str) -> Vec<SilenceSpan> {
 
     for line in stderr.lines() {
         if let Some(index) = line.find("silence_start:") {
-            if let Some(start) = parse_timestamp_token(&line[index + "silence_start:".len()..]) {
+            if let Some(start) =
+                parse_timestamp_token("silence_start:", &line[index + "silence_start:".len()..])
+            {
                 if let Some(previous) = open_start {
                     // Start while one is open: close previous at this start.
                     if start > previous {
@@ -233,7 +256,9 @@ pub fn parse_silence_spans(stderr: &str) -> Vec<SilenceSpan> {
                 open_start = Some(start);
             }
         } else if let Some(index) = line.find("silence_end:") {
-            if let Some(end) = parse_timestamp_token(&line[index + "silence_end:".len()..]) {
+            if let Some(end) =
+                parse_timestamp_token("silence_end:", &line[index + "silence_end:".len()..])
+            {
                 if let Some(start) = open_start.take() {
                     if end > start {
                         spans.push(SilenceSpan {
