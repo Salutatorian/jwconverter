@@ -21,6 +21,7 @@ use commands::image_convert::{
 };
 use commands::image_discover::discover_image_paths;
 use commands::image_preflight::preflight_image_batch;
+use commands::link_analyze::analyze_link;
 use commands::preflight::preflight_batch;
 use commands::system::get_default_paths;
 use state::AppState;
@@ -52,7 +53,8 @@ pub fn run() {
             start_batch,
             cancel_conversion,
             cancel_batch,
-            is_batch_running
+            is_batch_running,
+            analyze_link
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

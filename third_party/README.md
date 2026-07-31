@@ -12,6 +12,7 @@ compiled into the app. The Rust/TypeScript source lives in `src-tauri/src/` and
 |---|---|---|
 | `THIRD_PARTY_FFMPEG.txt` | FFmpeg / FFprobe binaries (Gyan.dev Windows build) | GNU GPL v3 |
 | `THIRD_PARTY_IMAGEMAGICK.txt` | ImageMagick portable (`magick.exe`) | ImageMagick License |
+| `THIRD_PARTY_YTDLP.txt` | yt-dlp (experimental Links only; not in stable releases yet) | Unlicense |
 | `FFMPEG-LICENSING.md` | Redistribution/compliance notes for the bundled FFmpeg build | — |
 
 The binary payloads themselves are **not** committed to this repository; they

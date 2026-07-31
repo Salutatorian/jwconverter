@@ -82,6 +82,8 @@ export interface AppInfo {
   name: string;
   version: string;
   phase: string;
+  /** Dev builds only — experimental Links (Phase 1). */
+  linksExperimental: boolean;
 }
 
 export interface DiscoveredAudio {

@@ -4,12 +4,15 @@ Place here (gitignored):
 
 - `ffmpeg.exe`
 - `ffprobe.exe`
+- `yt-dlp.exe` (experimental Links — Phase 1 metadata; not in stable release packaging yet)
 
 For Tauri release packaging (`externalBin`), also provide target-triple copies:
 
 - Windows: `ffmpeg-x86_64-pc-windows-msvc.exe`, `ffprobe-x86_64-pc-windows-msvc.exe`
 - macOS arm64: `ffmpeg-aarch64-apple-darwin`, `ffprobe-aarch64-apple-darwin`
 - Linux x64: `ffmpeg-x86_64-unknown-linux-gnu`, `ffprobe-x86_64-unknown-linux-gnu`
+
+Optional Links override: `CONVERTER_YTDLP` → full path to a yt-dlp executable.
 
 CI uses `scripts/fetch-media-tools.sh` on macOS/Linux. Windows packaging still uses the local Gyan + portable Magick layout above.
 

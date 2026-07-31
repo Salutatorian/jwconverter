@@ -181,3 +181,9 @@ export async function startImageBatch(
 export async function cancelImageBatch(): Promise<void> {
   return invoke("cancel_image_batch");
 }
+
+/** Experimental Links — metadata only (Phase 1). Does not download. */
+export async function analyzeLink(url: string): Promise<import("../types/links").LinkMediaInfo> {
+  return invoke("analyze_link", { url });
+}
+

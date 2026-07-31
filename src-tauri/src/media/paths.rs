@@ -108,6 +108,11 @@ const MAGICK_NAME: &str = "magick.exe";
 #[cfg(not(windows))]
 const MAGICK_NAME: &str = "magick";
 
+#[cfg(windows)]
+const YTDLP_NAME: &str = "yt-dlp.exe";
+#[cfg(not(windows))]
+const YTDLP_NAME: &str = "yt-dlp";
+
 pub fn resolve_magick() -> Option<PathBuf> {
     if let Ok(path) = std::env::var("CONVERTER_MAGICK") {
         let path = PathBuf::from(path);
@@ -129,6 +134,37 @@ pub fn resolve_magick() -> Option<PathBuf> {
     }
 
     None
+}
+
+/// Resolve yt-dlp sidecar for experimental Links (metadata / future downloads).
+pub fn resolve_ytdlp() -> Result<PathBuf, String> {
+    if let Ok(path) = std::env::var("CONVERTER_YTDLP") {
+        let path = PathBuf::from(path);
+        if path.is_file() {
+            return Ok(path);
+        }
+        return Err(format!(
+            "CONVERTER_YTDLP is set but not a file: {}",
+            path.display()
+        ));
+    }
+
+    if let Some(dir) = candidate_binary_dirs()
+        .into_iter()
+        .find(|dir| dir.join(YTDLP_NAME).is_file())
+    {
+        return Ok(dir.join(YTDLP_NAME));
+    }
+
+    #[cfg(debug_assertions)]
+    if let Some(path) = which_on_path(YTDLP_NAME) {
+        return Ok(path);
+    }
+
+    Err(format!(
+        "yt-dlp was not found. Place {} in src-tauri/binaries/ or set CONVERTER_YTDLP.",
+        YTDLP_NAME
+    ))
 }
 
 fn candidate_binary_dirs() -> Vec<PathBuf> {

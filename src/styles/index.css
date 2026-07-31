@@ -817,3 +817,46 @@ button:focus-visible,
   justify-content: center;
   gap: 0.5rem;
 }
+
+.link-url-input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--text);
+  padding: 0.65rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.link-url-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.link-url-input:disabled {
+  opacity: 0.5;
+}
+
+.link-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.85rem 1.25rem;
+  margin: 0;
+}
+
+.link-meta-grid dt {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.link-meta-grid dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text);
+  word-break: break-word;
+}

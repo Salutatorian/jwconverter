@@ -1,12 +1,13 @@
 import {
   ImageIcon,
   InfoIcon,
+  Link2Icon,
   Music2Icon,
   SettingsIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-export type MediaMode = "audio" | "images";
+export type MediaMode = "audio" | "images" | "links";
 
 type AppShellProps = {
   mode: MediaMode;
@@ -15,6 +16,8 @@ type AppShellProps = {
   updateAvailable?: boolean;
   onOpenSettings: () => void;
   version?: string | null;
+  /** Dev / experimental Links rail (Phase 1). */
+  showLinks?: boolean;
   children: ReactNode;
 };
 
@@ -25,6 +28,7 @@ export function AppShell({
   updateAvailable = false,
   onOpenSettings,
   version,
+  showLinks = false,
   children,
 }: AppShellProps) {
   return (
@@ -65,6 +69,24 @@ export function AppShell({
             <ImageIcon aria-hidden />
             <span>images</span>
           </button>
+          {showLinks ? (
+            <button
+              type="button"
+              className={[
+                "rail-btn",
+                mode === "links" ? "rail-btn-active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-pressed={mode === "links"}
+              disabled={modeLocked && mode !== "links"}
+              onClick={() => onModeChange("links")}
+              title="Experimental"
+            >
+              <Link2Icon aria-hidden />
+              <span>links</span>
+            </button>
+          ) : null}
         </nav>
 
         <div className="app-rail-footer">

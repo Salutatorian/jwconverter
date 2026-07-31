@@ -1,0 +1,10 @@
+yt-dlp (experimental Links — not in stable JW Converter releases yet)
+
+Project: https://github.com/yt-dlp/yt-dlp
+License: Unlicense (public domain dedication) — see upstream COPYING
+Windows builds: https://github.com/yt-dlp/yt-dlp/releases
+
+JW Converter Phase 1 uses yt-dlp only for local metadata inspection
+(--dump-single-json --skip-download). Do not redistribute a stable
+installer that bundles yt-dlp until licensing review is complete and
+the binary version/hash are pinned in this notice.

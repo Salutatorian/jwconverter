@@ -14,6 +14,7 @@ import {
 import type { AppInfo } from "./types/conversion";
 import { ConverterView } from "./views/ConverterView";
 import { ImageConverterView } from "./views/ImageConverterView";
+import { LinkConverterView } from "./views/LinkConverterView";
 
 function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
@@ -27,6 +28,7 @@ function App() {
   const updateAvailable =
     updater.status === "available" || updater.status === "downloading";
   const showUpdateOverlay = updater.blockingOverlay;
+  const showLinks = Boolean(appInfo?.linksExperimental);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +49,12 @@ function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!showLinks && mode === "links") {
+      setMode("audio");
+    }
+  }, [showLinks, mode]);
 
   function dismissWhatsNew() {
     if (appInfo) {
@@ -72,11 +80,14 @@ function App() {
           setSettingsOpen(true);
         }}
         version={appInfo?.version ?? null}
+        showLinks={showLinks}
       >
         {mode === "audio" ? (
           <ConverterView appInfo={appInfo} onBusyChange={setModeLocked} />
-        ) : (
+        ) : mode === "images" ? (
           <ImageConverterView appInfo={appInfo} onBusyChange={setModeLocked} />
+        ) : (
+          <LinkConverterView appInfo={appInfo} />
         )}
       </AppShell>
 
