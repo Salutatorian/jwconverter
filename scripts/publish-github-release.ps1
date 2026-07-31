@@ -55,10 +55,9 @@ $notes = @"
 
 From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
 
-### What's new in 1.0.0
-- **Links mode:** paste public media URLs — batch queue, playlists, optional cookies.txt, subtitles, thumbnails, bounded live recording
-- Bundled **yt-dlp** alongside FFmpeg and ImageMagick
-- Audio and Images modes unchanged (local-first, sources never modified)
+### What's new in 1.0.1
+- **Links multi-downloads** (playlists or pasted batches) finish as **one .zip** in your destination folder — no loose file spam
+- Single-URL downloads still save as one media file
 
 ### Notes
 - Windows 10/11 x64 + WebView2

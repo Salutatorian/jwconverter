@@ -87,6 +87,8 @@ export interface LinkBatchRequest {
   downloadSubtitles: boolean;
   saveThumbnail: boolean;
   embedThumbnail: boolean;
+  /** Optional zip / batch label (playlist title, etc.). */
+  batchTitle?: string | null;
   items: Array<{
     url: string;
     title?: string | null;
@@ -118,6 +120,7 @@ export interface LinkBatchEvent {
   parallelism: number;
   status: "running" | "completed" | "cancelled";
   message: string | null;
+  zipPath?: string | null;
 }
 
 export interface LinkHistoryItem {

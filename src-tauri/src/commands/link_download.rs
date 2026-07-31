@@ -76,6 +76,8 @@ pub struct LinkBatchRequest {
     pub embed_thumbnail: bool,
     #[serde(default)]
     pub live_max_minutes: Option<u32>,
+    #[serde(default)]
+    pub batch_title: Option<String>,
     pub items: Vec<LinkDownloadItemRequest>,
 }
 
@@ -172,7 +174,7 @@ pub fn start_link_download(
         mode: request.mode, video_quality: request.video_quality, audio_format: request.audio_format,
         quality_preset: request.quality_preset, mp3_encoding_mode: request.mp3_encoding_mode,
         bit_depth_preset: request.bit_depth_preset, cookies_path: None, download_subtitles: false,
-        save_thumbnail: false, embed_thumbnail: false, live_max_minutes: None,
+        save_thumbnail: false, embed_thumbnail: false, live_max_minutes: None, batch_title: None,
         items: vec![LinkDownloadItemRequest { url: request.url, title: None, duration_seconds: None, is_live: None, job_id: request.job_id }],
     };
     let response = enqueue_link_downloads(app, state, batch)?;
@@ -208,7 +210,7 @@ pub fn cancel_link_download(
 pub fn enqueue_link_downloads(app: AppHandle, state: State<'_, AppState>, request: LinkBatchRequest) -> Result<EnqueueLinkBatchResponse, String> {
     check_shared_options(&request)?;
     let jobs = request.items.iter().cloned().map(|item| build_job(&request, item)).collect::<Result<Vec<_>, _>>()?;
-    let (batch_id, job_ids) = link_queue::enqueue_batch(app, &state, jobs)?;
+    let (batch_id, job_ids) = link_queue::enqueue_batch(app, &state, jobs, request.batch_title)?;
     Ok(EnqueueLinkBatchResponse { batch_id, job_ids })
 }
 

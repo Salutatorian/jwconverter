@@ -148,7 +148,13 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         }
       }),
       listen<LinkBatchEvent>("link-batch-event", ({ payload }) => {
-        setBatchMessage(`${payload.message} · ${payload.completed}/${payload.total}`);
+        const base = payload.message ?? "Links batch";
+        const progress = `${payload.completed}/${payload.total}`;
+        setBatchMessage(
+          payload.zipPath
+            ? `${base} · ${progress} · ${payload.zipPath}`
+            : `${base} · ${progress}`,
+        );
       }),
     ]).then((listeners) => {
       if (disposed) listeners.forEach((dispose) => dispose());
@@ -229,11 +235,14 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         downloadSubtitles,
         saveThumbnail,
         embedThumbnail: mode === "audio" && embedThumbnail,
+        batchTitle: info?.title ?? null,
         items,
       });
       setBatchId(result.batchId);
       setBatchMessage(
-        `Queued ${result.jobIds.length} download${result.jobIds.length === 1 ? "" : "s"}`,
+        result.jobIds.length > 1
+          ? `Queued ${result.jobIds.length} downloads → one zip when finished`
+          : `Queued ${result.jobIds.length} download`,
       );
       setQueue(
         Object.fromEntries(
@@ -394,6 +403,9 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
       {showBitDepth ? <BitDepthPicker value={bitDepthPreset} disabled={disabled} onChange={setBitDepthPreset} /> : null}
       <OverwritePicker value={overwritePolicy} disabled={disabled} onChange={setOverwritePolicy} />
       <DestinationPicker destination={destination} disabled={disabled} onChooseFolder={() => void chooseDestination()} canUseDownloads={Boolean(downloadsDir)} onUseDownloads={() => setDestination(downloadsDir)} />
+      <p className="mt-2 text-xs text-[var(--text-muted)]">
+        Two or more downloads package into one .zip in this folder (no loose file spam).
+      </p>
 
       <section className="panel panel-compact" aria-label="Link download queue">
         <div className="flex items-center justify-between gap-3"><h2 className="panel-title">Queue</h2>{batchId && activeQueue ? <button type="button" className="btn btn-secondary" onClick={() => void cancelLinkBatch()}>Cancel queue</button> : null}</div>

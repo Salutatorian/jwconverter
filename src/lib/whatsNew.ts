@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.1",
+    changes: [
+      "Links multi-downloads (playlists / pasted batches) package into one .zip — no loose file spam in your folder",
+    ],
+    debugs: [
+      "Single-URL downloads still save as one media file (not zipped)",
+      "If zipping fails, files stay in a hidden staging folder next to your destination",
+    ],
+  },
+  {
     version: "1.0.0",
     changes: [
       "Links mode: download public media URLs with bundled yt-dlp (batch, playlists, optional cookies, subs, thumbs, live cap)",

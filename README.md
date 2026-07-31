@@ -6,7 +6,7 @@ Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; imag
 
 ## Download
 
-**[Download JW Converter (v1.0.0)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.0)**
+**[Download JW Converter (v1.0.1)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.1)**
 
 - **Windows:** signed `.exe` installer (recommended day-to-day build + in-app Update)
 - **macOS:** `.dmg` for Apple Silicon — **unsigned**; first launch: right-click the app → **Open** (Gatekeeper). Notarization comes later.
@@ -33,6 +33,7 @@ Windows installer with bundled FFmpeg + ImageMagick + yt-dlp.
 
 ## Status
 
+**v1.0.1** — Multi Links downloads package into one .zip.  
 **v1.0.0** — Links mode (yt-dlp) + Audio + Images.  
 **v0.5.2** — Auto-update on launch (blue % bar) + cleaner drop-zone UI.  
 **v0.5.1** — macOS static FFmpeg; Magick Resources path.  
