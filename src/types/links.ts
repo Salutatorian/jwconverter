@@ -1,4 +1,15 @@
-/** Experimental Links DTOs — Phase 1 metadata only. */
+import type { JobStatus, OverwritePolicy } from "./conversion";
+
+/** Experimental Links DTOs. */
+
+export interface VideoOption {
+  id: string;
+  label: string;
+  height: number;
+  width: number | null;
+  fps: number | null;
+  container: string | null;
+}
 
 export interface LinkMediaInfo {
   originalUrl: string;
@@ -13,4 +24,27 @@ export interface LinkMediaInfo {
   isPlaylist: boolean;
   itemCount: number | null;
   warnings: string[];
+  videoOptions: VideoOption[];
+}
+
+export type LinkMediaMode = "video" | "audio";
+export type LinkVideoQuality = "best" | { height: number };
+export type LinkAudioFormat = "original" | "mp3" | "m4a" | "opus" | "flac" | "wav";
+
+export interface LinkDownloadRequest {
+  url: string;
+  destinationDir: string;
+  overwritePolicy: OverwritePolicy;
+  mode: LinkMediaMode;
+  videoQuality: LinkVideoQuality;
+  audioFormat: LinkAudioFormat;
+}
+
+export interface LinkDownloadEvent {
+  jobId: string;
+  status: JobStatus;
+  percent: number | null;
+  message: string;
+  outputPath: string | null;
+  error: string | null;
 }

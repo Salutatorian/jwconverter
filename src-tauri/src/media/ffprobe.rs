@@ -73,6 +73,23 @@ pub fn analyze(path: &str) -> Result<AudioInfo, AppError> {
     parse_probe_output(&path, &output)
 }
 
+/// Return the stream kinds present in a local media file.
+pub fn stream_types(path: &Path) -> Result<Vec<String>, AppError> {
+    if !path.is_file() {
+        return Err(AppError::VerificationFailure {
+            detail: "Downloaded output file was not found.".to_string(),
+        });
+    }
+    let ffprobe = resolve_ffprobe().map_err(|detail| AppError::MediaToolMissing { detail })?;
+    let output = run_ffprobe(&ffprobe, path)?;
+    Ok(output
+        .streams
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|stream| stream.codec_type)
+        .collect())
+}
+
 fn run_ffprobe(ffprobe: &Path, input: &Path) -> Result<ProbeOutput, AppError> {
     let mut command = Command::new(ffprobe);
     command.args([
@@ -229,10 +246,7 @@ fn infer_bit_depth(sample_fmt: Option<&str>) -> Option<u32> {
 mod parse_tests {
     use super::*;
 
-    fn probe(
-        format: Option<ProbeFormat>,
-        streams: Option<Vec<ProbeStream>>,
-    ) -> ProbeOutput {
+    fn probe(format: Option<ProbeFormat>, streams: Option<Vec<ProbeStream>>) -> ProbeOutput {
         ProbeOutput { format, streams }
     }
 

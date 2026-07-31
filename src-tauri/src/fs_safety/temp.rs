@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::errors::AppError;
 
 const TEMP_MARKER: &str = ".jwconverting-";
+const LINK_TEMP_MARKER: &str = ".jwdownload-";
 
 /// Build a unique temp path in `destination_dir`, same volume as the final file.
 pub fn temp_output_path(
@@ -38,7 +39,13 @@ pub fn temp_output_path(
 pub fn is_our_temp_file(path: &Path) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.contains(TEMP_MARKER))
+        .is_some_and(|name| name.contains(TEMP_MARKER) || name.contains(LINK_TEMP_MARKER))
+}
+
+/// Output template stem for yt-dlp downloads on the destination volume.
+pub fn link_temp_stem(stem: &str, job_id: &str) -> String {
+    let short_id = job_id.chars().take(8).collect::<String>();
+    format!("{stem}{LINK_TEMP_MARKER}{short_id}")
 }
 
 /// Delete a temp file only if it matches our naming marker.
@@ -55,13 +62,25 @@ mod tests {
 
     #[test]
     fn marker_detection() {
-        assert!(is_our_temp_file(Path::new("song.jwconverting-ab12cd34.flac")));
+        assert!(is_our_temp_file(Path::new(
+            "song.jwconverting-ab12cd34.flac"
+        )));
+        assert!(is_our_temp_file(Path::new("song.jwdownload-ab12cd34.webm")));
         assert!(is_our_temp_file(Path::new(r"C:\out\x.jwconverting-q.mp3")));
         assert!(!is_our_temp_file(Path::new("song.flac")));
         assert!(!is_our_temp_file(Path::new("song.jwconverting.flac")));
         // The bare marker string does contain the marker — document that.
         assert!(is_our_temp_file(Path::new(".jwconverting-")));
+        assert!(is_our_temp_file(Path::new(".jwdownload-")));
         assert!(!is_our_temp_file(Path::new("")));
+    }
+
+    #[test]
+    fn link_temp_stem_includes_short_job_marker() {
+        assert_eq!(
+            link_temp_stem("song", "job-abcdef123456"),
+            "song.jwdownload-job-abcd"
+        );
     }
 
     #[test]
@@ -76,8 +95,8 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("jw-temp-test-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).expect("tmpdir");
 
-        let path = temp_output_path(&dir, "song", "flac", "job-abcdef1234567890")
-            .expect("temp path");
+        let path =
+            temp_output_path(&dir, "song", "flac", "job-abcdef1234567890").expect("temp path");
         assert!(is_our_temp_file(&path));
         let name = path.file_name().and_then(|n| n.to_str()).expect("name");
         assert!(name.starts_with("song.jwconverting-"));

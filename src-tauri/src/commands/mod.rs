@@ -10,5 +10,6 @@ pub mod image_convert;
 pub mod image_discover;
 pub mod image_preflight;
 pub mod link_analyze;
+pub mod link_download;
 pub mod preflight;
 pub mod system;

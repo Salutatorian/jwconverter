@@ -1,7 +1,21 @@
-import { useState } from "react";
-import { analyzeLink } from "../lib/tauri";
-import type { AppInfo } from "../types/conversion";
-import type { LinkMediaInfo } from "../types/links";
+import { listen } from "@tauri-apps/api/event";
+import { open } from "@tauri-apps/plugin-dialog";
+import { useEffect, useState } from "react";
+import { DestinationPicker } from "../components/DestinationPicker";
+import { OverwritePicker } from "../components/OverwritePicker";
+import {
+  analyzeLink,
+  cancelLinkDownload,
+  getDefaultPaths,
+  startLinkDownload,
+} from "../lib/tauri";
+import type { AppInfo, JobStatus, OverwritePolicy } from "../types/conversion";
+import type {
+  LinkAudioFormat,
+  LinkDownloadEvent,
+  LinkMediaInfo,
+  LinkMediaMode,
+} from "../types/links";
 
 type LinkConverterViewProps = {
   appInfo: AppInfo | null;
@@ -27,6 +41,65 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<LinkMediaInfo | null>(null);
+  const [destination, setDestination] = useState<string | null>(null);
+  const [downloadsDir, setDownloadsDir] = useState<string | null>(null);
+  const [overwritePolicy, setOverwritePolicy] =
+    useState<OverwritePolicy>("rename");
+  const [mode, setMode] = useState<LinkMediaMode>("video");
+  const [videoHeight, setVideoHeight] = useState<number | null>(null);
+  const [audioFormat, setAudioFormat] = useState<LinkAudioFormat>("original");
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [status, setStatus] = useState<JobStatus>("idle");
+  const [percent, setPercent] = useState<number | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [outputPath, setOutputPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getDefaultPaths()
+      .then((paths) => {
+        if (cancelled || !paths.downloadsDir) {
+          return;
+        }
+        setDownloadsDir(paths.downloadsDir);
+        setDestination((current) => current ?? paths.downloadsDir);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    listen<LinkDownloadEvent>("link-download-event", (event) => {
+      if (event.payload.jobId !== jobId) {
+        return;
+      }
+      setStatus(event.payload.status);
+      setPercent(event.payload.percent);
+      setMessage(event.payload.message);
+      if (event.payload.outputPath) {
+        setOutputPath(event.payload.outputPath);
+      }
+      if (event.payload.error) {
+        setError(event.payload.error);
+      }
+    })
+      .then((dispose) => {
+        if (cancelled) {
+          dispose();
+        } else {
+          unlisten = dispose;
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [jobId]);
 
   async function handleAnalyze() {
     setError(null);
@@ -35,10 +108,66 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
     try {
       const result = await analyzeLink(url);
       setInfo(result);
+      setVideoHeight(null);
+      setStatus("ready");
+      setJobId(null);
+      setPercent(null);
+      setMessage(null);
+      setOutputPath(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  const downloading = ["queued", "converting", "verifying"].includes(status);
+  const downloadBlocked = !info || info.isLive || info.isPlaylist;
+
+  async function handleChooseFolder() {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      title: "Choose download destination",
+    });
+    if (typeof selected === "string") {
+      setDestination(selected);
+    }
+  }
+
+  async function handleDownload() {
+    if (!info || !destination || downloading || downloadBlocked) {
+      return;
+    }
+    setError(null);
+    setOutputPath(null);
+    setStatus("queued");
+    setPercent(0);
+    setMessage("Preparing download");
+    try {
+      const startedJobId = await startLinkDownload({
+        url: url.trim(),
+        destinationDir: destination,
+        overwritePolicy,
+        mode,
+        videoQuality: videoHeight == null ? "best" : { height: videoHeight },
+        audioFormat,
+      });
+      setJobId(startedJobId);
+    } catch (err: unknown) {
+      setStatus("failed");
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function handleCancel() {
+    if (!jobId) {
+      return;
+    }
+    try {
+      await cancelLinkDownload(jobId);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -99,9 +228,10 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
       ) : null}
 
       {info ? (
-        <section className="panel panel-compact" aria-label="Link metadata">
-          <h2 className="panel-title">Metadata</h2>
-          <dl className="link-meta-grid mt-3">
+        <>
+          <section className="panel panel-compact" aria-label="Link metadata">
+            <h2 className="panel-title">Metadata</h2>
+            <dl className="link-meta-grid mt-3">
             <div>
               <dt>Title</dt>
               <dd>{info.title ?? "—"}</dd>
@@ -132,15 +262,142 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
                     : "Single item"}
               </dd>
             </div>
-          </dl>
-          {info.warnings.length > 0 ? (
-            <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-[var(--text-muted)]">
-              {info.warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
+            </dl>
+            {info.warnings.length > 0 ? (
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-[var(--text-muted)]">
+                {info.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+
+          <section className="panel panel-compact" aria-label="Download options">
+            <h2 className="panel-title">Download options</h2>
+            <div className="mt-3 grid gap-3">
+              <div>
+                <p className="text-xs text-[var(--text-muted)]">Media</p>
+                <div className="chip-row">
+                  {(["video", "audio"] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className="chip"
+                      disabled={downloading}
+                      aria-pressed={mode === value}
+                      onClick={() => setMode(value)}
+                    >
+                      {value === "video" ? "Video" : "Audio"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {mode === "video" ? (
+                <div>
+                  <p className="text-xs text-[var(--text-muted)]">Quality</p>
+                  <div className="chip-row">
+                    <button
+                      type="button"
+                      className="chip"
+                      disabled={downloading}
+                      aria-pressed={videoHeight == null}
+                      onClick={() => setVideoHeight(null)}
+                    >
+                      Best
+                    </button>
+                    {info.videoOptions.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className="chip"
+                        disabled={downloading}
+                        aria-pressed={videoHeight === option.height}
+                        onClick={() => setVideoHeight(option.height)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs text-[var(--text-muted)]">Audio format</p>
+                  <div className="chip-row">
+                    {(["original", "mp3", "m4a", "opus", "flac", "wav"] as const).map(
+                      (value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className="chip"
+                          disabled={downloading}
+                          aria-pressed={audioFormat === value}
+                          onClick={() => setAudioFormat(value)}
+                        >
+                          {value === "original" ? "Original" : value.toUpperCase()}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <OverwritePicker
+            value={overwritePolicy}
+            disabled={downloading}
+            onChange={setOverwritePolicy}
+          />
+          <DestinationPicker
+            destination={destination}
+            disabled={downloading}
+            onChooseFolder={() => {
+              void handleChooseFolder();
+            }}
+            canUseDownloads={Boolean(downloadsDir)}
+            onUseDownloads={() => {
+              if (downloadsDir) {
+                setDestination(downloadsDir);
+              }
+            }}
+          />
+          <section className="panel panel-compact" aria-label="Link download progress">
+            <div className="action-row">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!destination || downloadBlocked || downloading}
+                onClick={() => {
+                  void handleDownload();
+                }}
+              >
+                Download
+              </button>
+              {downloading ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    void handleCancel();
+                  }}
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
+            {message ? (
+              <p className="mt-3 text-sm text-[var(--text-muted)]">
+                {message}
+                {percent != null ? ` · ${Math.round(percent)}%` : ""}
+              </p>
+            ) : null}
+            {outputPath ? (
+              <p className="mt-2 break-all text-xs text-[var(--text-muted)]">
+                Saved to {outputPath}
+              </p>
+            ) : null}
+          </section>
+        </>
       ) : null}
     </div>
   );

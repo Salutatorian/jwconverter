@@ -24,6 +24,18 @@ pub struct LinkMediaInfo {
     pub is_playlist: bool,
     pub item_count: Option<u32>,
     pub warnings: Vec<String>,
+    pub video_options: Vec<VideoOption>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoOption {
+    pub id: String,
+    pub label: String,
+    pub height: u32,
+    pub width: Option<u32>,
+    pub fps: Option<f64>,
+    pub container: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,6 +57,18 @@ struct YtdlpDump {
     playlist_count: Option<u32>,
     n_entries: Option<u32>,
     entries: Option<serde_json::Value>,
+    #[serde(default)]
+    formats: Vec<YtdlpFormat>,
+}
+
+#[derive(Debug, Deserialize)]
+struct YtdlpFormat {
+    format_id: Option<String>,
+    height: Option<u32>,
+    width: Option<u32>,
+    fps: Option<f64>,
+    ext: Option<String>,
+    vcodec: Option<String>,
 }
 
 /// Inspect a remote media URL with yt-dlp. Does not download media.
@@ -101,14 +125,11 @@ fn run_dump_json(ytdlp: &std::path::Path, url: &str) -> Result<YtdlpDump, AppErr
 fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppError> {
     let type_name = dump._type.as_deref().unwrap_or("video");
     let is_playlist = type_name == "playlist" || dump.entries.is_some();
-    let item_count = dump
-        .playlist_count
-        .or(dump.n_entries)
-        .or_else(|| {
-            dump.entries
-                .as_ref()
-                .and_then(|v| v.as_array().map(|a| a.len() as u32))
-        });
+    let item_count = dump.playlist_count.or(dump.n_entries).or_else(|| {
+        dump.entries
+            .as_ref()
+            .and_then(|v| v.as_array().map(|a| a.len() as u32))
+    });
 
     let mut warnings = Vec::new();
     if is_playlist {
@@ -138,8 +159,14 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
 
     Ok(LinkMediaInfo {
         original_url: original_url.to_string(),
-        webpage_url: dump.webpage_url.clone().or_else(|| dump.original_url.clone()),
-        extractor: dump.extractor.clone().or_else(|| dump.extractor_key.clone()),
+        webpage_url: dump
+            .webpage_url
+            .clone()
+            .or_else(|| dump.original_url.clone()),
+        extractor: dump
+            .extractor
+            .clone()
+            .or_else(|| dump.extractor_key.clone()),
         service,
         id: dump.id.clone(),
         title: dump.title.clone(),
@@ -149,7 +176,50 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
         is_playlist,
         item_count,
         warnings,
+        video_options: video_options(&dump.formats),
     })
+}
+
+fn video_options(formats: &[YtdlpFormat]) -> Vec<VideoOption> {
+    let mut options = formats
+        .iter()
+        .filter(|format| {
+            format.height.is_some()
+                && format.format_id.is_some()
+                && format
+                    .vcodec
+                    .as_deref()
+                    .is_some_and(|codec| codec != "none")
+        })
+        .filter_map(|format| {
+            let height = format.height?;
+            let id = format.format_id.clone()?;
+            let dimensions = format
+                .width
+                .map(|width| format!("{width}×{height}"))
+                .unwrap_or_else(|| format!("{height}p"));
+            let fps = format.fps.filter(|fps| fps.is_finite() && *fps > 0.0);
+            let label = match (fps, format.ext.as_deref()) {
+                (Some(fps), Some(container)) => {
+                    format!("{dimensions} · {fps:.0} fps · {container}")
+                }
+                (Some(fps), None) => format!("{dimensions} · {fps:.0} fps"),
+                (None, Some(container)) => format!("{dimensions} · {container}"),
+                (None, None) => dimensions,
+            };
+            Some(VideoOption {
+                id,
+                label,
+                height,
+                width: format.width,
+                fps,
+                container: format.ext.clone(),
+            })
+        })
+        .collect::<Vec<_>>();
+    options.sort_by(|left, right| right.height.cmp(&left.height).then(left.id.cmp(&right.id)));
+    options.dedup_by(|left, right| left.height == right.height);
+    options
 }
 
 fn humanize_service(extractor: &str) -> String {
@@ -201,7 +271,10 @@ fn map_ytdlp_stderr(stderr: &str) -> String {
     if tail.trim().is_empty() {
         "Could not inspect this link.".to_string()
     } else {
-        format!("Could not inspect this link. ({})", redact_url_for_log(&tail))
+        format!(
+            "Could not inspect this link. ({})",
+            redact_url_for_log(&tail)
+        )
     }
 }
 
@@ -228,6 +301,7 @@ mod tests {
             playlist_count: Some(12),
             n_entries: None,
             entries: None,
+            formats: Vec::new(),
         };
         let info = normalize("https://example.com", &dump).unwrap();
         assert!(info.is_playlist);
@@ -246,8 +320,8 @@ mod tests {
     #[test]
     #[ignore = "live network + yt-dlp sidecar"]
     fn live_inspect_public_video() {
-        let info = inspect("https://www.youtube.com/watch?v=jNQXAC9IVRw")
-            .expect("inspect public video");
+        let info =
+            inspect("https://www.youtube.com/watch?v=jNQXAC9IVRw").expect("inspect public video");
         assert_eq!(info.id.as_deref(), Some("jNQXAC9IVRw"));
         assert!(info.title.as_ref().is_some_and(|t| !t.is_empty()));
         assert!(!info.is_playlist);
