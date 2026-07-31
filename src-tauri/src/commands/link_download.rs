@@ -12,6 +12,8 @@ use crate::state::AppState;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkDownloadRequest {
+    #[serde(default)]
+    pub job_id: Option<String>,
     pub url: String,
     pub destination_dir: String,
     #[serde(default)]
@@ -50,8 +52,15 @@ fn build_job(request: LinkDownloadRequest) -> Result<LinkDownloadJob, String> {
     }
 
     let info = ytdlp::inspect(&url).map_err(|error| error.to_string())?;
+    let id = request
+        .job_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     Ok(LinkDownloadJob {
-        id: uuid::Uuid::new_v4().to_string(),
+        id,
         url,
         title: info.title,
         is_live: info.is_live,
@@ -74,21 +83,21 @@ pub fn start_link_download(
     let job = build_job(request)?;
     let job_id = job.id.clone();
     let active = state.register(job_id.clone());
-    emit_event(
-        &app,
-        LinkDownloadEvent {
-            job_id: job_id.clone(),
-            status: JobStatus::Queued,
-            percent: Some(0.0),
-            message: "Preparing download".to_string(),
-            output_path: None,
-            error: None,
-        },
-    );
 
     let thread_app = app.clone();
     let thread_job_id = job_id.clone();
     std::thread::spawn(move || {
+        emit_event(
+            &thread_app,
+            LinkDownloadEvent {
+                job_id: thread_job_id.clone(),
+                status: JobStatus::Queued,
+                percent: Some(0.0),
+                message: "Preparing download".to_string(),
+                output_path: None,
+                error: None,
+            },
+        );
         let callback_app = thread_app.clone();
         let callback_job_id = thread_job_id.clone();
         let callbacks = LinkRunCallbacks {

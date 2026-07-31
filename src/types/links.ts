@@ -32,6 +32,7 @@ export type LinkVideoQuality = "best" | { height: number };
 export type LinkAudioFormat = "original" | "mp3" | "m4a" | "opus" | "flac" | "wav";
 
 export interface LinkDownloadRequest {
+  jobId?: string;
   url: string;
   destinationDir: string;
   overwritePolicy: OverwritePolicy;

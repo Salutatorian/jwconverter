@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DestinationPicker } from "../components/DestinationPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import {
@@ -49,6 +49,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
   const [videoHeight, setVideoHeight] = useState<number | null>(null);
   const [audioFormat, setAudioFormat] = useState<LinkAudioFormat>("original");
   const [jobId, setJobId] = useState<string | null>(null);
+  const jobIdRef = useRef<string | null>(null);
   const [status, setStatus] = useState<JobStatus>("idle");
   const [percent, setPercent] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
     let unlisten: (() => void) | undefined;
     let cancelled = false;
     listen<LinkDownloadEvent>("link-download-event", (event) => {
-      if (event.payload.jobId !== jobId) {
+      if (event.payload.jobId !== jobIdRef.current) {
         return;
       }
       setStatus(event.payload.status);
@@ -99,7 +100,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
       cancelled = true;
       unlisten?.();
     };
-  }, [jobId]);
+  }, []);
 
   async function handleAnalyze() {
     setError(null);
@@ -110,6 +111,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
       setInfo(result);
       setVideoHeight(null);
       setStatus("ready");
+      jobIdRef.current = null;
       setJobId(null);
       setPercent(null);
       setMessage(null);
@@ -145,7 +147,11 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
     setPercent(0);
     setMessage("Preparing download");
     try {
-      const startedJobId = await startLinkDownload({
+      const startedJobId = crypto.randomUUID();
+      jobIdRef.current = startedJobId;
+      setJobId(startedJobId);
+      await startLinkDownload({
+        jobId: startedJobId,
         url: url.trim(),
         destinationDir: destination,
         overwritePolicy,
@@ -153,8 +159,9 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         videoQuality: videoHeight == null ? "best" : { height: videoHeight },
         audioFormat,
       });
-      setJobId(startedJobId);
     } catch (err: unknown) {
+      jobIdRef.current = null;
+      setJobId(null);
       setStatus("failed");
       setError(err instanceof Error ? err.message : String(err));
     }
