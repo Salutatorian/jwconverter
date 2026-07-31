@@ -183,33 +183,46 @@ fn worker_loop(app: AppHandle) {
             continue;
         };
         let active = state.register(job.id.clone());
+        // Cancel may have been requested between dequeue and register.
+        if state
+            .link_queue
+            .lock()
+            .map(|queue| queue.cancel_remaining.load(Ordering::SeqCst))
+            .unwrap_or(false)
+        {
+            let _ = state.request_cancel(&job.id);
+        }
         let callbacks = callbacks_for(&app, &job.id);
-        let outcome = link_runner::run_job(&job, &active, &callbacks);
+        let outcome = if active.cancel_flag.load(Ordering::SeqCst) {
+            Err(AppError::ConversionCancelled)
+        } else {
+            link_runner::run_job(&job, &active, &callbacks)
+        };
         state.remove(&job.id);
         let mut queue = match state.link_queue.lock() { Ok(queue) => queue, Err(_) => break };
         queue.active_job_ids.remove(&job.id);
         match outcome {
             Ok(result) if result.status == JobStatus::Skipped => {
                 queue.skipped += 1;
+                let _ = append_history(&app, history_record(&job, "skipped", Some(result.output_path.clone()), None));
                 emit_download(&app, LinkDownloadEvent { job_id: job.id.clone(), status: JobStatus::Skipped, percent: Some(100.0), message: "Existing output left unchanged".to_string(), output_path: Some(result.output_path.clone()), error: None });
-                let _ = append_history(&app, history_record(&job, "skipped", Some(result.output_path), None));
             }
             Ok(result) => {
                 queue.completed += 1;
+                let _ = append_history(&app, history_record(&job, "completed", Some(result.output_path.clone()), None));
                 emit_download(&app, LinkDownloadEvent { job_id: job.id.clone(), status: JobStatus::Completed, percent: Some(100.0), message: "Download completed".to_string(), output_path: Some(result.output_path.clone()), error: None });
-                let _ = append_history(&app, history_record(&job, "completed", Some(result.output_path), None));
             }
             Err(AppError::ConversionCancelled) => {
                 queue.cancelled += 1;
-                emit_download(&app, LinkDownloadEvent { job_id: job.id.clone(), status: JobStatus::Cancelled, percent: None, message: "Download cancelled".to_string(), output_path: None, error: None });
                 let _ = append_history(&app, history_record(&job, "cancelled", None, Some("cancelled".to_string())));
+                emit_download(&app, LinkDownloadEvent { job_id: job.id.clone(), status: JobStatus::Cancelled, percent: None, message: "Download cancelled".to_string(), output_path: None, error: None });
             }
             Err(error) => {
                 queue.failed += 1;
                 let message = error.to_string();
                 let category = classify_app_error_message(&message).as_str().to_string();
-                emit_download(&app, LinkDownloadEvent { job_id: job.id.clone(), status: JobStatus::Failed, percent: None, message: "Download failed".to_string(), output_path: None, error: Some(message) });
                 let _ = append_history(&app, history_record(&job, "failed", None, Some(category)));
+                emit_download(&app, LinkDownloadEvent { job_id: job.id.clone(), status: JobStatus::Failed, percent: None, message: "Download failed".to_string(), output_path: None, error: Some(message) });
             }
         }
         if queue.cancel_remaining.load(Ordering::SeqCst) {
@@ -271,8 +284,28 @@ pub fn cancel_batch(state: &AppState) -> Result<(), String> {
     Ok(())
 }
 
-pub fn cancel_job(state: &AppState, job_id: &str) -> Result<(), String> {
-    if state.request_cancel(job_id) { Ok(()) } else { Err(format!("No active link download found for job {job_id}.")) }
+pub enum CancelJobResult {
+    ActiveCancelled,
+    QueuedRemoved,
+}
+
+pub fn cancel_job(state: &AppState, job_id: &str) -> Result<CancelJobResult, String> {
+    if state.request_cancel(job_id) {
+        return Ok(CancelJobResult::ActiveCancelled);
+    }
+
+    // Still queued (not yet active): remove from the pending deque.
+    let mut queue = state
+        .link_queue
+        .lock()
+        .map_err(|_| "Internal Links queue lock error.".to_string())?;
+    let before = queue.items.len();
+    queue.items.retain(|job| job.id != job_id);
+    if queue.items.len() < before {
+        queue.cancelled += 1;
+        return Ok(CancelJobResult::QueuedRemoved);
+    }
+    Err(format!("No active link download found for job {job_id}."))
 }
 
 pub fn is_batch_running(state: &AppState) -> bool {

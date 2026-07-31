@@ -78,7 +78,9 @@ jobs:
             "ffmpeg.exe",
             "ffprobe.exe",
             "ffmpeg-x86_64-pc-windows-msvc.exe",
-            "ffprobe-x86_64-pc-windows-msvc.exe"
+            "ffprobe-x86_64-pc-windows-msvc.exe",
+            "yt-dlp.exe",
+            "yt-dlp-x86_64-pc-windows-msvc.exe"
           )
           $missing = @()
           foreach ($f in $need) {

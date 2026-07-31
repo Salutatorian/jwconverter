@@ -6,7 +6,7 @@ pub struct AppInfo {
     pub name: String,
     pub version: String,
     pub phase: String,
-    /// Dev builds only — experimental Links nav (Phase 1 metadata).
+    /// Links mode (public URL download via bundled yt-dlp).
     pub links_experimental: bool,
 }
 
@@ -16,7 +16,7 @@ pub fn get_app_info() -> AppInfo {
     AppInfo {
         name: "JW Converter".to_string(),
         version: env!("CARGO_PKG_VERSION").to_string(),
-        phase: "images".to_string(),
-        links_experimental: cfg!(debug_assertions),
+        phase: "1.0".to_string(),
+        links_experimental: true,
     }
 }

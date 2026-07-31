@@ -202,6 +202,19 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
     setBusy("enqueue");
     setError(null);
     try {
+      const items = selectedUrls.map((url) => {
+        const playlistEntry = info?.entries.find((entry) => entry.url === url);
+        const isPrimary = url === info?.originalUrl;
+        return {
+          url,
+          title: playlistEntry?.title ?? (isPrimary ? info?.title : null),
+          durationSeconds:
+            playlistEntry?.durationSeconds ??
+            (isPrimary ? info?.durationSeconds : null),
+          isLive: playlistEntry?.isLive ?? (isPrimary ? info?.isLive : null),
+        };
+      });
+      const anyLive = items.some((item) => item.isLive);
       const result = await enqueueLinkDownloads({
         destinationDir: destination,
         overwritePolicy,
@@ -211,30 +224,33 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         qualityPreset,
         mp3EncodingMode,
         bitDepthPreset,
-        liveMaxMinutes: info?.isLive ? liveMaxMinutes : null,
+        liveMaxMinutes: anyLive || info?.isLive ? liveMaxMinutes : null,
         cookiesPath,
         downloadSubtitles,
         saveThumbnail,
         embedThumbnail: mode === "audio" && embedThumbnail,
-        items: selectedUrls.map((url) => {
-          const playlistEntry = info?.entries.find((entry) => entry.url === url);
-          return {
-            url,
-            title: playlistEntry?.title ?? (url === info?.originalUrl ? info?.title : null),
-            durationSeconds: playlistEntry?.durationSeconds ?? (url === info?.originalUrl ? info?.durationSeconds : null),
-            isLive: url === info?.originalUrl ? info.isLive : null,
-          };
-        }),
+        items,
       });
       setBatchId(result.batchId);
-      setBatchMessage(`Queued ${result.jobIds.length} download${result.jobIds.length === 1 ? "" : "s"}`);
-      setQueue((current) => ({
-        ...current,
-        ...Object.fromEntries(result.jobIds.map((jobId, index) => [jobId, {
-          jobId, url: selectedUrls[index] ?? "", status: "queued" as JobStatus,
-          percent: 0, message: "Preparing download", outputPath: null, error: null,
-        }])),
-      }));
+      setBatchMessage(
+        `Queued ${result.jobIds.length} download${result.jobIds.length === 1 ? "" : "s"}`,
+      );
+      setQueue(
+        Object.fromEntries(
+          result.jobIds.map((jobId, index) => [
+            jobId,
+            {
+              jobId,
+              url: selectedUrls[index] ?? "",
+              status: "queued" as JobStatus,
+              percent: 0,
+              message: "Preparing download",
+              outputPath: null,
+              error: null,
+            },
+          ]),
+        ),
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -260,7 +276,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
     <div className="app-shell">
       <header className="stage-header">
         <h1 className="stage-title">JW Converter</h1>
-        <p className="stage-sub">Links · Experimental{appInfo ? ` · v${appInfo.version}` : ""}</p>
+        <p className="stage-sub">Links{appInfo ? ` · v${appInfo.version}` : ""}</p>
       </header>
 
       <section className="panel panel-compact" aria-label="Media URLs">
@@ -385,7 +401,19 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         {queueItems.length ? <div className="mt-3 space-y-2">{queueItems.map((item) => <div key={item.jobId} className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm">
           <div className="flex justify-between gap-3"><span className="min-w-0 truncate">{item.url || item.jobId}</span><span className="shrink-0 text-[var(--text-muted)]">{item.status}{item.percent != null ? ` · ${Math.round(item.percent)}%` : ""}</span></div>
           <p className="mt-1 text-xs text-[var(--text-muted)]">{item.error ?? item.message}</p>
-          {["queued", "converting", "verifying"].includes(item.status) ? <button type="button" className="btn btn-secondary mt-2" onClick={() => void cancelLinkDownload(item.jobId)}>Cancel</button> : null}
+          {["queued", "converting", "verifying"].includes(item.status) ? (
+            <button
+              type="button"
+              className="btn btn-secondary mt-2"
+              onClick={() => {
+                void cancelLinkDownload(item.jobId).catch((err: unknown) => {
+                  setError(err instanceof Error ? err.message : String(err));
+                });
+              }}
+            >
+              Cancel
+            </button>
+          ) : null}
         </div>)}</div> : <p className="mt-2 text-sm text-[var(--text-muted)]">No downloads queued.</p>}
       </section>
 

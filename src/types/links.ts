@@ -6,7 +6,7 @@ import type {
   QualityPreset,
 } from "./conversion";
 
-/** Experimental Links DTOs. */
+/** Links mode DTOs. */
 
 export interface VideoOption {
   id: string;
@@ -22,6 +22,7 @@ export interface LinkPlaylistEntry {
   url: string;
   title: string | null;
   durationSeconds: number | null;
+  isLive: boolean;
 }
 
 export interface LinkMediaInfo {

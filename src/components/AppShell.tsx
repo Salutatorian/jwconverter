@@ -16,7 +16,7 @@ type AppShellProps = {
   updateAvailable?: boolean;
   onOpenSettings: () => void;
   version?: string | null;
-  /** Dev / experimental Links rail (Phase 1). */
+  /** Show Links mode in the rail. */
   showLinks?: boolean;
   children: ReactNode;
 };
@@ -81,7 +81,7 @@ export function AppShell({
               aria-pressed={mode === "links"}
               disabled={modeLocked && mode !== "links"}
               onClick={() => onModeChange("links")}
-              title="Experimental"
+              title="Links"
             >
               <Link2Icon aria-hidden />
               <span>links</span>

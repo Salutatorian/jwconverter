@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
@@ -6,6 +7,9 @@ use tauri::{AppHandle, Manager};
 use crate::media::link_url::redact_url_for_log;
 
 const MAX_HISTORY: usize = 200;
+
+/// Serializes history RMW so parallel link workers don't clobber each other.
+static HISTORY_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,20 +33,29 @@ fn history_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(directory.join("links-history.json"))
 }
 
-pub fn list_history(app: &AppHandle) -> Result<Vec<LinkHistoryRecord>, String> {
-    let path = history_path(app)?;
+fn read_history_unlocked(path: &PathBuf) -> Result<Vec<LinkHistoryRecord>, String> {
     if !path.exists() {
         return Ok(Vec::new());
     }
-    let contents = std::fs::read_to_string(&path)
+    let contents = std::fs::read_to_string(path)
         .map_err(|error| format!("Could not read Links history: {error}"))?;
     serde_json::from_str(&contents).map_err(|error| format!("Could not parse Links history: {error}"))
 }
 
+pub fn list_history(app: &AppHandle) -> Result<Vec<LinkHistoryRecord>, String> {
+    let _guard = HISTORY_LOCK
+        .lock()
+        .map_err(|_| "Internal Links history lock error.".to_string())?;
+    read_history_unlocked(&history_path(app)?)
+}
+
 pub fn append_history(app: &AppHandle, mut record: LinkHistoryRecord) -> Result<(), String> {
     record.url = record.url.as_deref().map(redact_url_for_log);
+    let _guard = HISTORY_LOCK
+        .lock()
+        .map_err(|_| "Internal Links history lock error.".to_string())?;
     let path = history_path(app)?;
-    let mut records = list_history(app)?;
+    let mut records = read_history_unlocked(&path)?;
     records.push(record);
     if records.len() > MAX_HISTORY {
         records.drain(..records.len() - MAX_HISTORY);
@@ -53,6 +66,9 @@ pub fn append_history(app: &AppHandle, mut record: LinkHistoryRecord) -> Result<
 }
 
 pub fn clear_history(app: &AppHandle) -> Result<(), String> {
+    let _guard = HISTORY_LOCK
+        .lock()
+        .map_err(|_| "Internal Links history lock error.".to_string())?;
     let path = history_path(app)?;
     if path.exists() {
         std::fs::remove_file(path).map_err(|error| format!("Could not clear Links history: {error}"))?;

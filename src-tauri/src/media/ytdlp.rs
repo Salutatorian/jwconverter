@@ -208,6 +208,14 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
     let source_audio_likely_lossy =
         audio_source_is_lossy(best_audio_codec.as_deref(), best_audio_ext.as_deref());
 
+    let (entries, skipped_entries) = playlist_entries(dump.entries.as_deref());
+    if skipped_entries > 0 {
+        warnings.push(format!(
+            "Skipped {skipped_entries} playlist item{} without a valid http(s) URL.",
+            if skipped_entries == 1 { "" } else { "s" }
+        ));
+    }
+
     Ok(LinkMediaInfo {
         original_url: original_url.to_string(),
         webpage_url: dump
@@ -226,7 +234,7 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
         is_live: dump.is_live.unwrap_or(false),
         is_playlist,
         item_count,
-        entries: playlist_entries(dump.entries.as_deref()),
+        entries,
         warnings,
         video_options: video_options(&dump.formats),
         best_audio_codec,
@@ -235,26 +243,34 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
     })
 }
 
-fn playlist_entries(entries: Option<&[YtdlpEntry]>) -> Vec<LinkPlaylistEntry> {
-    entries
-        .unwrap_or_default()
-        .iter()
-        .filter_map(|entry| {
-            let raw_url = entry
-                .webpage_url
-                .as_deref()
-                .or(entry.original_url.as_deref())
-                .or(entry.url.as_deref())?;
-            let url = validate_media_url(raw_url).ok()?.as_str().to_string();
-            Some(LinkPlaylistEntry {
+fn playlist_entries(entries: Option<&[YtdlpEntry]>) -> (Vec<LinkPlaylistEntry>, usize) {
+    let Some(entries) = entries else {
+        return (Vec::new(), 0);
+    };
+    let mut kept = Vec::new();
+    let mut skipped = 0usize;
+    for entry in entries {
+        let Some(raw_url) = entry
+            .webpage_url
+            .as_deref()
+            .or(entry.original_url.as_deref())
+            .or(entry.url.as_deref())
+        else {
+            skipped += 1;
+            continue;
+        };
+        match validate_media_url(raw_url) {
+            Ok(url) => kept.push(LinkPlaylistEntry {
                 id: entry.id.clone(),
                 title: entry.title.clone(),
-                url,
+                url: url.as_str().to_string(),
                 duration_seconds: entry.duration,
                 is_live: entry.is_live.unwrap_or(false),
-            })
-        })
-        .collect()
+            }),
+            Err(_) => skipped += 1,
+        }
+    }
+    (kept, skipped)
 }
 
 pub fn ytdlp_version() -> Result<String, AppError> {

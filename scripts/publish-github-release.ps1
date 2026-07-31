@@ -55,17 +55,19 @@ $notes = @"
 
 From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
 
-### What's new
-- Auto-update on launch with a full-screen blue progress bar
-- Cleaner Audio/Images empty state (less copy, actions in the drop zone)
-- CI attaches Mac/Linux installers to the release tag
+### What's new in 1.0.0
+- **Links mode:** paste public media URLs — batch queue, playlists, optional cookies.txt, subtitles, thumbnails, bounded live recording
+- Bundled **yt-dlp** alongside FFmpeg and ImageMagick
+- Audio and Images modes unchanged (local-first, sources never modified)
 
 ### Notes
 - Windows 10/11 x64 + WebView2
 - Sources are never modified
 - Bundled FFmpeg/FFprobe — see third_party/FFMPEG-LICENSING.md
+- Bundled yt-dlp — see third_party/THIRD_PARTY_YTDLP.txt
 - macOS not notarized yet
 - Images on a clean Mac may still need system Magick if Magick dylib bundling is incomplete
+- Links: DRM / private videos need your own cookies.txt; live caps 5–60 min
 "@
 
 gh release create $tag $uploadSetup $latestPath `

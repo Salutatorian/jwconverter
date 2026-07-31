@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 use crate::engine::job::{BitDepthPreset, JobStatus, Mp3EncodingMode, OverwritePolicy, QualityPreset};
 use crate::engine::link_job::{LinkAudioFormat, LinkDownloadJob, LinkMediaMode, LinkVideoQuality};
@@ -180,8 +180,28 @@ pub fn start_link_download(
 }
 
 #[tauri::command]
-pub fn cancel_link_download(state: State<'_, AppState>, job_id: String) -> Result<(), String> {
-    link_queue::cancel_job(&state, &job_id)
+pub fn cancel_link_download(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    job_id: String,
+) -> Result<(), String> {
+    match link_queue::cancel_job(&state, &job_id)? {
+        link_queue::CancelJobResult::ActiveCancelled => Ok(()),
+        link_queue::CancelJobResult::QueuedRemoved => {
+            let _ = app.emit(
+                "link-download-event",
+                link_queue::LinkDownloadEvent {
+                    job_id: job_id.clone(),
+                    status: JobStatus::Cancelled,
+                    percent: None,
+                    message: "Cancelled before start".to_string(),
+                    output_path: None,
+                    error: None,
+                },
+            );
+            Ok(())
+        }
+    }
 }
 
 #[tauri::command]

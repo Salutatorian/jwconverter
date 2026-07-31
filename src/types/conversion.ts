@@ -82,7 +82,7 @@ export interface AppInfo {
   name: string;
   version: string;
   phase: string;
-  /** Dev builds only — experimental Links (Phase 1). */
+  /** Links mode (public URL download via bundled yt-dlp). */
   linksExperimental: boolean;
 }
 

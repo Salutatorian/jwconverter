@@ -39,6 +39,15 @@ EOF
   fi
 }
 
+# Download standalone yt-dlp for Links mode packaging (externalBin).
+fetch_ytdlp() {
+  local triple="$1"
+  echo "Downloading yt-dlp for $triple..."
+  curl -fsSL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" -o "$BIN/yt-dlp"
+  chmod +x "$BIN/yt-dlp"
+  cp "$BIN/yt-dlp" "$BIN/yt-dlp-$triple"
+}
+
 # Copy Homebrew magick and rewrite dylib refs to @executable_path/lib (portable).
 bundle_magick_macos() {
   ensure_magick_resource_dir
@@ -153,6 +162,7 @@ case "$OS" in
     fi
 
     bundle_magick_macos
+    fetch_ytdlp "$TRIPLE"
     ;;
   linux)
     TRIPLE="x86_64-unknown-linux-gnu"
@@ -175,6 +185,7 @@ case "$OS" in
     else
       echo "WARN: magick not on PATH — Images mode may need a system ImageMagick install."
     fi
+    fetch_ytdlp "$TRIPLE"
     ;;
   *)
     echo "Unsupported OS: $OS"

@@ -29,11 +29,18 @@ pub fn update_ytdlp() -> Result<String, String> {
         .map_err(|error| format!("Could not check for yt-dlp updates. Check your internet connection: {error}"))?;
     let release: GithubRelease = serde_json::from_slice(&release_body)
         .map_err(|error| format!("Could not parse the yt-dlp update response: {error}"))?;
+    let asset_name = if cfg!(windows) {
+        "yt-dlp.exe"
+    } else {
+        "yt-dlp"
+    };
     let asset = release
         .assets
         .into_iter()
-        .find(|asset| asset.name.eq_ignore_ascii_case("yt-dlp.exe"))
-        .ok_or_else(|| "The latest yt-dlp release did not include its Windows executable.".to_string())?;
+        .find(|asset| asset.name.eq_ignore_ascii_case(asset_name))
+        .ok_or_else(|| {
+            format!("The latest yt-dlp release did not include `{asset_name}`.")
+        })?;
     let executable = get_bytes(&asset.browser_download_url)
         .map_err(|error| format!("Could not download the yt-dlp update. Check your internet connection: {error}"))?;
     if executable.is_empty() {
@@ -41,7 +48,14 @@ pub fn update_ytdlp() -> Result<String, String> {
     }
 
     let target = resolve_ytdlp()?;
-    let temporary = target.with_extension("exe.new");
+    let temporary = {
+        let mut name = target
+            .file_name()
+            .map(|name| name.to_os_string())
+            .unwrap_or_else(|| std::ffi::OsString::from("yt-dlp"));
+        name.push(".new");
+        target.with_file_name(name)
+    };
     std::fs::write(&temporary, executable)
         .map_err(|error| format!("Could not save the yt-dlp update: {error}"))?;
     replace_executable(&temporary, &target)?;
@@ -62,7 +76,14 @@ fn get_bytes(url: &str) -> Result<Vec<u8>, String> {
 }
 
 fn replace_executable(temporary: &std::path::Path, target: &std::path::Path) -> Result<(), String> {
-    let backup = target.with_extension("exe.previous");
+    let backup = {
+        let mut name = target
+            .file_name()
+            .map(|name| name.to_os_string())
+            .unwrap_or_else(|| std::ffi::OsString::from("yt-dlp"));
+        name.push(".previous");
+        target.with_file_name(name)
+    };
     let _ = std::fs::remove_file(&backup);
     std::fs::rename(target, &backup)
         .map_err(|error| format!("Could not replace the local yt-dlp executable: {error}"))?;

@@ -1,12 +1,12 @@
 # JW Converter
 
-Local-first converter for **audio** and **images** — Windows primary, with macOS and Linux builds.
+Local-first converter for **audio**, **images**, and **public media links** — Windows primary, with macOS and Linux builds.
 
-Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; images use ImageMagick. Everything runs on your machine.
+Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; images use ImageMagick; Links uses yt-dlp. Everything runs on your machine.
 
 ## Download
 
-**[Download JW Converter (v0.5.2)](https://github.com/Salutatorian/jwconverter/releases/tag/v0.5.2)**
+**[Download JW Converter (v1.0.0)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.0)**
 
 - **Windows:** signed `.exe` installer (recommended day-to-day build + in-app Update)
 - **macOS:** `.dmg` for Apple Silicon — **unsigned**; first launch: right-click the app → **Open** (Gatekeeper). Notarization comes later.
@@ -21,17 +21,19 @@ From **v0.1.2** onward, the Windows app checks for updates on launch (and every 
 ```text
 Made a local-first Windows converter — JW Converter.
 
-Audio and Images modes. Drop files or whole folders (structure is
-preserved). Pick an output format, set quality where it matters, and
-choose Rename / Skip / Replace if outputs already exist.
+Audio, Images, and Links modes. Drop files or whole folders (structure is
+preserved). Paste public media URLs for download. Pick an output format,
+set quality where it matters, and choose Rename / Skip / Replace if
+outputs already exist.
 
 Everything runs on your PC — no accounts, no cloud upload, no telemetry.
 Sources are never modified (temp → verify → finalize). Ships as a normal
-Windows installer with bundled FFmpeg + ImageMagick.
+Windows installer with bundled FFmpeg + ImageMagick + yt-dlp.
 ```
 
 ## Status
 
+**v1.0.0** — Links mode (yt-dlp) + Audio + Images.  
 **v0.5.2** — Auto-update on launch (blue % bar) + cleaner drop-zone UI.  
 **v0.5.1** — macOS static FFmpeg; Magick Resources path.  
 **v0.5.0** — macOS DMG on Releases (Apple Silicon, unsigned) + CI release uploads.  

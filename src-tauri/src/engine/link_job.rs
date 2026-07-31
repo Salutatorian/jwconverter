@@ -147,6 +147,9 @@ pub fn ytdlp_thumbnail_args(job: &LinkDownloadJob) -> Vec<&'static str> {
 }
 
 pub fn ytdlp_live_args(job: &LinkDownloadJob) -> Vec<String> {
+    if !job.is_live {
+        return Vec::new();
+    }
     job.live_max_minutes
         .filter(|minutes| *minutes > 0)
         .map(|minutes| {
@@ -232,6 +235,7 @@ mod tests {
         download.download_subtitles = true;
         download.save_thumbnail = true;
         download.embed_thumbnail = true;
+        download.is_live = true;
         download.live_max_minutes = Some(10);
 
         assert_eq!(
@@ -250,5 +254,8 @@ mod tests {
             ytdlp_live_args(&download),
             vec!["--wait-for-video", "0", "--download-sections", "*0-600"]
         );
+
+        download.is_live = false;
+        assert!(ytdlp_live_args(&download).is_empty());
     }
 }

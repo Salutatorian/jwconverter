@@ -1,20 +1,20 @@
-# Bundled FFmpeg / FFprobe binaries (local + packaging)
+# Bundled FFmpeg / FFprobe / yt-dlp binaries (local + packaging)
 
 Place here (gitignored):
 
 - `ffmpeg.exe`
 - `ffprobe.exe`
-- `yt-dlp.exe` (experimental Links — Phase 1 metadata; not in stable release packaging yet)
+- `yt-dlp.exe` (Links mode)
 
 For Tauri release packaging (`externalBin`), also provide target-triple copies:
 
-- Windows: `ffmpeg-x86_64-pc-windows-msvc.exe`, `ffprobe-x86_64-pc-windows-msvc.exe`
-- macOS arm64: `ffmpeg-aarch64-apple-darwin`, `ffprobe-aarch64-apple-darwin`
-- Linux x64: `ffmpeg-x86_64-unknown-linux-gnu`, `ffprobe-x86_64-unknown-linux-gnu`
+- Windows: `ffmpeg-x86_64-pc-windows-msvc.exe`, `ffprobe-x86_64-pc-windows-msvc.exe`, `yt-dlp-x86_64-pc-windows-msvc.exe`
+- macOS arm64: `ffmpeg-aarch64-apple-darwin`, `ffprobe-aarch64-apple-darwin`, `yt-dlp-aarch64-apple-darwin`
+- Linux x64: `ffmpeg-x86_64-unknown-linux-gnu`, `ffprobe-x86_64-unknown-linux-gnu`, `yt-dlp-x86_64-unknown-linux-gnu`
 
 Optional Links override: `CONVERTER_YTDLP` → full path to a yt-dlp executable.
 
-CI uses `scripts/fetch-media-tools.sh` on macOS/Linux. Windows packaging still uses the local Gyan + portable Magick layout above.
+CI uses `scripts/fetch-media-tools.sh` on macOS/Linux (including yt-dlp). Windows packaging still uses the local Gyan + portable Magick + yt-dlp layout above.
 
 ## ImageMagick (images / v0.2+)
 

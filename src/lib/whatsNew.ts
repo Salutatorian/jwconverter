@@ -7,6 +7,18 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.0",
+    changes: [
+      "Links mode: download public media URLs with bundled yt-dlp (batch, playlists, optional cookies, subs, thumbs, live cap)",
+      "Audio and Images remain local-first — sources never modified",
+      "In-app yt-dlp version check / update for Links",
+    ],
+    debugs: [
+      "Links needs a working network; DRM / private videos still need your own cookies.txt",
+      "Live recordings are capped (5–60 min) so streams cannot run forever",
+    ],
+  },
+  {
     version: "0.5.2",
     changes: [
       "Auto-update on launch: full-screen Updating… with blue progress bar and %",

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "JW Converter",
-  "version": "0.5.2",
+  "version": "1.0.0",
   "identifier": "com.jw.jwconverter",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -32,8 +32,8 @@
     "publisher": "JW",
     "copyright": "Copyright © JW",
     "category": "Utility",
-    "shortDescription": "Local-first audio and image converter",
-    "longDescription": "Convert audio and images locally with FFmpeg and ImageMagick. Supports batch conversion, folder import, quality presets, and safe overwrite policies.",
+    "shortDescription": "Local-first audio, image, and link converter",
+    "longDescription": "Convert audio and images locally with FFmpeg and ImageMagick, and download public media links with yt-dlp. Supports batch conversion, folder import, quality presets, and safe overwrite policies.",
     "licenseFile": "windows/LICENSE.txt",
     "icon": [
       "icons/32x32.png",
@@ -46,11 +46,13 @@
       "resources/README.txt",
       "../third_party/THIRD_PARTY_FFMPEG.txt",
       "../third_party/THIRD_PARTY_IMAGEMAGICK.txt",
+      "../third_party/THIRD_PARTY_YTDLP.txt",
       "resources/imagemagick/"
     ],
     "externalBin": [
       "binaries/ffmpeg",
-      "binaries/ffprobe"
+      "binaries/ffprobe",
+      "binaries/yt-dlp"
     ],
     "windows": {
       "nsis": {
