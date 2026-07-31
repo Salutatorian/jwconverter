@@ -275,12 +275,19 @@ fn playlist_entries(entries: Option<&[YtdlpEntry]>) -> (Vec<LinkPlaylistEntry>, 
 
 pub fn ytdlp_version() -> Result<String, AppError> {
     let ytdlp = resolve_ytdlp().map_err(|detail| AppError::MediaToolMissing { detail })?;
-    let output = Command::new(ytdlp)
-        .arg("--version")
-        .output()
-        .map_err(|error| AppError::DecodeFailure {
-            detail: format!("Could not start yt-dlp: {error}"),
-        })?;
+    let mut command = Command::new(ytdlp);
+    command.arg("--version");
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let output = command.output().map_err(|error| AppError::DecodeFailure {
+        detail: format!("Could not start yt-dlp: {error}"),
+    })?;
     if !output.status.success() {
         return Err(AppError::DecodeFailure {
             detail: "yt-dlp could not report its version.".to_string(),

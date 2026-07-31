@@ -7,6 +7,13 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.2",
+    changes: [
+      "Links no longer flashes a terminal or freezes when you open the tab (hidden yt-dlp version check)",
+    ],
+    debugs: [],
+  },
+  {
     version: "1.0.1",
     changes: [
       "Links multi-downloads (playlists / pasted batches) package into one .zip — no loose file spam in your folder",

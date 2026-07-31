@@ -55,9 +55,8 @@ $notes = @"
 
 From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
 
-### What's new in 1.0.1
-- **Links multi-downloads** (playlists or pasted batches) finish as **one .zip** in your destination folder — no loose file spam
-- Single-URL downloads still save as one media file
+### What's new in 1.0.2
+- **Links tab:** no more console flash / freeze when opening Links (yt-dlp version check runs hidden)
 
 ### Notes
 - Windows 10/11 x64 + WebView2
