@@ -6,6 +6,9 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::engine::job::{BitDepthPreset, JobStatus, Mp3EncodingMode, OverwritePolicy, QualityPreset};
 use crate::engine::link_job::{LinkAudioFormat, LinkDownloadJob, LinkMediaMode, LinkVideoQuality};
 use crate::engine::link_runner::{self, LinkRunCallbacks};
+use crate::logging;
+use crate::media::link_errors::classify_app_error_message;
+use crate::media::paths::{resolve_ffmpeg, resolve_ytdlp};
 use crate::media::ytdlp;
 use crate::state::AppState;
 
@@ -57,6 +60,14 @@ fn build_job(request: LinkDownloadRequest) -> Result<LinkDownloadJob, String> {
         return Err("Choose a destination folder first.".to_string());
     }
 
+    resolve_ytdlp().map_err(|detail| detail)?;
+    if resolve_ffmpeg().is_none() {
+        return Err(
+            "FFmpeg was not found. Links downloads need FFmpeg for media merging and extraction."
+                .to_string(),
+        );
+    }
+
     let info = ytdlp::inspect(&url).map_err(|error| error.to_string())?;
     let id = request
         .job_id
@@ -92,7 +103,23 @@ pub fn start_link_download(
 ) -> Result<String, String> {
     let job = build_job(request)?;
     let job_id = job.id.clone();
+    if !state.try_begin_link_job(&job_id) {
+        return Err(
+            "A Links download is already in progress. Wait for it to finish or cancel it first."
+                .to_string(),
+        );
+    }
     let active = state.register(job_id.clone());
+    logging::log_link_event(
+        "link_download_start",
+        &format!(
+            "job={} mode={:?} audio={:?} processing={:?}",
+            &job_id[..8.min(job_id.len())],
+            job.mode,
+            job.audio_format,
+            job.processing_mode()
+        ),
+    );
 
     let thread_app = app.clone();
     let thread_job_id = job_id.clone();
@@ -145,33 +172,61 @@ pub fn start_link_download(
 
         let outcome = link_runner::run_job(&job, &active, &callbacks);
         let final_event = match outcome {
-            Ok(result) => LinkDownloadEvent {
-                job_id: thread_job_id.clone(),
-                status: result.status,
-                percent: Some(100.0),
-                message: match result.status {
-                    JobStatus::Skipped => "Existing output left unchanged".to_string(),
-                    _ => "Download completed".to_string(),
-                },
-                output_path: Some(result.output_path),
-                error: None,
-            },
-            Err(crate::errors::AppError::ConversionCancelled) => LinkDownloadEvent {
-                job_id: thread_job_id.clone(),
-                status: JobStatus::Cancelled,
-                percent: None,
-                message: "Download cancelled".to_string(),
-                output_path: None,
-                error: None,
-            },
-            Err(error) => LinkDownloadEvent {
-                job_id: thread_job_id.clone(),
-                status: JobStatus::Failed,
-                percent: None,
-                message: "Download failed".to_string(),
-                output_path: None,
-                error: Some(error.to_string()),
-            },
+            Ok(result) => {
+                logging::log_link_event(
+                    "link_download_done",
+                    &format!(
+                        "job={} status={:?}",
+                        &thread_job_id[..8.min(thread_job_id.len())],
+                        result.status
+                    ),
+                );
+                LinkDownloadEvent {
+                    job_id: thread_job_id.clone(),
+                    status: result.status,
+                    percent: Some(100.0),
+                    message: match result.status {
+                        JobStatus::Skipped => "Existing output left unchanged".to_string(),
+                        _ => "Download completed".to_string(),
+                    },
+                    output_path: Some(result.output_path),
+                    error: None,
+                }
+            }
+            Err(crate::errors::AppError::ConversionCancelled) => {
+                logging::log_link_event(
+                    "link_download_cancelled",
+                    &format!("job={}", &thread_job_id[..8.min(thread_job_id.len())]),
+                );
+                LinkDownloadEvent {
+                    job_id: thread_job_id.clone(),
+                    status: JobStatus::Cancelled,
+                    percent: None,
+                    message: "Download cancelled".to_string(),
+                    output_path: None,
+                    error: None,
+                }
+            }
+            Err(error) => {
+                let message = error.to_string();
+                let category = classify_app_error_message(&message);
+                logging::log_link_event(
+                    "link_download_failed",
+                    &format!(
+                        "job={} category={}",
+                        &thread_job_id[..8.min(thread_job_id.len())],
+                        category.as_str()
+                    ),
+                );
+                LinkDownloadEvent {
+                    job_id: thread_job_id.clone(),
+                    status: JobStatus::Failed,
+                    percent: None,
+                    message: "Download failed".to_string(),
+                    output_path: None,
+                    error: Some(message),
+                }
+            }
         };
         emit_event(&thread_app, final_event);
         thread_app.state::<AppState>().remove(&thread_job_id);
@@ -182,6 +237,10 @@ pub fn start_link_download(
 #[tauri::command]
 pub fn cancel_link_download(state: State<'_, AppState>, job_id: String) -> Result<(), String> {
     if state.request_cancel(&job_id) {
+        logging::log_link_event(
+            "link_download_cancel_requested",
+            &format!("job={}", &job_id[..8.min(job_id.len())]),
+        );
         return Ok(());
     }
     Err(format!("No active link download found for job {job_id}."))

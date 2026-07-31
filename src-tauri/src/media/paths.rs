@@ -162,7 +162,7 @@ pub fn resolve_ytdlp() -> Result<PathBuf, String> {
     }
 
     Err(format!(
-        "yt-dlp was not found. Place {} in src-tauri/binaries/ or set CONVERTER_YTDLP.",
+        "yt-dlp was not found. Experimental Links needs the local yt-dlp sidecar. Place {} in src-tauri/binaries/ or set CONVERTER_YTDLP.",
         YTDLP_NAME
     ))
 }

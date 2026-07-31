@@ -6,7 +6,8 @@ use serde::Serialize;
 use std::process::Command;
 
 use crate::errors::AppError;
-use crate::media::link_url::{redact_url_for_log, validate_media_url};
+use crate::media::link_errors::map_ytdlp_message;
+use crate::media::link_url::validate_media_url;
 use crate::media::paths::resolve_ytdlp;
 
 #[derive(Debug, Clone, Serialize)]
@@ -96,6 +97,7 @@ fn run_dump_json(ytdlp: &std::path::Path, url: &str) -> Result<YtdlpDump, AppErr
         "--skip-download",
         "--no-warnings",
         "--no-call-home",
+        "--no-cookies",
         url,
     ]);
 
@@ -112,7 +114,7 @@ fn run_dump_json(ytdlp: &std::path::Path, url: &str) -> Result<YtdlpDump, AppErr
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        let mapped = map_ytdlp_stderr(&stderr);
+        let (_category, mapped) = map_ytdlp_message(&stderr, false);
         return Err(AppError::DecodeFailure { detail: mapped });
     }
 
@@ -340,47 +342,6 @@ fn humanize_service(extractor: &str) -> String {
     }
 }
 
-fn map_ytdlp_stderr(stderr: &str) -> String {
-    let lower = stderr.to_ascii_lowercase();
-    if lower.contains("unsupported url") || lower.contains("no suitable extractor") {
-        return "JWConverter does not currently recognize this link.".to_string();
-    }
-    if lower.contains("private video")
-        || lower.contains("login required")
-        || lower.contains("sign in")
-        || lower.contains("403")
-    {
-        return "This media is not publicly accessible. JWConverter does not bypass private access restrictions.".to_string();
-    }
-    if lower.contains("video unavailable")
-        || lower.contains("has been removed")
-        || lower.contains("not available")
-    {
-        return "The media may have been removed, made private, or restricted.".to_string();
-    }
-    if lower.contains("timed out") || lower.contains("network") || lower.contains("connection") {
-        return "The connection was interrupted before metadata could be loaded.".to_string();
-    }
-
-    let tail = stderr
-        .lines()
-        .rev()
-        .take(3)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .collect::<Vec<_>>()
-        .join(" ");
-    if tail.trim().is_empty() {
-        "Could not inspect this link.".to_string()
-    } else {
-        format!(
-            "Could not inspect this link. ({})",
-            redact_url_for_log(&tail)
-        )
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -449,7 +410,11 @@ mod tests {
 
     #[test]
     fn map_unsupported_message() {
-        let msg = map_ytdlp_stderr("ERROR: Unsupported URL: https://example.com");
+        let msg = crate::media::link_errors::map_ytdlp_message(
+            "ERROR: Unsupported URL: https://example.com",
+            false,
+        )
+        .1;
         assert!(msg.contains("does not currently recognize"));
     }
 

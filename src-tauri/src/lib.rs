@@ -26,9 +26,12 @@ use commands::link_download::{cancel_link_download, start_link_download};
 use commands::preflight::preflight_batch;
 use commands::system::get_default_paths;
 use state::AppState;
+use tauri::{Manager, RunEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    logging::init_logging();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
@@ -59,6 +62,13 @@ pub fn run() {
             start_link_download,
             cancel_link_download
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            if let RunEvent::ExitRequested { .. } = event {
+                let state = app_handle.state::<AppState>();
+                state.cancel_all();
+                logging::log_link_event("app_exit", "cancel_all_requested");
+            }
+        });
 }

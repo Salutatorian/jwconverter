@@ -52,6 +52,8 @@ pub fn run_job(
 
     let destination_dir = PathBuf::from(job.destination_dir.trim());
     ensure_destination_dir(&destination_dir)?;
+    ensure_disk_space(&destination_dir)?;
+    let _ = temp::cleanup_orphaned_link_temps(&destination_dir);
     let stem = sanitize_link_stem(job.title.as_deref().unwrap_or("download"));
     let temp_stem = temp::link_temp_stem(&stem, &job.id);
     let template = destination_dir.join(format!("{temp_stem}.%(ext)s"));
@@ -87,8 +89,11 @@ pub fn run_job(
     }
     if !result.success {
         cleanup_download_temps(&destination_dir, &temp_stem);
-        return Err(AppError::DecodeFailure {
-            detail: ytdlp_error(&result.stderr),
+        let (_category, mapped) = crate::media::link_errors::map_ytdlp_message(&result.stderr, true);
+        return Err(if mapped.contains("free space") {
+            AppError::DiskFull { detail: mapped }
+        } else {
+            AppError::DecodeFailure { detail: mapped }
         });
     }
 
@@ -248,6 +253,7 @@ fn start_download(
         .arg("--no-playlist")
         .arg("--newline")
         .arg("--no-call-home")
+        .arg("--no-cookies")
         .arg("--ffmpeg-location")
         .arg(ffmpeg_dir)
         .arg("-f")
@@ -295,11 +301,17 @@ fn wait_with_progress(
     };
     let stderr_text = Arc::new(Mutex::new(String::new()));
     let progress = Arc::clone(&callbacks.on_progress);
-    let stdout_thread = std::thread::spawn(move || read_ytdlp_lines(stdout, &progress, None));
+    let last_emit = Arc::new(Mutex::new((std::time::Instant::now(), -1.0_f64)));
+    let stdout_thread = std::thread::spawn({
+        let last_emit = Arc::clone(&last_emit);
+        move || read_ytdlp_lines(stdout, &progress, None, &last_emit)
+    });
     let stderr_writer = Arc::clone(&stderr_text);
     let progress = Arc::clone(&callbacks.on_progress);
-    let stderr_thread =
-        std::thread::spawn(move || read_ytdlp_lines(stderr, &progress, Some(stderr_writer)));
+    let stderr_thread = std::thread::spawn({
+        let last_emit = Arc::clone(&last_emit);
+        move || read_ytdlp_lines(stderr, &progress, Some(stderr_writer), &last_emit)
+    });
 
     let status = loop {
         if active.cancel_flag.load(Ordering::SeqCst) {
@@ -342,13 +354,30 @@ fn read_ytdlp_lines(
     stream: Option<impl std::io::Read>,
     on_progress: &Arc<dyn Fn(Option<f64>) + Send + Sync>,
     stderr: Option<Arc<Mutex<String>>>,
+    last_emit: &Arc<Mutex<(std::time::Instant, f64)>>,
 ) {
     let Some(stream) = stream else {
         return;
     };
     for line in BufReader::new(stream).lines().map_while(Result::ok) {
         if let Some(percent) = parse_download_percent(&line) {
-            on_progress(Some(percent));
+            let should_emit = last_emit
+                .lock()
+                .map(|mut state| {
+                    let elapsed = state.0.elapsed() >= Duration::from_millis(250);
+                    let jumped = (percent - state.1).abs() >= 1.0;
+                    if elapsed || jumped || percent >= 100.0 {
+                        state.0 = std::time::Instant::now();
+                        state.1 = percent;
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .unwrap_or(true);
+            if should_emit {
+                on_progress(Some(percent));
+            }
         }
         if let Some(stderr) = &stderr {
             if let Ok(mut value) = stderr.lock() {
@@ -432,18 +461,38 @@ fn ensure_destination_dir(path: &Path) -> Result<(), AppError> {
     if path.is_dir() {
         return Ok(());
     }
-    std::fs::create_dir_all(path).map_err(|error| AppError::DestinationUnavailable {
-        detail: format!("Cannot create destination folder: {error}"),
+    std::fs::create_dir_all(path).map_err(|error| {
+        if is_disk_full_io(&error) {
+            AppError::DiskFull {
+                detail: "The destination drive does not have enough free space.".to_string(),
+            }
+        } else {
+            AppError::DestinationUnavailable {
+                detail: format!("Cannot create destination folder: {error}"),
+            }
+        }
     })
 }
 
-fn ytdlp_error(stderr: &str) -> String {
-    let message = stderr
-        .lines()
-        .rev()
-        .find(|line| line.contains("ERROR:"))
-        .unwrap_or("yt-dlp could not download this media.");
-    format!("Download failed. {message}")
+fn ensure_disk_space(destination_dir: &Path) -> Result<(), AppError> {
+    let free = crate::engine::preflight::free_space_bytes(destination_dir)?;
+    let required = crate::engine::preflight::disk_margin(0);
+    if free < required {
+        return Err(AppError::DiskFull {
+            detail: format!(
+                "The destination drive does not have enough free space (need about {} MB free).",
+                required / (1024 * 1024)
+            ),
+        });
+    }
+    Ok(())
+}
+
+fn is_disk_full_io(error: &std::io::Error) -> bool {
+    matches!(
+        error.raw_os_error(),
+        Some(28) | Some(112) // ENOSPC / ERROR_DISK_FULL
+    ) || error.to_string().to_ascii_lowercase().contains("no space")
 }
 
 #[cfg(test)]

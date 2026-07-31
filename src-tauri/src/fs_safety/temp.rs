@@ -56,6 +56,27 @@ pub fn cleanup_temp(path: &Path) {
     let _ = std::fs::remove_file(path);
 }
 
+/// Best-effort removal of leftover `.jwdownload-` temps in a destination folder.
+pub fn cleanup_orphaned_link_temps(destination_dir: &Path) -> usize {
+    let Ok(entries) = std::fs::read_dir(destination_dir) else {
+        return 0;
+    };
+    let mut removed = 0;
+    for path in entries.filter_map(Result::ok).map(|entry| entry.path()) {
+        if path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.contains(LINK_TEMP_MARKER))
+        {
+            let _ = std::fs::remove_file(&path);
+            if !path.exists() {
+                removed += 1;
+            }
+        }
+    }
+    removed
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,21 +149,16 @@ mod tests {
     }
 
     #[test]
-    fn cleanup_only_deletes_marked_files() {
-        let dir = std::env::temp_dir().join(format!("jw-cleanup-{}", uuid::Uuid::new_v4()));
+    fn cleanup_orphaned_link_temps_only_touches_markers() {
+        let dir = std::env::temp_dir().join(format!("jw-orphan-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).expect("tmpdir");
-
-        let marked = dir.join("song.jwconverting-abcd1234.flac");
-        let unmarked = dir.join("song.flac");
-        std::fs::write(&marked, b"temp").expect("write marked");
-        std::fs::write(&unmarked, b"final").expect("write unmarked");
-
-        cleanup_temp(&unmarked);
-        assert!(unmarked.is_file(), "unmarked file must survive cleanup");
-
-        cleanup_temp(&marked);
-        assert!(!marked.exists(), "marked temp must be deleted");
-
+        let orphan = dir.join("song.jwdownload-deadbeef.webm");
+        let keep = dir.join("song.webm");
+        std::fs::write(&orphan, b"tmp").unwrap();
+        std::fs::write(&keep, b"keep").unwrap();
+        assert_eq!(cleanup_orphaned_link_temps(&dir), 1);
+        assert!(!orphan.exists());
+        assert!(keep.exists());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
