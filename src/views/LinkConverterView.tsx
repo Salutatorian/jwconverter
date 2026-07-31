@@ -266,19 +266,55 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
       <section className="panel panel-compact" aria-label="Media URLs">
         <div className="flex items-center justify-between gap-3">
           <h2 className="panel-title">Public media URLs</h2>
-          <span className="text-xs text-[var(--text-muted)]">yt-dlp {ytdlpVersion ?? "unavailable"}</span>
+          <span className="text-xs text-[var(--text-muted)]">
+            yt-dlp {ytdlpVersion ?? "unavailable"}
+          </span>
         </div>
-        <textarea className="link-url-input mt-3 min-h-28 resize-y" placeholder={"https://…\nhttps://…"} value={urlsText}
-          disabled={disabled} spellCheck={false} onChange={(event) => setUrlsText(event.target.value)} />
+        <textarea
+          className="link-url-textarea mt-3"
+          placeholder={"https://…\nhttps://…"}
+          value={urlsText}
+          disabled={disabled}
+          spellCheck={false}
+          autoComplete="off"
+          rows={4}
+          onChange={(event) => setUrlsText(event.target.value)}
+        />
         <div className="action-row mt-3">
-          <button type="button" className="btn btn-primary" disabled={!urls.length || disabled}
-            onClick={() => void handleAnalyze()}>{busy === "analyze" ? "Analyzing…" : "Analyze first URL"}</button>
-          <button type="button" className="btn btn-secondary" disabled={!urls.length || !destination || disabled}
-            onClick={() => void handleEnqueue()}>{info?.isLive ? `Record ${liveMaxMinutes} min` : "Add URLs to queue"}</button>
-          <button type="button" className="btn btn-secondary" disabled={busy === "update"}
-            onClick={() => void handleUpdate()}>{busy === "update" ? "Updating…" : "Update downloader"}</button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!urls.length || disabled}
+            onClick={() => {
+              void handleAnalyze();
+            }}
+          >
+            {busy === "analyze" ? "Analyzing…" : "Analyze first URL"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={!urls.length || !destination || disabled}
+            onClick={() => {
+              void handleEnqueue();
+            }}
+          >
+            {info?.isLive ? `Record ${liveMaxMinutes} min` : "Add URLs to queue"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={busy === "update"}
+            onClick={() => {
+              void handleUpdate();
+            }}
+          >
+            {busy === "update" ? "Updating…" : "Update downloader"}
+          </button>
         </div>
-        <p className="mt-2 text-xs text-[var(--text-muted)]">One URL per line. Compatibility varies by service.</p>
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          One URL per line. Compatibility varies by service.
+        </p>
       </section>
 
       {error ? <p className="rounded-[var(--radius)] border border-red-400/30 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]" role="alert">{error}</p> : null}

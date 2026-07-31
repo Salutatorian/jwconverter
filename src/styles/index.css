@@ -829,12 +829,29 @@ button:focus-visible,
   font-size: 0.82rem;
 }
 
-.link-url-input:focus {
+.link-url-textarea {
+  width: 100%;
+  min-height: 7.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  padding: 0.75rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  resize: vertical;
+  field-sizing: content;
+}
+
+.link-url-input:focus,
+.link-url-textarea:focus {
   outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
   outline-offset: 1px;
 }
 
-.link-url-input:disabled {
+.link-url-input:disabled,
+.link-url-textarea:disabled {
   opacity: 0.5;
 }
 
