@@ -1,4 +1,10 @@
-import type { JobStatus, OverwritePolicy } from "./conversion";
+import type {
+  BitDepthPreset,
+  JobStatus,
+  Mp3EncodingMode,
+  OverwritePolicy,
+  QualityPreset,
+} from "./conversion";
 
 /** Experimental Links DTOs. */
 
@@ -25,11 +31,20 @@ export interface LinkMediaInfo {
   itemCount: number | null;
   warnings: string[];
   videoOptions: VideoOption[];
+  bestAudioCodec: string | null;
+  bestAudioExt: string | null;
+  sourceAudioLikelyLossy: boolean;
 }
 
 export type LinkMediaMode = "video" | "audio";
 export type LinkVideoQuality = "best" | { height: number };
-export type LinkAudioFormat = "original" | "mp3" | "m4a" | "opus" | "flac" | "wav";
+export type LinkAudioFormat =
+  | "original"
+  | "mp3"
+  | "m4a"
+  | "opus"
+  | "flac"
+  | "wav";
 
 export interface LinkDownloadRequest {
   jobId?: string;
@@ -39,6 +54,9 @@ export interface LinkDownloadRequest {
   mode: LinkMediaMode;
   videoQuality: LinkVideoQuality;
   audioFormat: LinkAudioFormat;
+  qualityPreset?: QualityPreset;
+  mp3EncodingMode?: Mp3EncodingMode;
+  bitDepthPreset?: BitDepthPreset;
 }
 
 export interface LinkDownloadEvent {

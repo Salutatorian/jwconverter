@@ -1,15 +1,26 @@
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
+import { BitDepthPicker } from "../components/BitDepthPicker";
 import { DestinationPicker } from "../components/DestinationPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
+import { QualityPicker } from "../components/QualityPicker";
 import {
   analyzeLink,
   cancelLinkDownload,
   getDefaultPaths,
   startLinkDownload,
 } from "../lib/tauri";
-import type { AppInfo, JobStatus, OverwritePolicy } from "../types/conversion";
+import type {
+  AppInfo,
+  BitDepthPreset,
+  JobStatus,
+  Mp3EncodingMode,
+  OutputFormat,
+  OverwritePolicy,
+  QualityPreset,
+} from "../types/conversion";
+import { qualityPresetLabel } from "../types/conversion";
 import type {
   LinkAudioFormat,
   LinkDownloadEvent,
@@ -36,6 +47,23 @@ function formatDuration(seconds: number | null): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function audioFormatToOutput(format: LinkAudioFormat): OutputFormat | null {
+  switch (format) {
+    case "mp3":
+      return "mp3";
+    case "m4a":
+      return "m4a";
+    case "opus":
+      return "opus";
+    case "flac":
+      return "flac";
+    case "wav":
+      return "wav";
+    default:
+      return null;
+  }
+}
+
 export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -48,6 +76,11 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
   const [mode, setMode] = useState<LinkMediaMode>("video");
   const [videoHeight, setVideoHeight] = useState<number | null>(null);
   const [audioFormat, setAudioFormat] = useState<LinkAudioFormat>("original");
+  const [qualityPreset, setQualityPreset] = useState<QualityPreset>("medium");
+  const [mp3EncodingMode, setMp3EncodingMode] =
+    useState<Mp3EncodingMode>("cbr");
+  const [bitDepthPreset, setBitDepthPreset] =
+    useState<BitDepthPreset>("original");
   const [jobId, setJobId] = useState<string | null>(null);
   const jobIdRef = useRef<string | null>(null);
   const [status, setStatus] = useState<JobStatus>("idle");
@@ -125,6 +158,15 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
 
   const downloading = ["queued", "converting", "verifying"].includes(status);
   const downloadBlocked = !info || info.isLive || info.isPlaylist;
+  const outputFormat = audioFormatToOutput(audioFormat);
+  const showQuality =
+    mode === "audio" &&
+    (audioFormat === "mp3" || audioFormat === "m4a" || audioFormat === "opus");
+  const showBitDepth = mode === "audio" && audioFormat === "wav";
+  const showLossyWarning =
+    mode === "audio" &&
+    (audioFormat === "flac" || audioFormat === "wav") &&
+    Boolean(info?.sourceAudioLikelyLossy);
 
   async function handleChooseFolder() {
     const selected = await open({
@@ -158,6 +200,9 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         mode,
         videoQuality: videoHeight == null ? "best" : { height: videoHeight },
         audioFormat,
+        qualityPreset,
+        mp3EncodingMode,
+        bitDepthPreset,
       });
     } catch (err: unknown) {
       jobIdRef.current = null;
@@ -196,12 +241,12 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
             className="link-url-input"
             placeholder="https://…"
             value={url}
-            disabled={busy}
+            disabled={busy || downloading}
             spellCheck={false}
             autoComplete="off"
             onChange={(event) => setUrl(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && url.trim() && !busy) {
+              if (event.key === "Enter" && url.trim() && !busy && !downloading) {
                 void handleAnalyze();
               }
             }}
@@ -210,7 +255,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={busy || !url.trim()}
+              disabled={busy || downloading || !url.trim()}
               onClick={() => {
                 void handleAnalyze();
               }}
@@ -219,8 +264,8 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
             </button>
           </div>
           <p className="text-xs text-[var(--text-muted)]">
-            Media is resolved on this computer. Compatibility varies by service.
-            Phase 1 inspects metadata only — nothing is downloaded.
+            Media is resolved and downloaded on this computer. Compatibility
+            varies by service.
           </p>
         </div>
       </section>
@@ -239,36 +284,36 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
           <section className="panel panel-compact" aria-label="Link metadata">
             <h2 className="panel-title">Metadata</h2>
             <dl className="link-meta-grid mt-3">
-            <div>
-              <dt>Title</dt>
-              <dd>{info.title ?? "—"}</dd>
-            </div>
-            <div>
-              <dt>Creator</dt>
-              <dd>{info.creator ?? "—"}</dd>
-            </div>
-            <div>
-              <dt>Service</dt>
-              <dd>{info.service ?? info.extractor ?? "—"}</dd>
-            </div>
-            <div>
-              <dt>Duration</dt>
-              <dd>{formatDuration(info.durationSeconds)}</dd>
-            </div>
-            <div>
-              <dt>ID</dt>
-              <dd className="mono text-xs">{info.id ?? "—"}</dd>
-            </div>
-            <div>
-              <dt>Type</dt>
-              <dd>
-                {info.isLive
-                  ? "Live"
-                  : info.isPlaylist
-                    ? `Playlist${info.itemCount != null ? ` · ${info.itemCount} items` : ""}`
-                    : "Single item"}
-              </dd>
-            </div>
+              <div>
+                <dt>Title</dt>
+                <dd>{info.title ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Creator</dt>
+                <dd>{info.creator ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Service</dt>
+                <dd>{info.service ?? info.extractor ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Duration</dt>
+                <dd>{formatDuration(info.durationSeconds)}</dd>
+              </div>
+              <div>
+                <dt>ID</dt>
+                <dd className="mono text-xs">{info.id ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Type</dt>
+                <dd>
+                  {info.isLive
+                    ? "Live"
+                    : info.isPlaylist
+                      ? `Playlist${info.itemCount != null ? ` · ${info.itemCount} items` : ""}`
+                      : "Single item"}
+                </dd>
+              </div>
             </dl>
             {info.warnings.length > 0 ? (
               <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-[var(--text-muted)]">
@@ -330,25 +375,79 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
                 <div>
                   <p className="text-xs text-[var(--text-muted)]">Audio format</p>
                   <div className="chip-row">
-                    {(["original", "mp3", "m4a", "opus", "flac", "wav"] as const).map(
-                      (value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          className="chip"
-                          disabled={downloading}
-                          aria-pressed={audioFormat === value}
-                          onClick={() => setAudioFormat(value)}
-                        >
-                          {value === "original" ? "Original" : value.toUpperCase()}
-                        </button>
-                      ),
-                    )}
+                    {(
+                      [
+                        "original",
+                        "mp3",
+                        "m4a",
+                        "opus",
+                        "flac",
+                        "wav",
+                      ] as const
+                    ).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className="chip"
+                        disabled={downloading}
+                        aria-pressed={audioFormat === value}
+                        onClick={() => setAudioFormat(value)}
+                      >
+                        {value === "original" ? "Original" : value.toUpperCase()}
+                      </button>
+                    ))}
                   </div>
+                  {audioFormat === "original" ? (
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                      Download / remux — uses the best available source audio
+                      without unnecessary transcoding
+                      {info.bestAudioCodec
+                        ? ` (${info.bestAudioCodec}${info.bestAudioExt ? ` · ${info.bestAudioExt}` : ""})`
+                        : ""}
+                      .
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                      Transcoded using FFmpeg
+                      {outputFormat
+                        ? ` · ${qualityPresetLabel(outputFormat, qualityPreset, mp3EncodingMode)}`
+                        : ""}
+                      .
+                    </p>
+                  )}
                 </div>
               )}
             </div>
           </section>
+
+          {showQuality && outputFormat ? (
+            <QualityPicker
+              format={outputFormat}
+              value={qualityPreset}
+              mp3EncodingMode={mp3EncodingMode}
+              disabled={downloading}
+              onChange={setQualityPreset}
+              onMp3EncodingModeChange={setMp3EncodingMode}
+            />
+          ) : null}
+
+          {showBitDepth ? (
+            <BitDepthPicker
+              value={bitDepthPreset}
+              disabled={downloading}
+              onChange={setBitDepthPreset}
+            />
+          ) : null}
+
+          {showLossyWarning ? (
+            <p
+              className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-muted)]"
+              role="status"
+            >
+              Converting lossy source audio to {audioFormat.toUpperCase()} will
+              not restore discarded detail — the output will usually be larger.
+            </p>
+          ) : null}
 
           <OverwritePicker
             value={overwritePolicy}
@@ -368,7 +467,10 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
               }
             }}
           />
-          <section className="panel panel-compact" aria-label="Link download progress">
+          <section
+            className="panel panel-compact"
+            aria-label="Link download progress"
+          >
             <div className="action-row">
               <button
                 type="button"

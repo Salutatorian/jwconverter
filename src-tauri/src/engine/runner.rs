@@ -75,11 +75,19 @@ pub fn run_job(
     );
     plan.audio_filters = build_audio_filters(job, &source, source_duration_seconds, active, callbacks)?;
 
-    let stem = source
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("output")
-        .to_string();
+    let stem = job
+        .output_stem
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| {
+            source
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("output")
+                .to_string()
+        });
 
     let primary_path = finalize::primary_final_path(&destination_dir, &stem, plan.extension);
 
@@ -451,6 +459,7 @@ mod tests {
             normalize: NormalizeMode::Off,
             loudness_preset: LoudnessPreset::Streaming,
             trim_silence: false,
+            output_stem: None,
             status: JobStatus::Queued,
         }
     }

@@ -80,6 +80,7 @@ fn build_queue_item(request: ConversionRequest) -> Result<QueueItem, String> {
             normalize: request.normalize,
             loudness_preset: request.loudness_preset,
             trim_silence: request.trim_silence,
+            output_stem: None,
             status: JobStatus::Queued,
         },
         source_duration_seconds: request.source_duration_seconds,

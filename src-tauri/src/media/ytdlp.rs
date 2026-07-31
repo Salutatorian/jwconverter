@@ -25,6 +25,12 @@ pub struct LinkMediaInfo {
     pub item_count: Option<u32>,
     pub warnings: Vec<String>,
     pub video_options: Vec<VideoOption>,
+    /// Best available audio codec hint from yt-dlp formats (e.g. `opus`, `aac`).
+    pub best_audio_codec: Option<String>,
+    /// Container/extension for that audio stream when known.
+    pub best_audio_ext: Option<String>,
+    /// True when the best available source audio appears lossy (for honesty warnings).
+    pub source_audio_likely_lossy: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,6 +75,9 @@ struct YtdlpFormat {
     fps: Option<f64>,
     ext: Option<String>,
     vcodec: Option<String>,
+    acodec: Option<String>,
+    abr: Option<f64>,
+    tbr: Option<f64>,
 }
 
 /// Inspect a remote media URL with yt-dlp. Does not download media.
@@ -157,6 +166,10 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
         .or_else(|| dump.uploader.clone())
         .or_else(|| dump.channel.clone());
 
+    let (best_audio_codec, best_audio_ext) = best_audio_hint(&dump.formats);
+    let source_audio_likely_lossy =
+        audio_source_is_lossy(best_audio_codec.as_deref(), best_audio_ext.as_deref());
+
     Ok(LinkMediaInfo {
         original_url: original_url.to_string(),
         webpage_url: dump
@@ -177,7 +190,97 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
         item_count,
         warnings,
         video_options: video_options(&dump.formats),
+        best_audio_codec,
+        best_audio_ext,
+        source_audio_likely_lossy,
     })
+}
+
+/// Mirrors audio preflight lossy detection for link metadata honesty warnings.
+pub fn audio_source_is_lossy(codec: Option<&str>, format: Option<&str>) -> bool {
+    let codec = codec.unwrap_or("").to_ascii_lowercase();
+    let format = format.unwrap_or("").to_ascii_lowercase();
+
+    const LOSSY_CODECS: &[&str] = &[
+        "mp3",
+        "mp3float",
+        "mp2",
+        "mp1",
+        "aac",
+        "aac_latm",
+        "opus",
+        "vorbis",
+        "wmav1",
+        "wmav2",
+        "wmapro",
+        "ac3",
+        "eac3",
+        "dts",
+        "libopus",
+        "libmp3lame",
+        "libvorbis",
+    ];
+    if LOSSY_CODECS.iter().any(|c| codec == *c) {
+        return true;
+    }
+
+    format.split(',').any(|part| {
+        let p = part.trim();
+        p == "mp3"
+            || p == "mp2"
+            || p == "aac"
+            || p == "m4a" && codec.contains("aac")
+            || p == "ogg" && (codec.contains("vorbis") || codec.contains("opus"))
+            || p == "opus"
+            || p == "wma"
+            || p == "webm" && codec.contains("opus")
+            || p == "m4a" && (codec.is_empty() || codec.contains("aac"))
+    })
+}
+
+fn best_audio_hint(formats: &[YtdlpFormat]) -> (Option<String>, Option<String>) {
+    let mut candidates: Vec<&YtdlpFormat> = formats
+        .iter()
+        .filter(|format| {
+            format
+                .acodec
+                .as_deref()
+                .is_some_and(|codec| codec != "none")
+        })
+        .collect();
+    if candidates.is_empty() {
+        return (None, None);
+    }
+
+    candidates.sort_by(|left, right| {
+        let left_audio_only = left
+            .vcodec
+            .as_deref()
+            .map(|codec| codec == "none")
+            .unwrap_or(true);
+        let right_audio_only = right
+            .vcodec
+            .as_deref()
+            .map(|codec| codec == "none")
+            .unwrap_or(true);
+        right_audio_only
+            .cmp(&left_audio_only)
+            .then_with(|| {
+                let left_br = left.abr.or(left.tbr).unwrap_or(0.0);
+                let right_br = right.abr.or(right.tbr).unwrap_or(0.0);
+                right_br
+                    .partial_cmp(&left_br)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+    });
+
+    let best = candidates[0];
+    (
+        best.acodec
+            .clone()
+            .filter(|codec| codec != "none"),
+        best.ext.clone(),
+    )
 }
 
 fn video_options(formats: &[YtdlpFormat]) -> Vec<VideoOption> {
@@ -308,6 +411,40 @@ mod tests {
         assert_eq!(info.item_count, Some(12));
         assert!(!info.warnings.is_empty());
         assert_eq!(info.service.as_deref(), Some("YouTube"));
+        assert!(!info.source_audio_likely_lossy);
+    }
+
+    #[test]
+    fn best_audio_prefers_audio_only_and_marks_lossy() {
+        let formats = vec![
+            YtdlpFormat {
+                format_id: Some("18".into()),
+                height: Some(360),
+                width: Some(640),
+                fps: None,
+                ext: Some("mp4".into()),
+                vcodec: Some("avc1".into()),
+                acodec: Some("aac".into()),
+                abr: Some(96.0),
+                tbr: Some(500.0),
+            },
+            YtdlpFormat {
+                format_id: Some("251".into()),
+                height: None,
+                width: None,
+                fps: None,
+                ext: Some("webm".into()),
+                vcodec: Some("none".into()),
+                acodec: Some("opus".into()),
+                abr: Some(160.0),
+                tbr: None,
+            },
+        ];
+        let (codec, ext) = best_audio_hint(&formats);
+        assert_eq!(codec.as_deref(), Some("opus"));
+        assert_eq!(ext.as_deref(), Some("webm"));
+        assert!(audio_source_is_lossy(codec.as_deref(), ext.as_deref()));
+        assert!(!audio_source_is_lossy(Some("flac"), Some("flac")));
     }
 
     #[test]

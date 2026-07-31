@@ -7,9 +7,11 @@ use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::engine::job::{JobStatus, OverwritePolicy};
-use crate::engine::link_job::{format_selector, LinkDownloadJob, LinkMediaMode};
-use crate::engine::runner::ActiveProcess;
+use crate::engine::job::{ConversionJob, JobStatus, LoudnessPreset, NormalizeMode, OverwritePolicy};
+use crate::engine::link_job::{
+    format_selector, ytdlp_mode_args, LinkDownloadJob, LinkMediaMode, LinkProcessingMode,
+};
+use crate::engine::runner::{self, ActiveProcess, RunCallbacks};
 use crate::errors::AppError;
 use crate::fs_safety::{finalize, temp};
 use crate::media::ffmpeg;
@@ -54,8 +56,22 @@ pub fn run_job(
     let temp_stem = temp::link_temp_stem(&stem, &job.id);
     let template = destination_dir.join(format!("{temp_stem}.%(ext)s"));
 
-    (callbacks.on_status)(JobStatus::Converting, "Downloading media");
-    (callbacks.on_progress)(Some(0.0));
+    let download_callbacks = LinkRunCallbacks {
+        on_status: Arc::clone(&callbacks.on_status),
+        on_progress: Arc::new({
+            let on_progress = Arc::clone(&callbacks.on_progress);
+            move |percent| {
+                if let Some(percent) = percent {
+                    on_progress(Some((percent * 0.7).clamp(0.0, 70.0)));
+                } else {
+                    on_progress(None);
+                }
+            }
+        }),
+    };
+
+    (download_callbacks.on_status)(JobStatus::Converting, "Downloading media");
+    (download_callbacks.on_progress)(Some(0.0));
     let child = start_download(job, url.as_str(), &template)?;
     {
         let mut guard = active.child.lock().map_err(|_| AppError::FfmpegFailure {
@@ -64,7 +80,7 @@ pub fn run_job(
         *guard = Some(child);
     }
 
-    let result = wait_with_progress(active, callbacks)?;
+    let result = wait_with_progress(active, &download_callbacks)?;
     if active.cancel_flag.load(Ordering::SeqCst) || result.cancelled {
         cleanup_download_temps(&destination_dir, &temp_stem);
         return Err(AppError::ConversionCancelled);
@@ -77,9 +93,27 @@ pub fn run_job(
     }
 
     let temp_path = find_download_output(&destination_dir, &temp_stem)?;
+    match job.processing_mode() {
+        LinkProcessingMode::Remux => {
+            finalize_remux(job, &destination_dir, &stem, &temp_stem, &temp_path, callbacks)
+        }
+        LinkProcessingMode::Transcode => {
+            transcode_acquired(job, &destination_dir, &stem, &temp_stem, &temp_path, active, callbacks)
+        }
+    }
+}
+
+fn finalize_remux(
+    job: &LinkDownloadJob,
+    destination_dir: &Path,
+    stem: &str,
+    temp_stem: &str,
+    temp_path: &Path,
+    callbacks: &LinkRunCallbacks,
+) -> Result<LinkDownloadResult, AppError> {
     (callbacks.on_status)(JobStatus::Verifying, "Verifying downloaded media");
-    (callbacks.on_progress)(Some(99.0));
-    verify_output(&temp_path, job.mode)?;
+    (callbacks.on_progress)(Some(95.0));
+    verify_output(temp_path, job.mode)?;
 
     let extension = temp_path
         .extension()
@@ -88,11 +122,12 @@ pub fn run_job(
         .ok_or_else(|| AppError::VerificationFailure {
             detail: "Downloaded output has no file extension.".to_string(),
         })?;
-    let primary_path = finalize::primary_final_path(&destination_dir, &stem, extension);
+    let primary_path = finalize::primary_final_path(destination_dir, stem, extension);
     let final_path = match job.overwrite_policy {
-        OverwritePolicy::Rename => finalize::unique_final_path(&destination_dir, &stem, extension),
+        OverwritePolicy::Rename => finalize::unique_final_path(destination_dir, stem, extension),
         OverwritePolicy::Skip if primary_path.exists() => {
-            temp::cleanup_temp(&temp_path);
+            temp::cleanup_temp(temp_path);
+            cleanup_download_temps(destination_dir, temp_stem);
             (callbacks.on_status)(JobStatus::Skipped, "Existing output left unchanged");
             return Ok(LinkDownloadResult {
                 output_path: primary_path.to_string_lossy().into_owned(),
@@ -103,18 +138,93 @@ pub fn run_job(
     };
 
     let allow_replace = matches!(job.overwrite_policy, OverwritePolicy::Replace);
-    finalize::finalize_output_with_policy(&temp_path, &final_path, allow_replace).map_err(
+    finalize::finalize_output_with_policy(temp_path, &final_path, allow_replace).map_err(
         |error| {
-            temp::cleanup_temp(&temp_path);
+            temp::cleanup_temp(temp_path);
             error
         },
     )?;
-    cleanup_download_temps(&destination_dir, &temp_stem);
+    cleanup_download_temps(destination_dir, temp_stem);
     (callbacks.on_status)(JobStatus::Completed, "Download completed");
     (callbacks.on_progress)(Some(100.0));
     Ok(LinkDownloadResult {
         output_path: final_path.to_string_lossy().into_owned(),
         status: JobStatus::Completed,
+    })
+}
+
+fn transcode_acquired(
+    job: &LinkDownloadJob,
+    destination_dir: &Path,
+    stem: &str,
+    temp_stem: &str,
+    temp_path: &Path,
+    active: &ActiveProcess,
+    callbacks: &LinkRunCallbacks,
+) -> Result<LinkDownloadResult, AppError> {
+    let output_format = job.audio_format.output_format().ok_or_else(|| {
+        AppError::UnsupportedFormat {
+            detail: "Selected audio format cannot be transcoded.".to_string(),
+        }
+    })?;
+
+    (callbacks.on_status)(JobStatus::Converting, "Transcoding audio");
+    (callbacks.on_progress)(Some(70.0));
+
+    let convert_callbacks = RunCallbacks {
+        on_status: Arc::new({
+            let on_status = Arc::clone(&callbacks.on_status);
+            move |status| {
+                let message = match status {
+                    JobStatus::Converting => "Transcoding audio",
+                    JobStatus::Verifying => "Verifying converted audio",
+                    JobStatus::Skipped => "Existing output left unchanged",
+                    JobStatus::Completed => "Download completed",
+                    _ => "Processing audio",
+                };
+                on_status(status, message);
+            }
+        }),
+        on_progress: Arc::new({
+            let on_progress = Arc::clone(&callbacks.on_progress);
+            move |percent| {
+                if let Some(percent) = percent {
+                    on_progress(Some((70.0 + percent * 0.3).clamp(70.0, 100.0)));
+                }
+            }
+        }),
+    };
+
+    let conversion = ConversionJob {
+        id: job.id.clone(),
+        source_path: temp_path.to_string_lossy().into_owned(),
+        destination_dir: destination_dir.to_string_lossy().into_owned(),
+        relative_subdir: None,
+        output_format,
+        overwrite_policy: job.overwrite_policy,
+        quality_preset: job.quality_preset,
+        mp3_encoding_mode: job.mp3_encoding_mode,
+        bit_depth_preset: job.bit_depth_preset,
+        preserve_tags: true,
+        preserve_cover: true,
+        normalize: NormalizeMode::Off,
+        loudness_preset: LoudnessPreset::Streaming,
+        trim_silence: false,
+        output_stem: Some(stem.to_string()),
+        status: JobStatus::Queued,
+    };
+
+    let outcome = runner::run_job(
+        &conversion,
+        job.duration_seconds,
+        active,
+        &convert_callbacks,
+    );
+    cleanup_download_temps(destination_dir, temp_stem);
+    let result = outcome?;
+    Ok(LinkDownloadResult {
+        output_path: result.output_path,
+        status: result.status,
     })
 }
 
@@ -145,16 +255,8 @@ fn start_download(
         .arg("-o")
         .arg(output_template);
 
-    match job.mode {
-        LinkMediaMode::Video => {
-            command.arg("--merge-output-format").arg("mp4");
-        }
-        LinkMediaMode::Audio => {
-            command
-                .arg("-x")
-                .arg("--audio-format")
-                .arg(job.audio_format.ytdlp_format());
-        }
+    for arg in ytdlp_mode_args(job) {
+        command.arg(arg);
     }
 
     command
@@ -347,6 +449,33 @@ fn ytdlp_error(stderr: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::parse_download_percent;
+    use crate::engine::job::{
+        BitDepthPreset, JobStatus, Mp3EncodingMode, OverwritePolicy, QualityPreset,
+    };
+    use crate::engine::link_job::{
+        format_selector, ytdlp_mode_args, LinkAudioFormat, LinkDownloadJob, LinkMediaMode,
+        LinkProcessingMode, LinkVideoQuality,
+    };
+
+    fn audio_job(format: LinkAudioFormat) -> LinkDownloadJob {
+        LinkDownloadJob {
+            id: "job-123".to_string(),
+            url: "https://example.com/video".to_string(),
+            title: Some("Demo".into()),
+            duration_seconds: Some(12.0),
+            is_live: false,
+            is_playlist: false,
+            destination_dir: ".".to_string(),
+            overwrite_policy: OverwritePolicy::Rename,
+            mode: LinkMediaMode::Audio,
+            video_quality: LinkVideoQuality::Best,
+            audio_format: format,
+            quality_preset: QualityPreset::High,
+            mp3_encoding_mode: Mp3EncodingMode::Cbr,
+            bit_depth_preset: BitDepthPreset::Original,
+            status: JobStatus::Queued,
+        }
+    }
 
     #[test]
     fn parses_ytdlp_download_progress() {
@@ -356,5 +485,21 @@ mod tests {
         );
         assert_eq!(parse_download_percent("[download]  45.2%"), Some(45.2));
         assert_eq!(parse_download_percent("other output"), None);
+    }
+
+    #[test]
+    fn original_audio_uses_remux_without_extract_flags() {
+        let job = audio_job(LinkAudioFormat::Original);
+        assert_eq!(job.processing_mode(), LinkProcessingMode::Remux);
+        assert_eq!(format_selector(&job), "ba/b");
+        assert!(ytdlp_mode_args(&job).is_empty());
+    }
+
+    #[test]
+    fn transcode_audio_acquires_without_ytdlp_audio_format() {
+        let job = audio_job(LinkAudioFormat::Mp3);
+        assert_eq!(job.processing_mode(), LinkProcessingMode::Transcode);
+        assert_eq!(format_selector(&job), "ba/b");
+        assert!(ytdlp_mode_args(&job).is_empty());
     }
 }

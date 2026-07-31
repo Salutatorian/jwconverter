@@ -118,6 +118,9 @@ pub struct ConversionJob {
     /// Remove silent regions detected by an analysis pre-pass.
     #[serde(default)]
     pub trim_silence: bool,
+    /// Optional final filename stem. When unset, derived from the source path.
+    #[serde(default)]
+    pub output_stem: Option<String>,
     pub status: JobStatus,
 }
 

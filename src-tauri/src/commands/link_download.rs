@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::engine::job::{JobStatus, OverwritePolicy};
+use crate::engine::job::{BitDepthPreset, JobStatus, Mp3EncodingMode, OverwritePolicy, QualityPreset};
 use crate::engine::link_job::{LinkAudioFormat, LinkDownloadJob, LinkMediaMode, LinkVideoQuality};
 use crate::engine::link_runner::{self, LinkRunCallbacks};
 use crate::media::ytdlp;
@@ -24,6 +24,12 @@ pub struct LinkDownloadRequest {
     pub video_quality: LinkVideoQuality,
     #[serde(default)]
     pub audio_format: LinkAudioFormat,
+    #[serde(default)]
+    pub quality_preset: QualityPreset,
+    #[serde(default)]
+    pub mp3_encoding_mode: Mp3EncodingMode,
+    #[serde(default)]
+    pub bit_depth_preset: BitDepthPreset,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -63,6 +69,7 @@ fn build_job(request: LinkDownloadRequest) -> Result<LinkDownloadJob, String> {
         id,
         url,
         title: info.title,
+        duration_seconds: info.duration_seconds,
         is_live: info.is_live,
         is_playlist: info.is_playlist,
         destination_dir,
@@ -70,6 +77,9 @@ fn build_job(request: LinkDownloadRequest) -> Result<LinkDownloadJob, String> {
         mode: request.mode,
         video_quality: request.video_quality,
         audio_format: request.audio_format,
+        quality_preset: request.quality_preset,
+        mp3_encoding_mode: request.mp3_encoding_mode,
+        bit_depth_preset: request.bit_depth_preset,
         status: JobStatus::Queued,
     })
 }
