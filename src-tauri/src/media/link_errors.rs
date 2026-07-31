@@ -68,6 +68,17 @@ pub fn map_ytdlp_message(stderr: &str, for_download: bool) -> (LinkErrorCategory
         );
     }
 
+    if lower.contains("cookies file")
+        || lower.contains("cookie file")
+        || lower.contains("invalid netscape cookies")
+        || lower.contains("could not load cookies")
+    {
+        return (
+            LinkErrorCategory::PrivateOrRestricted,
+            "The selected cookies.txt file could not be used. Choose a valid Netscape-format cookies.txt file or continue without cookies.".to_string(),
+        );
+    }
+
     if lower.contains("video unavailable")
         || lower.contains("has been removed")
         || lower.contains("not available")

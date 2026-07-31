@@ -17,7 +17,7 @@ import {
   GITHUB_REPO_URL,
   GYAN_FFMPEG_BUILDS_URL,
 } from "../lib/links";
-import { getMediaToolsInfo } from "../lib/tauri";
+import { getMediaToolsInfo, getYtdlpVersion } from "../lib/tauri";
 import type { ThemePreference } from "../lib/theme";
 import type { AppInfo } from "../types/conversion";
 import { UpdateControls } from "./UpdateControls";
@@ -69,6 +69,7 @@ export function SettingsDialog({
     magickPath: string | null;
     source: string;
   } | null>(null);
+  const [ytdlpVersion, setYtdlpVersion] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -102,6 +103,17 @@ export function SettingsDialog({
       .catch(() => {
         if (!cancelled) {
           setTools(null);
+        }
+      });
+    getYtdlpVersion()
+      .then((version) => {
+        if (!cancelled) {
+          setYtdlpVersion(version);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setYtdlpVersion(null);
         }
       });
     return () => {
@@ -340,6 +352,10 @@ export function SettingsDialog({
                   <div>
                     <dt>ImageMagick</dt>
                     <dd>{tools?.magickPath ?? "Not found"}</dd>
+                  </div>
+                  <div>
+                    <dt>yt-dlp</dt>
+                    <dd>{ytdlpVersion ?? "Not found"}</dd>
                   </div>
                 </dl>
               </div>

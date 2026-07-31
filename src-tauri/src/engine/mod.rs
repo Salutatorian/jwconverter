@@ -6,6 +6,7 @@ pub mod image_queue;
 pub mod image_runner;
 pub mod job;
 pub mod link_job;
+pub mod link_queue;
 pub mod link_runner;
 pub mod planner;
 pub mod preflight;

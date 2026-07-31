@@ -3,6 +3,7 @@
 
 use serde::Deserialize;
 use serde::Serialize;
+use std::path::Path;
 use std::process::Command;
 
 use crate::errors::AppError;
@@ -24,6 +25,7 @@ pub struct LinkMediaInfo {
     pub is_live: bool,
     pub is_playlist: bool,
     pub item_count: Option<u32>,
+    pub entries: Vec<LinkPlaylistEntry>,
     pub warnings: Vec<String>,
     pub video_options: Vec<VideoOption>,
     /// Best available audio codec hint from yt-dlp formats (e.g. `opus`, `aac`).
@@ -32,6 +34,16 @@ pub struct LinkMediaInfo {
     pub best_audio_ext: Option<String>,
     /// True when the best available source audio appears lossy (for honesty warnings).
     pub source_audio_likely_lossy: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkPlaylistEntry {
+    pub id: Option<String>,
+    pub title: Option<String>,
+    pub url: String,
+    pub duration_seconds: Option<f64>,
+    pub is_live: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -63,9 +75,20 @@ struct YtdlpDump {
     _type: Option<String>,
     playlist_count: Option<u32>,
     n_entries: Option<u32>,
-    entries: Option<serde_json::Value>,
+    entries: Option<Vec<YtdlpEntry>>,
     #[serde(default)]
     formats: Vec<YtdlpFormat>,
+}
+
+#[derive(Debug, Deserialize)]
+struct YtdlpEntry {
+    id: Option<String>,
+    title: Option<String>,
+    url: Option<String>,
+    webpage_url: Option<String>,
+    original_url: Option<String>,
+    duration: Option<f64>,
+    is_live: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -83,23 +106,39 @@ struct YtdlpFormat {
 
 /// Inspect a remote media URL with yt-dlp. Does not download media.
 pub fn inspect(url: &str) -> Result<LinkMediaInfo, AppError> {
+    inspect_with_options(url, None)
+}
+
+/// Inspect optional user-supplied Netscape cookies.txt. Browser cookie stores are never read.
+pub fn inspect_with_options(
+    url: &str,
+    cookies_path: Option<&Path>,
+) -> Result<LinkMediaInfo, AppError> {
     let safe = validate_media_url(url)?;
     let ytdlp = resolve_ytdlp().map_err(|detail| AppError::MediaToolMissing { detail })?;
-    let raw = run_dump_json(&ytdlp, safe.as_str())?;
+    let raw = run_dump_json(&ytdlp, safe.as_str(), cookies_path)?;
     normalize(safe.as_str(), &raw)
 }
 
-fn run_dump_json(ytdlp: &std::path::Path, url: &str) -> Result<YtdlpDump, AppError> {
+fn run_dump_json(
+    ytdlp: &std::path::Path,
+    url: &str,
+    cookies_path: Option<&Path>,
+) -> Result<YtdlpDump, AppError> {
     let mut command = Command::new(ytdlp);
     command.args([
         "--dump-single-json",
-        "--no-playlist",
+        "--flat-playlist",
         "--skip-download",
         "--no-warnings",
         "--no-call-home",
-        "--no-cookies",
-        url,
     ]);
+    if let Some(path) = cookies_path.filter(|path| !path.as_os_str().is_empty()) {
+        command.arg("--cookies").arg(path);
+    } else {
+        command.arg("--no-cookies");
+    }
+    command.arg(url);
 
     #[cfg(windows)]
     {
@@ -139,19 +178,16 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
     let item_count = dump.playlist_count.or(dump.n_entries).or_else(|| {
         dump.entries
             .as_ref()
-            .and_then(|v| v.as_array().map(|a| a.len() as u32))
+            .map(|entries| entries.len() as u32)
     });
 
     let mut warnings = Vec::new();
-    if is_playlist {
-        warnings.push(
-            "This link looks like a playlist. Playlist downloads are not available in the experimental version."
-                .to_string(),
-        );
+    if is_playlist && item_count.unwrap_or(0) == 0 {
+        warnings.push("This playlist contains no downloadable entries.".to_string());
     }
     if dump.is_live == Some(true) {
         warnings.push(
-            "This media is currently live. Live recording is not available in this experimental version."
+            "This media is currently live. Choose a recording duration before downloading."
                 .to_string(),
         );
     }
@@ -190,12 +226,58 @@ fn normalize(original_url: &str, dump: &YtdlpDump) -> Result<LinkMediaInfo, AppE
         is_live: dump.is_live.unwrap_or(false),
         is_playlist,
         item_count,
+        entries: playlist_entries(dump.entries.as_deref()),
         warnings,
         video_options: video_options(&dump.formats),
         best_audio_codec,
         best_audio_ext,
         source_audio_likely_lossy,
     })
+}
+
+fn playlist_entries(entries: Option<&[YtdlpEntry]>) -> Vec<LinkPlaylistEntry> {
+    entries
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|entry| {
+            let raw_url = entry
+                .webpage_url
+                .as_deref()
+                .or(entry.original_url.as_deref())
+                .or(entry.url.as_deref())?;
+            let url = validate_media_url(raw_url).ok()?.as_str().to_string();
+            Some(LinkPlaylistEntry {
+                id: entry.id.clone(),
+                title: entry.title.clone(),
+                url,
+                duration_seconds: entry.duration,
+                is_live: entry.is_live.unwrap_or(false),
+            })
+        })
+        .collect()
+}
+
+pub fn ytdlp_version() -> Result<String, AppError> {
+    let ytdlp = resolve_ytdlp().map_err(|detail| AppError::MediaToolMissing { detail })?;
+    let output = Command::new(ytdlp)
+        .arg("--version")
+        .output()
+        .map_err(|error| AppError::DecodeFailure {
+            detail: format!("Could not start yt-dlp: {error}"),
+        })?;
+    if !output.status.success() {
+        return Err(AppError::DecodeFailure {
+            detail: "yt-dlp could not report its version.".to_string(),
+        });
+    }
+    let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if version.is_empty() {
+        Err(AppError::DecodeFailure {
+            detail: "yt-dlp returned an empty version.".to_string(),
+        })
+    } else {
+        Ok(version)
+    }
 }
 
 /// Mirrors audio preflight lossy detection for link metadata honesty warnings.
@@ -332,6 +414,11 @@ fn humanize_service(extractor: &str) -> String {
         "youtube" | "youtubenew" => "YouTube".to_string(),
         "youtubetab" => "YouTube".to_string(),
         "soundcloud" => "SoundCloud".to_string(),
+        "bandcamp" => "Bandcamp".to_string(),
+        "twitch" | "twitchvod" | "twitchclips" => "Twitch".to_string(),
+        "bilibili" => "Bilibili".to_string(),
+        "dailymotion" => "Dailymotion".to_string(),
+        "rumble" => "Rumble".to_string(),
         "vimeo" => "Vimeo".to_string(),
         "twitter" | "x" => "X".to_string(),
         "tiktok" => "TikTok".to_string(),
@@ -373,6 +460,7 @@ mod tests {
         assert!(!info.warnings.is_empty());
         assert_eq!(info.service.as_deref(), Some("YouTube"));
         assert!(!info.source_audio_likely_lossy);
+        assert!(info.entries.is_empty());
     }
 
     #[test]

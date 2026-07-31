@@ -22,9 +22,13 @@ use commands::image_convert::{
 use commands::image_discover::discover_image_paths;
 use commands::image_preflight::preflight_image_batch;
 use commands::link_analyze::analyze_link;
-use commands::link_download::{cancel_link_download, start_link_download};
+use commands::link_download::{
+    cancel_link_batch, cancel_link_download, clear_link_history, enqueue_link_downloads,
+    is_link_batch_running, list_link_history, start_link_download,
+};
 use commands::preflight::preflight_batch;
 use commands::system::get_default_paths;
+use commands::ytdlp_update::{get_ytdlp_version, update_ytdlp};
 use state::AppState;
 use tauri::{Manager, RunEvent};
 
@@ -60,7 +64,14 @@ pub fn run() {
             is_batch_running,
             analyze_link,
             start_link_download,
-            cancel_link_download
+            cancel_link_download,
+            enqueue_link_downloads,
+            cancel_link_batch,
+            is_link_batch_running,
+            list_link_history,
+            clear_link_history,
+            get_ytdlp_version,
+            update_ytdlp
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

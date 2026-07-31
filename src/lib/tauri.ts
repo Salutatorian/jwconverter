@@ -182,8 +182,11 @@ export async function cancelImageBatch(): Promise<void> {
   return invoke("cancel_image_batch");
 }
 
-export async function analyzeLink(url: string): Promise<import("../types/links").LinkMediaInfo> {
-  return invoke("analyze_link", { url });
+export async function analyzeLink(
+  url: string,
+  cookiesPath?: string | null,
+): Promise<import("../types/links").LinkMediaInfo> {
+  return invoke("analyze_link", { url, cookiesPath });
 }
 
 export async function startLinkDownload(
@@ -192,7 +195,38 @@ export async function startLinkDownload(
   return invoke<string>("start_link_download", { request });
 }
 
+export async function enqueueLinkDownloads(
+  request: import("../types/links").LinkBatchRequest,
+): Promise<BatchStartResult> {
+  return invoke<BatchStartResult>("enqueue_link_downloads", { request });
+}
+
+export async function cancelLinkBatch(): Promise<void> {
+  return invoke("cancel_link_batch");
+}
+
 export async function cancelLinkDownload(jobId: string): Promise<void> {
   return invoke("cancel_link_download", { jobId });
 }
 
+export async function isLinkBatchRunning(): Promise<boolean> {
+  return invoke<boolean>("is_link_batch_running");
+}
+
+export async function getYtdlpVersion(): Promise<string> {
+  return invoke<string>("get_ytdlp_version");
+}
+
+export async function updateYtdlp(): Promise<string> {
+  return invoke<string>("update_ytdlp");
+}
+
+export async function listLinkHistory(): Promise<
+  import("../types/links").LinkHistoryItem[]
+> {
+  return invoke("list_link_history");
+}
+
+export async function clearLinkHistory(): Promise<void> {
+  return invoke("clear_link_history");
+}

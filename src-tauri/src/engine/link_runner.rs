@@ -9,7 +9,8 @@ use std::time::Duration;
 
 use crate::engine::job::{ConversionJob, JobStatus, LoudnessPreset, NormalizeMode, OverwritePolicy};
 use crate::engine::link_job::{
-    format_selector, ytdlp_mode_args, LinkDownloadJob, LinkMediaMode, LinkProcessingMode,
+    format_selector, ytdlp_cookie_args, ytdlp_live_args, ytdlp_mode_args, ytdlp_subtitle_args,
+    ytdlp_thumbnail_args, LinkDownloadJob, LinkMediaMode, LinkProcessingMode,
 };
 use crate::engine::runner::{self, ActiveProcess, RunCallbacks};
 use crate::errors::AppError;
@@ -37,16 +38,9 @@ pub fn run_job(
     callbacks: &LinkRunCallbacks,
 ) -> Result<LinkDownloadResult, AppError> {
     let url = validate_media_url(job.url.trim())?;
-    if job.is_playlist {
+    if job.is_live && job.live_max_minutes.filter(|minutes| *minutes > 0).is_none() {
         return Err(AppError::UnsupportedFormat {
-            detail: "Playlist downloads are not available in the experimental Links feature."
-                .to_string(),
-        });
-    }
-    if job.is_live {
-        return Err(AppError::UnsupportedFormat {
-            detail: "Live recording is not available in the experimental Links feature."
-                .to_string(),
+            detail: "Choose a live recording duration before downloading live media.".to_string(),
         });
     }
 
@@ -149,6 +143,7 @@ fn finalize_remux(
             error
         },
     )?;
+    move_thumbnail(destination_dir, temp_stem, &final_path, job.save_thumbnail)?;
     cleanup_download_temps(destination_dir, temp_stem);
     (callbacks.on_status)(JobStatus::Completed, "Download completed");
     (callbacks.on_progress)(Some(100.0));
@@ -253,7 +248,6 @@ fn start_download(
         .arg("--no-playlist")
         .arg("--newline")
         .arg("--no-call-home")
-        .arg("--no-cookies")
         .arg("--ffmpeg-location")
         .arg(ffmpeg_dir)
         .arg("-f")
@@ -262,6 +256,18 @@ fn start_download(
         .arg(output_template);
 
     for arg in ytdlp_mode_args(job) {
+        command.arg(arg);
+    }
+    for arg in ytdlp_cookie_args(job) {
+        command.arg(arg);
+    }
+    for arg in ytdlp_subtitle_args(job) {
+        command.arg(arg);
+    }
+    for arg in ytdlp_thumbnail_args(job) {
+        command.arg(arg);
+    }
+    for arg in ytdlp_live_args(job) {
         command.arg(arg);
     }
 
@@ -414,11 +420,58 @@ fn find_download_output(destination_dir: &Path, temp_stem: &str) -> Result<PathB
                         name.starts_with(temp_stem)
                             && !name.ends_with(".part")
                             && !name.ends_with(".ytdl")
+                            && !is_thumbnail_extension(path)
+                            && !is_subtitle_extension(path)
                     })
         })
         .ok_or_else(|| AppError::VerificationFailure {
             detail: "yt-dlp completed but did not create a usable output file.".to_string(),
         })
+}
+
+fn is_thumbnail_extension(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|extension| extension.to_str()),
+        Some("jpg" | "jpeg" | "png" | "webp")
+    )
+}
+
+fn is_subtitle_extension(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|extension| extension.to_str()),
+        Some("ass" | "lrc" | "srt" | "ssa" | "ttml" | "vtt")
+    )
+}
+
+fn move_thumbnail(
+    destination_dir: &Path,
+    temp_stem: &str,
+    final_path: &Path,
+    save_thumbnail: bool,
+) -> Result<(), AppError> {
+    if !save_thumbnail {
+        return Ok(());
+    }
+    let Some(thumbnail) = std::fs::read_dir(destination_dir)
+        .ok()
+        .and_then(|entries| {
+            entries.filter_map(Result::ok).map(|entry| entry.path()).find(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with(temp_stem) && is_thumbnail_extension(path))
+            })
+        })
+    else {
+        return Ok(());
+    };
+    let extension = thumbnail.extension().and_then(|value| value.to_str()).unwrap_or("jpg");
+    let target = final_path.with_extension(extension);
+    if thumbnail != target {
+        std::fs::rename(&thumbnail, &target).map_err(|error| AppError::DestinationUnavailable {
+            detail: format!("Could not save downloaded thumbnail: {error}"),
+        })?;
+    }
+    Ok(())
 }
 
 fn verify_output(path: &Path, mode: LinkMediaMode) -> Result<(), AppError> {
@@ -522,6 +575,11 @@ mod tests {
             quality_preset: QualityPreset::High,
             mp3_encoding_mode: Mp3EncodingMode::Cbr,
             bit_depth_preset: BitDepthPreset::Original,
+            cookies_path: None,
+            download_subtitles: false,
+            save_thumbnail: false,
+            embed_thumbnail: false,
+            live_max_minutes: None,
             status: JobStatus::Queued,
         }
     }

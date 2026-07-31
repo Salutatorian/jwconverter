@@ -17,6 +17,13 @@ export interface VideoOption {
   container: string | null;
 }
 
+export interface LinkPlaylistEntry {
+  id: string | null;
+  url: string;
+  title: string | null;
+  durationSeconds: number | null;
+}
+
 export interface LinkMediaInfo {
   originalUrl: string;
   webpageUrl: string | null;
@@ -29,6 +36,7 @@ export interface LinkMediaInfo {
   isLive: boolean;
   isPlaylist: boolean;
   itemCount: number | null;
+  entries: LinkPlaylistEntry[];
   warnings: string[];
   videoOptions: VideoOption[];
   bestAudioCodec: string | null;
@@ -57,6 +65,34 @@ export interface LinkDownloadRequest {
   qualityPreset?: QualityPreset;
   mp3EncodingMode?: Mp3EncodingMode;
   bitDepthPreset?: BitDepthPreset;
+  liveMaxMinutes?: number | null;
+  cookiesPath?: string | null;
+  downloadSubtitles: boolean;
+  saveThumbnail: boolean;
+  embedThumbnail: boolean;
+}
+
+export interface LinkBatchRequest {
+  destinationDir: string;
+  overwritePolicy: OverwritePolicy;
+  mode: LinkMediaMode;
+  videoQuality: LinkVideoQuality;
+  audioFormat: LinkAudioFormat;
+  qualityPreset?: QualityPreset;
+  mp3EncodingMode?: Mp3EncodingMode;
+  bitDepthPreset?: BitDepthPreset;
+  liveMaxMinutes?: number | null;
+  cookiesPath?: string | null;
+  downloadSubtitles: boolean;
+  saveThumbnail: boolean;
+  embedThumbnail: boolean;
+  items: Array<{
+    url: string;
+    title?: string | null;
+    durationSeconds?: number | null;
+    isLive?: boolean | null;
+    jobId?: string;
+  }>;
 }
 
 export interface LinkDownloadEvent {
@@ -66,4 +102,29 @@ export interface LinkDownloadEvent {
   message: string;
   outputPath: string | null;
   error: string | null;
+}
+
+export interface LinkBatchEvent {
+  batchId: string;
+  completed: number;
+  total: number;
+  failed: number;
+  cancelled: number;
+  skipped: number;
+  remaining: number;
+  currentJobId: string | null;
+  activeCount: number;
+  parallelism: number;
+  status: "running" | "completed" | "cancelled";
+  message: string | null;
+}
+
+export interface LinkHistoryItem {
+  jobId: string;
+  service: string | null;
+  title: string | null;
+  status: string;
+  outputPath: string | null;
+  errorCategory: string | null;
+  url: string | null;
 }

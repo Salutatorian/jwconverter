@@ -79,6 +79,12 @@ pub struct LinkDownloadJob {
     pub quality_preset: QualityPreset,
     pub mp3_encoding_mode: Mp3EncodingMode,
     pub bit_depth_preset: BitDepthPreset,
+    pub cookies_path: Option<String>,
+    pub download_subtitles: bool,
+    pub save_thumbnail: bool,
+    pub embed_thumbnail: bool,
+    /// Live downloads are allowed only when this has a recording limit.
+    pub live_max_minutes: Option<u32>,
     pub status: JobStatus,
 }
 
@@ -112,6 +118,48 @@ pub fn ytdlp_mode_args(job: &LinkDownloadJob) -> Vec<&'static str> {
     }
 }
 
+/// Cookie input is opt-in; the application never reads browser cookie stores.
+pub fn ytdlp_cookie_args(job: &LinkDownloadJob) -> Vec<String> {
+    job.cookies_path
+        .as_deref()
+        .filter(|path| !path.trim().is_empty())
+        .map(|path| vec!["--cookies".to_string(), path.to_string()])
+        .unwrap_or_else(|| vec!["--no-cookies".to_string()])
+}
+
+pub fn ytdlp_subtitle_args(job: &LinkDownloadJob) -> Vec<&'static str> {
+    if job.download_subtitles {
+        vec!["--write-subs", "--write-auto-subs", "--sub-langs", "all"]
+    } else {
+        Vec::new()
+    }
+}
+
+pub fn ytdlp_thumbnail_args(job: &LinkDownloadJob) -> Vec<&'static str> {
+    let mut args = Vec::new();
+    if job.save_thumbnail {
+        args.push("--write-thumbnail");
+    }
+    if job.embed_thumbnail {
+        args.push("--embed-thumbnail");
+    }
+    args
+}
+
+pub fn ytdlp_live_args(job: &LinkDownloadJob) -> Vec<String> {
+    job.live_max_minutes
+        .filter(|minutes| *minutes > 0)
+        .map(|minutes| {
+            vec![
+                "--wait-for-video".to_string(),
+                "0".to_string(),
+                "--download-sections".to_string(),
+                format!("*0-{}", minutes.saturating_mul(60)),
+            ]
+        })
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,6 +180,11 @@ mod tests {
             quality_preset: QualityPreset::Medium,
             mp3_encoding_mode: Mp3EncodingMode::Cbr,
             bit_depth_preset: BitDepthPreset::Original,
+            cookies_path: None,
+            download_subtitles: false,
+            save_thumbnail: false,
+            embed_thumbnail: false,
+            live_max_minutes: None,
             status: JobStatus::Queued,
         }
     }
@@ -170,5 +223,32 @@ mod tests {
             Some(OutputFormat::Opus)
         );
         assert_eq!(download.audio_format.extension(), Some("opus"));
+    }
+
+    #[test]
+    fn plans_opt_in_cookie_subtitle_thumbnail_and_live_args() {
+        let mut download = job(LinkMediaMode::Audio);
+        download.cookies_path = Some("C:\\cookies.txt".to_string());
+        download.download_subtitles = true;
+        download.save_thumbnail = true;
+        download.embed_thumbnail = true;
+        download.live_max_minutes = Some(10);
+
+        assert_eq!(
+            ytdlp_cookie_args(&download),
+            vec!["--cookies", "C:\\cookies.txt"]
+        );
+        assert_eq!(
+            ytdlp_subtitle_args(&download),
+            vec!["--write-subs", "--write-auto-subs", "--sub-langs", "all"]
+        );
+        assert_eq!(
+            ytdlp_thumbnail_args(&download),
+            vec!["--write-thumbnail", "--embed-thumbnail"]
+        );
+        assert_eq!(
+            ytdlp_live_args(&download),
+            vec!["--wait-for-video", "0", "--download-sections", "*0-600"]
+        );
     }
 }

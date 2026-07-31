@@ -5,6 +5,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use crate::engine::image_queue::ImageQueueState;
+use crate::engine::link_queue::LinkQueueState;
 use crate::engine::queue::QueueState;
 use crate::engine::runner::ActiveProcess;
 use crate::media::ffmpeg;
@@ -12,8 +13,7 @@ use crate::media::ffmpeg;
 #[derive(Default)]
 pub struct AppState {
     pub active: Mutex<HashMap<String, ActiveProcess>>,
-    /// At most one experimental Links download at a time.
-    pub active_link_job: Mutex<Option<String>>,
+    pub link_queue: Mutex<LinkQueueState>,
     pub queue: Mutex<QueueState>,
     pub image_queue: Mutex<ImageQueueState>,
 }
@@ -36,30 +36,10 @@ impl AppState {
         active
     }
 
-    pub fn try_begin_link_job(&self, job_id: &str) -> bool {
-        let Ok(mut slot) = self.active_link_job.lock() else {
-            return false;
-        };
-        if slot.is_some() {
-            return false;
-        }
-        *slot = Some(job_id.to_string());
-        true
-    }
-
-    pub fn end_link_job(&self, job_id: &str) {
-        if let Ok(mut slot) = self.active_link_job.lock() {
-            if slot.as_deref() == Some(job_id) {
-                *slot = None;
-            }
-        }
-    }
-
     pub fn remove(&self, job_id: &str) {
         if let Ok(mut map) = self.active.lock() {
             map.remove(job_id);
         }
-        self.end_link_job(job_id);
     }
 
     pub fn request_cancel(&self, job_id: &str) -> bool {
@@ -78,6 +58,11 @@ impl AppState {
 
     /// Cancel every active process (used on app shutdown).
     pub fn cancel_all(&self) {
+        if let Ok(queue) = self.link_queue.lock() {
+            queue
+                .cancel_remaining
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
         let Ok(map) = self.active.lock() else {
             return;
         };
@@ -130,20 +115,9 @@ mod tests {
         let image_queue = state.image_queue.lock().expect("image queue lock");
         assert!(!image_queue.worker_running);
         drop(image_queue);
-        assert!(state
-            .active_link_job
-            .lock()
-            .expect("link lock")
-            .is_none());
-    }
-
-    #[test]
-    fn only_one_link_job_at_a_time() {
-        let state = AppState::default();
-        assert!(state.try_begin_link_job("a"));
-        assert!(!state.try_begin_link_job("b"));
-        state.end_link_job("a");
-        assert!(state.try_begin_link_job("b"));
+        let link_queue = state.link_queue.lock().expect("link queue lock");
+        assert!(!link_queue.worker_running);
+        assert_eq!(link_queue.parallelism, 2);
     }
 
     #[test]

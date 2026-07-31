@@ -4,9 +4,13 @@ Project: https://github.com/yt-dlp/yt-dlp
 License: Unlicense (public domain dedication) — see upstream COPYING
 Windows builds: https://github.com/yt-dlp/yt-dlp/releases
 
-JW Converter experimental Links uses a local yt-dlp executable for:
-- metadata inspection (`--dump-single-json --skip-download`)
-- single-item public downloads (argv-only; `--no-cookies --no-playlist`)
+JW Converter experimental Links Phase 6 uses a local yt-dlp executable for:
+- metadata inspection and flat playlist entry discovery (`--dump-single-json --flat-playlist`)
+- queued single-item public downloads (two workers; argv-only)
+- optional user-selected Netscape `cookies.txt`, subtitles, thumbnails, and duration-limited live recording
+- optional updater downloads from the official yt-dlp GitHub release API
+
+The app does not import browser cookies or alter browser security policy.
 
 FFmpeg remains required for merge/remux/transcode and is covered by
 THIRD_PARTY_FFMPEG.txt / FFMPEG-LICENSING.md.
