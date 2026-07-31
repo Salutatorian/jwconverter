@@ -16,6 +16,28 @@ Grab installers from the latest GitHub Release. On Windows, uninstall anytime fr
 
 From **v0.1.2** onward, the Windows app checks for updates on launch (and every few hours). Open **Settings** to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
 
+## Sneak peek
+
+Three modes in one local app — no accounts, no cloud upload.
+
+### Audio
+
+Convert any audio to any audio format (FLAC, WAV, MP3, M4A, AAC, Opus, and more). Drop files or whole folders, keep tags/cover art, and choose Rename / Skip / Replace when outputs already exist.
+
+![JW Converter — Audio mode](docs/assets/sneak-peek-audio.png)
+
+### Images
+
+Convert photos to other image formats (JPEG, PNG, WebP, AVIF, TIFF, and more). Common **RAW** camera files can be imported and converted **to** those formats — not the other way around (you can’t export RAW).
+
+![JW Converter — Images mode](docs/assets/sneak-peek-images.png)
+
+### Links
+
+Paste public social / media URLs and download them as **video** or **audio**, with quality, cookies, subtitles, thumbnails, and other extras. Multi-URL and playlist batches package into one `.zip` so your Downloads folder isn’t flooded.
+
+![JW Converter — Links mode](docs/assets/sneak-peek-links.png)
+
 ## Reddit blurb
 
 ```text
