@@ -166,11 +166,30 @@ case "$OS" in
     ;;
   linux)
     TRIPLE="x86_64-unknown-linux-gnu"
-    curl -fsSL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" -o "$TMP/ffmpeg.tar.xz"
+    # Prefer BtbN (GitHub CDN) — johnvansickle.com intermittently returns HTML
+    # and breaks CI with `xz: File format not recognized`.
+    FFMPEG_URL="https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz"
+    echo "Downloading static FFmpeg/FFprobe from BtbN..."
+    if ! curl -fsSL "$FFMPEG_URL" -o "$TMP/ffmpeg.tar.xz"; then
+      echo "WARN: BtbN download failed; falling back to johnvansickle.com"
+      curl -fsSL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" -o "$TMP/ffmpeg.tar.xz"
+    fi
+    # Reject HTML/error bodies masquerading as archives.
+    if ! xz -t "$TMP/ffmpeg.tar.xz" 2>/dev/null; then
+      echo "ERROR: downloaded FFmpeg archive is not valid xz (upstream may have returned HTML)."
+      file "$TMP/ffmpeg.tar.xz" || true
+      head -c 200 "$TMP/ffmpeg.tar.xz" || true
+      exit 1
+    fi
     tar -xJf "$TMP/ffmpeg.tar.xz" -C "$TMP"
-    SRC="$(find "$TMP" -maxdepth 1 -type d -name 'ffmpeg-*-amd64-static' | head -n1)"
-    cp "$SRC/ffmpeg" "$BIN/ffmpeg"
-    cp "$SRC/ffprobe" "$BIN/ffprobe"
+    FFMPEG_SRC="$(find "$TMP" -type f -name ffmpeg | head -n1)"
+    FFPROBE_SRC="$(find "$TMP" -type f -name ffprobe | head -n1)"
+    if [[ -z "$FFMPEG_SRC" || -z "$FFPROBE_SRC" ]]; then
+      echo "ERROR: archive did not contain ffmpeg/ffprobe binaries"
+      exit 1
+    fi
+    cp "$FFMPEG_SRC" "$BIN/ffmpeg"
+    cp "$FFPROBE_SRC" "$BIN/ffprobe"
     chmod +x "$BIN/ffmpeg" "$BIN/ffprobe"
     cp "$BIN/ffmpeg" "$BIN/ffmpeg-$TRIPLE"
     cp "$BIN/ffprobe" "$BIN/ffprobe-$TRIPLE"
