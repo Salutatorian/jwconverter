@@ -55,10 +55,10 @@ $notes = @"
 
 From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
 
-### What's new in 1.0.6
-- **Links:** YouTube / audio downloads no longer fail when embedding cover art
-- **Settings → Updates:** progress bar while checking and downloading
-- Clearer Links error messages (no more misleading `[unparseable-url]`)
+### What's new in 1.0.7
+- **Links:** fix Windows crash on titles with special characters (`cp1252` / Errno 22)
+- **Links:** always embed the video thumbnail into audio and video downloads
+- Formats that cannot hold cover art also keep a `.jpg` beside the file
 
 ### Notes
 - Windows 10/11 x64 + WebView2

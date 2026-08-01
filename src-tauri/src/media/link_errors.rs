@@ -119,6 +119,18 @@ pub fn map_ytdlp_message(stderr: &str, for_download: bool) -> (LinkErrorCategory
         return (LinkErrorCategory::Network, message.to_string());
     }
 
+    // Windows code-page crash when yt-dlp prints a Unicode title through cp1252.
+    if lower.contains("errno 22")
+        && (lower.contains("cp1252")
+            || lower.contains("textiowrapper")
+            || lower.contains("invalid argument"))
+    {
+        return (
+            LinkErrorCategory::Other,
+            "The download failed because of a Windows text-encoding issue. Update JW Converter and try again.".to_string(),
+        );
+    }
+
     if lower.contains("requested format is not available")
         || lower.contains("no video formats")
         || lower.contains("no audio formats")
@@ -302,6 +314,16 @@ mod tests {
         assert_eq!(cat, LinkErrorCategory::Other);
         assert!(!msg.contains("secret"));
         assert!(msg.contains("redacted"));
+    }
+
+    #[test]
+    fn maps_windows_encoding_crash() {
+        let (cat, msg) = map_ytdlp_message(
+            "ERROR: [Errno 22] Invalid argument Exception ignored in: <_io.TextIOWrapper name='<stdout>' mode='w' encoding='cp1252'> OSError: [Errno 22] Invalid argument",
+            true,
+        );
+        assert_eq!(cat, LinkErrorCategory::Other);
+        assert!(msg.contains("text-encoding"));
     }
 
     #[test]

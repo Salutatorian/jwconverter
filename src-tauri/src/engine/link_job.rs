@@ -137,21 +137,16 @@ pub fn ytdlp_subtitle_args(job: &LinkDownloadJob) -> Vec<&'static str> {
 }
 
 pub fn ytdlp_thumbnail_args(job: &LinkDownloadJob) -> Vec<&'static str> {
-    // Write a JPEG sidecar for embedding. yt-dlp --embed-thumbnail fails on
-    // webm/opus and would abort a successful download, so we only let yt-dlp
-    // embed for video (mp4). Audio cover is attached with FFmpeg after download.
+    // Always write a JPEG sidecar. Embedding is done with FFmpeg after download
+    // so audio (webm/opus) and video both get artwork without yt-dlp aborting.
     if !job.save_thumbnail && !job.embed_thumbnail {
         return Vec::new();
     }
-    let mut args = vec![
+    vec![
         "--write-thumbnail",
         "--convert-thumbnails",
         "jpg",
-    ];
-    if job.embed_thumbnail && matches!(job.mode, LinkMediaMode::Video) {
-        args.push("--embed-thumbnail");
-    }
-    args
+    ]
 }
 
 pub fn ytdlp_live_args(job: &LinkDownloadJob) -> Vec<String> {
@@ -254,7 +249,7 @@ mod tests {
             ytdlp_subtitle_args(&download),
             vec!["--write-subs", "--write-auto-subs", "--sub-langs", "all"]
         );
-        // Audio: write JPEG only (FFmpeg embeds later). Video also gets --embed-thumbnail.
+        // Embedding is always done with FFmpeg after download (audio + video).
         assert_eq!(
             ytdlp_thumbnail_args(&download),
             vec!["--write-thumbnail", "--convert-thumbnails", "jpg"]
@@ -262,12 +257,7 @@ mod tests {
         download.mode = LinkMediaMode::Video;
         assert_eq!(
             ytdlp_thumbnail_args(&download),
-            vec![
-                "--write-thumbnail",
-                "--convert-thumbnails",
-                "jpg",
-                "--embed-thumbnail"
-            ]
+            vec!["--write-thumbnail", "--convert-thumbnails", "jpg"]
         );
         assert_eq!(
             ytdlp_live_args(&download),

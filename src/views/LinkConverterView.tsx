@@ -388,7 +388,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
             <label><input type="checkbox" checked={saveThumbnail} disabled={disabled} onChange={(event) => setSaveThumbnail(event.target.checked)} /> Also save thumbnail as a separate image</label>
           </div>
           <p className="text-xs text-[var(--text-muted)]">
-            Thumbnails are always embedded in the file so artwork shows when you play it.
+            The video thumbnail is always saved into the file (artwork in players). Formats that cannot hold cover art also keep a .jpg beside the download.
           </p>
         </div>
       </section>

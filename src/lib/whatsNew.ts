@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.7",
+    changes: [
+      "Links: fix Windows download crash on titles with special characters (cp1252 / Errno 22)",
+      "Links: always embed the video thumbnail into audio and video downloads",
+    ],
+    debugs: [
+      "Formats that cannot hold cover art also keep a .jpg beside the file",
+    ],
+  },
+  {
     version: "1.0.6",
     changes: [
       "Links: YouTube audio downloads no longer fail when embedding cover art (webm / thumbnail bug)",

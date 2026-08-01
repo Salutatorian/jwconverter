@@ -20,6 +20,7 @@ use crate::media::ffprobe;
 use crate::media::link_filename::sanitize_link_stem;
 use crate::media::link_url::validate_media_url;
 use crate::media::paths::{resolve_ffmpeg, resolve_ytdlp};
+use crate::media::ytdlp::configure_ytdlp_command;
 
 #[derive(Clone)]
 pub struct LinkRunCallbacks {
@@ -83,7 +84,9 @@ pub fn run_job(
     }
     if !result.success {
         // Thumbnail postprocess can fail (e.g. webm) after the media file is already saved.
-        let recovered = thumbnail_postprocess_failed(&result.stderr)
+        // Windows cp1252 crashes can also fire during yt-dlp shutdown after a good download.
+        let recovered = (thumbnail_postprocess_failed(&result.stderr)
+            || windows_encoding_crash(&result.stderr))
             && find_download_output(&destination_dir, &temp_stem).is_ok();
         if !recovered {
             cleanup_download_temps(&destination_dir, &temp_stem);
@@ -120,13 +123,23 @@ fn finalize_remux(
     (callbacks.on_progress)(Some(95.0));
     verify_output(temp_path, job.mode)?;
 
-    if job.embed_thumbnail && matches!(job.mode, LinkMediaMode::Audio) {
-        if let Some(cover) = find_thumbnail(destination_dir, temp_stem) {
-            let _ = ffmpeg::embed_cover_image(temp_path, &cover);
+    let mut media_path = temp_path.to_path_buf();
+    let cover = if job.embed_thumbnail {
+        find_thumbnail(destination_dir, temp_stem)
+    } else {
+        None
+    };
+    if job.embed_thumbnail {
+        if matches!(job.mode, LinkMediaMode::Audio) {
+            // webm/wav cannot carry cover art — remux to m4a first.
+            media_path = ffmpeg::ensure_audio_cover_container(&media_path)?;
+        }
+        if let Some(cover) = cover.as_ref() {
+            let _ = ffmpeg::embed_cover_image(&media_path, cover);
         }
     }
 
-    let extension = temp_path
+    let extension = media_path
         .extension()
         .and_then(|extension| extension.to_str())
         .filter(|extension| !extension.is_empty())
@@ -137,7 +150,10 @@ fn finalize_remux(
     let final_path = match job.overwrite_policy {
         OverwritePolicy::Rename => finalize::unique_final_path(destination_dir, stem, extension),
         OverwritePolicy::Skip if primary_path.exists() => {
-            temp::cleanup_temp(temp_path);
+            temp::cleanup_temp(&media_path);
+            if media_path != temp_path {
+                temp::cleanup_temp(temp_path);
+            }
             cleanup_download_temps(destination_dir, temp_stem);
             (callbacks.on_status)(JobStatus::Skipped, "Existing output left unchanged");
             return Ok(LinkDownloadResult {
@@ -149,13 +165,20 @@ fn finalize_remux(
     };
 
     let allow_replace = matches!(job.overwrite_policy, OverwritePolicy::Replace);
-    finalize::finalize_output_with_policy(temp_path, &final_path, allow_replace).map_err(
+    finalize::finalize_output_with_policy(&media_path, &final_path, allow_replace).map_err(
         |error| {
-            temp::cleanup_temp(temp_path);
+            temp::cleanup_temp(&media_path);
+            if media_path != temp_path {
+                temp::cleanup_temp(temp_path);
+            }
             error
         },
     )?;
-    move_thumbnail(destination_dir, temp_stem, &final_path, job.save_thumbnail)?;
+    // Keep a sidecar JPEG when the user asked for it, or when the final
+    // format still cannot hold embedded artwork (e.g. WAV).
+    let keep_sidecar = job.save_thumbnail
+        || (job.embed_thumbnail && !ffmpeg::path_supports_embedded_cover(&final_path));
+    move_thumbnail(destination_dir, temp_stem, &final_path, keep_sidecar)?;
     cleanup_download_temps(destination_dir, temp_stem);
     (callbacks.on_status)(JobStatus::Completed, "Download completed");
     (callbacks.on_progress)(Some(100.0));
@@ -243,7 +266,11 @@ fn transcode_acquired(
     );
     if let (Ok(result), Some(cover)) = (&outcome, cover.as_ref()) {
         if matches!(result.status, JobStatus::Completed) {
-            let _ = ffmpeg::embed_cover_image(Path::new(&result.output_path), cover);
+            let final_media = Path::new(&result.output_path);
+            let _ = ffmpeg::embed_cover_image(final_media, cover);
+            let keep_sidecar = job.save_thumbnail
+                || (job.embed_thumbnail && !ffmpeg::path_supports_embedded_cover(final_media));
+            let _ = move_thumbnail(destination_dir, temp_stem, final_media, keep_sidecar);
         }
     }
     cleanup_download_temps(destination_dir, temp_stem);
@@ -270,10 +297,18 @@ fn start_download(
     })?;
 
     let mut command = Command::new(ytdlp);
+    configure_ytdlp_command(&mut command);
     command
         .arg("--no-playlist")
+        // Quiet avoids printing Unicode titles (the usual cp1252 crash on Windows);
+        // --progress keeps the percent lines our progress parser needs.
+        .arg("--quiet")
+        .arg("--progress")
         .arg("--newline")
-        .arg("--no-call-home")
+        .arg("--no-warnings")
+        .arg("--no-color")
+        .arg("--encoding")
+        .arg("utf-8")
         .arg("--ffmpeg-location")
         .arg(ffmpeg_dir)
         .arg("-f")
@@ -301,12 +336,6 @@ fn start_download(
         .arg(url)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
     command.spawn().map_err(|error| AppError::MediaToolMissing {
         detail: format!("Could not start yt-dlp: {error}"),
     })
@@ -460,6 +489,14 @@ fn thumbnail_postprocess_failed(stderr: &str) -> bool {
     lower.contains("thumbnail embedding")
         || lower.contains("supported filetypes for thumbnail")
         || (lower.contains("postprocessing") && lower.contains("thumbnail"))
+}
+
+fn windows_encoding_crash(stderr: &str) -> bool {
+    let lower = stderr.to_ascii_lowercase();
+    lower.contains("errno 22")
+        && (lower.contains("cp1252")
+            || lower.contains("textiowrapper")
+            || lower.contains("invalid argument"))
 }
 
 fn find_thumbnail(destination_dir: &Path, temp_stem: &str) -> Option<PathBuf> {

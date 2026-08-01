@@ -231,8 +231,8 @@ pub fn kill_child(child: &Arc<Mutex<Option<Child>>>) {
     }
 }
 
-/// Embed a JPEG/PNG cover into an audio container that supports attached pictures.
-/// No-op when the media format cannot carry cover art.
+/// Embed a JPEG/PNG cover into a media file that supports attached pictures.
+/// Works for audio (mp3/m4a/flac/ogg/opus) and video (mp4). No-op otherwise.
 pub fn embed_cover_image(media: &Path, cover: &Path) -> Result<(), AppError> {
     if !path_supports_embedded_cover(media) || !cover.is_file() || !media.is_file() {
         return Ok(());
@@ -243,6 +243,10 @@ pub fn embed_cover_image(media: &Path, cover: &Path) -> Result<(), AppError> {
         .and_then(|value| value.to_str())
         .unwrap_or("m4a");
     let temp_out = media.with_extension(format!("jwcover.tmp.{extension}"));
+    let is_video = matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "mp4" | "m4v" | "mov"
+    );
 
     let mut command = Command::new(&ffmpeg);
     command
@@ -254,22 +258,38 @@ pub fn embed_cover_image(media: &Path, cover: &Path) -> Result<(), AppError> {
         .arg("-i")
         .arg(media)
         .arg("-i")
-        .arg(cover)
-        .arg("-map")
-        .arg("0:a:0")
-        .arg("-map")
-        .arg("1:0")
-        .arg("-c")
-        .arg("copy")
-        .arg("-c:v")
-        .arg("mjpeg")
-        .arg("-disposition:v:0")
-        .arg("attached_pic")
-        .arg("-map_metadata")
-        .arg("0");
+        .arg(cover);
 
-    if extension.eq_ignore_ascii_case("mp3") {
-        command.arg("-id3v2_version").arg("3");
+    if is_video {
+        // Keep all original streams; add the cover as an attached picture.
+        command
+            .arg("-map")
+            .arg("0")
+            .arg("-map")
+            .arg("1:0")
+            .arg("-c")
+            .arg("copy")
+            .arg("-c:v:1")
+            .arg("mjpeg")
+            .arg("-disposition:v:1")
+            .arg("attached_pic");
+    } else {
+        command
+            .arg("-map")
+            .arg("0:a:0")
+            .arg("-map")
+            .arg("1:0")
+            .arg("-c")
+            .arg("copy")
+            .arg("-c:v")
+            .arg("mjpeg")
+            .arg("-disposition:v:0")
+            .arg("attached_pic")
+            .arg("-map_metadata")
+            .arg("0");
+        if extension.eq_ignore_ascii_case("mp3") {
+            command.arg("-id3v2_version").arg("3");
+        }
     }
 
     command.arg(&temp_out);
@@ -298,12 +318,62 @@ pub fn embed_cover_image(media: &Path, cover: &Path) -> Result<(), AppError> {
     Ok(())
 }
 
-fn path_supports_embedded_cover(path: &Path) -> bool {
+/// Remux/transcode audio into `.m4a` so an attached-picture cover can be stored.
+/// Returns the original path when it already supports embedded covers.
+pub fn ensure_audio_cover_container(media: &Path) -> Result<PathBuf, AppError> {
+    if path_supports_embedded_cover(media) {
+        return Ok(media.to_path_buf());
+    }
+    if !media.is_file() {
+        return Ok(media.to_path_buf());
+    }
+
+    let ffmpeg = resolve_ffmpeg_required()?;
+    let temp_out = media.with_extension("jwcover.m4a");
+    let mut command = Command::new(&ffmpeg);
+    command
+        .arg("-hide_banner")
+        .arg("-nostdin")
+        .arg("-y")
+        .arg("-protocol_whitelist")
+        .arg("file,pipe,fd")
+        .arg("-i")
+        .arg(media)
+        .arg("-vn")
+        .arg("-c:a")
+        .arg("aac")
+        .arg("-b:a")
+        .arg("192k")
+        .arg("-movflags")
+        .arg("+faststart")
+        .arg(&temp_out);
+    command.stdout(Stdio::null()).stderr(Stdio::piped());
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let output = command.output().map_err(|error| AppError::MediaToolMissing {
+        detail: format!("Failed to start FFmpeg for cover remux: {error}"),
+    })?;
+    if !output.status.success() {
+        let _ = std::fs::remove_file(&temp_out);
+        return Ok(media.to_path_buf());
+    }
+
+    let _ = std::fs::remove_file(media);
+    Ok(temp_out)
+}
+
+pub fn path_supports_embedded_cover(path: &Path) -> bool {
     matches!(
         path.extension()
             .and_then(|value| value.to_str())
             .map(|value| value.to_ascii_lowercase())
             .as_deref(),
-        Some("mp3" | "m4a" | "flac" | "ogg" | "opus" | "alac")
+        Some("mp3" | "m4a" | "flac" | "ogg" | "opus" | "alac" | "mp4" | "m4v" | "mov")
     )
 }

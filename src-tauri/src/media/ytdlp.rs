@@ -104,6 +104,28 @@ struct YtdlpFormat {
     tbr: Option<f64>,
 }
 
+/// Apply Windows-safe defaults shared by every yt-dlp spawn.
+///
+/// Without UTF-8 I/O, Python on Western European Windows locales writes titles
+/// through `cp1252` and crashes with `OSError: [Errno 22] Invalid argument`
+/// when a track name contains characters outside that code page (emoji,
+/// curly quotes, non-Latin scripts, etc.). Frozen `yt-dlp.exe` builds are
+/// especially picky, so we set every known UTF-8 switch.
+pub fn configure_ytdlp_command(command: &mut Command) {
+    command.env("PYTHONIOENCODING", "utf-8");
+    command.env("PYTHONUTF8", "1");
+    command.env("PYTHONLEGACYWINDOWSSTDIO", "0");
+    command.env("LANG", "C.UTF-8");
+    command.env("LC_ALL", "C.UTF-8");
+    command.env("LC_CTYPE", "C.UTF-8");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+}
+
 /// Inspect a remote media URL with yt-dlp. Does not download media.
 pub fn inspect(url: &str) -> Result<LinkMediaInfo, AppError> {
     inspect_with_options(url, None)
@@ -126,12 +148,14 @@ fn run_dump_json(
     cookies_path: Option<&Path>,
 ) -> Result<YtdlpDump, AppError> {
     let mut command = Command::new(ytdlp);
+    configure_ytdlp_command(&mut command);
     command.args([
         "--dump-single-json",
         "--flat-playlist",
         "--skip-download",
         "--no-warnings",
-        "--no-call-home",
+        "--encoding",
+        "utf-8",
     ]);
     if let Some(path) = cookies_path.filter(|path| !path.as_os_str().is_empty()) {
         command.arg("--cookies").arg(path);
@@ -139,13 +163,6 @@ fn run_dump_json(
         command.arg("--no-cookies");
     }
     command.arg(url);
-
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
 
     let output = command.output().map_err(|error| AppError::DecodeFailure {
         detail: format!("Could not start yt-dlp: {error}"),
@@ -276,14 +293,8 @@ fn playlist_entries(entries: Option<&[YtdlpEntry]>) -> (Vec<LinkPlaylistEntry>, 
 pub fn ytdlp_version() -> Result<String, AppError> {
     let ytdlp = resolve_ytdlp().map_err(|detail| AppError::MediaToolMissing { detail })?;
     let mut command = Command::new(ytdlp);
+    configure_ytdlp_command(&mut command);
     command.arg("--version");
-
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        command.creation_flags(CREATE_NO_WINDOW);
-    }
 
     let output = command.output().map_err(|error| AppError::DecodeFailure {
         detail: format!("Could not start yt-dlp: {error}"),
