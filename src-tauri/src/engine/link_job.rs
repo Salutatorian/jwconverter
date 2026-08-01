@@ -136,10 +136,16 @@ pub fn ytdlp_subtitle_args(job: &LinkDownloadJob) -> Vec<&'static str> {
 }
 
 pub fn ytdlp_thumbnail_args(job: &LinkDownloadJob) -> Vec<&'static str> {
-    let mut args = Vec::new();
-    if job.save_thumbnail {
-        args.push("--write-thumbnail");
+    // Always embed cover art when requested so players / File Explorer show artwork.
+    // Convert to JPEG first — many containers reject WebP thumbnails.
+    if !job.save_thumbnail && !job.embed_thumbnail {
+        return Vec::new();
     }
+    let mut args = vec![
+        "--write-thumbnail",
+        "--convert-thumbnails",
+        "jpg",
+    ];
     if job.embed_thumbnail {
         args.push("--embed-thumbnail");
     }
@@ -248,7 +254,12 @@ mod tests {
         );
         assert_eq!(
             ytdlp_thumbnail_args(&download),
-            vec!["--write-thumbnail", "--embed-thumbnail"]
+            vec![
+                "--write-thumbnail",
+                "--convert-thumbnails",
+                "jpg",
+                "--embed-thumbnail"
+            ]
         );
         assert_eq!(
             ytdlp_live_args(&download),

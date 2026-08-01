@@ -90,7 +90,6 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
   const [cookiesPath, setCookiesPath] = useState<string | null>(null);
   const [downloadSubtitles, setDownloadSubtitles] = useState(false);
   const [saveThumbnail, setSaveThumbnail] = useState(false);
-  const [embedThumbnail, setEmbedThumbnail] = useState(false);
   const [queue, setQueue] = useState<Record<string, QueueItem>>({});
   const [batchId, setBatchId] = useState<string | null>(null);
   const [batchMessage, setBatchMessage] = useState<string | null>(null);
@@ -234,7 +233,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         cookiesPath,
         downloadSubtitles,
         saveThumbnail,
-        embedThumbnail: mode === "audio" && embedThumbnail,
+        embedThumbnail: true,
         batchTitle: info?.title ?? null,
         items,
       });
@@ -393,9 +392,11 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
           <div><p className="text-xs text-[var(--text-muted)]">Cookies (optional)</p><div className="action-row mt-1"><button type="button" className="btn btn-secondary" disabled={disabled} onClick={() => void chooseCookies()}>Choose cookies file</button>{cookiesPath ? <><span className="truncate text-xs text-[var(--text-muted)]">{cookiesPath}</span><button type="button" className="btn btn-secondary" disabled={disabled} onClick={() => setCookiesPath(null)}>Clear</button></> : null}</div></div>
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <label><input type="checkbox" checked={downloadSubtitles} disabled={disabled} onChange={(event) => setDownloadSubtitles(event.target.checked)} /> Download subtitles</label>
-            <label><input type="checkbox" checked={saveThumbnail} disabled={disabled} onChange={(event) => setSaveThumbnail(event.target.checked)} /> Save thumbnail</label>
-            {mode === "audio" ? <label><input type="checkbox" checked={embedThumbnail} disabled={disabled} onChange={(event) => setEmbedThumbnail(event.target.checked)} /> Embed thumbnail</label> : null}
+            <label><input type="checkbox" checked={saveThumbnail} disabled={disabled} onChange={(event) => setSaveThumbnail(event.target.checked)} /> Also save thumbnail as a separate image</label>
           </div>
+          <p className="text-xs text-[var(--text-muted)]">
+            Thumbnails are always embedded in the file so artwork shows when you play it.
+          </p>
         </div>
       </section>
 

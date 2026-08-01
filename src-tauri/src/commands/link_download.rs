@@ -156,7 +156,8 @@ fn build_job(request: &LinkBatchRequest, item: LinkDownloadItemRequest) -> Resul
         cookies_path: request.cookies_path.clone().filter(|path| !path.trim().is_empty()),
         download_subtitles: request.download_subtitles,
         save_thumbnail: request.save_thumbnail,
-        embed_thumbnail: request.embed_thumbnail,
+        // Always embed so players show the video artwork / cover when you play the file.
+        embed_thumbnail: true,
         live_max_minutes: request.live_max_minutes,
         status: JobStatus::Queued,
     })
