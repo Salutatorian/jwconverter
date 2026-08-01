@@ -29,6 +29,14 @@ tests/fixtures/generated/
 # Accidental npm stdout dumps
 src-tauri/2
 
+# Secrets / local keys (never commit)
+.env
+.env.*
+*.pem
+*.key
+!src-tauri/icons/**
+*.key.password.txt
+
 # Local MSVC debug leftovers
 *.pdb
 

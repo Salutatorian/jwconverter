@@ -21,8 +21,8 @@ html[data-theme="system"] {
   --radius: 16px;
   --radius-lg: 22px;
   --radius-pill: 999px;
-  --font: "Sora", "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-family: var(--font);
   font-synthesis: none;
   text-rendering: optimizeLegibility;

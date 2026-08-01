@@ -136,7 +136,7 @@ pub fn resolve_magick() -> Option<PathBuf> {
     None
 }
 
-/// Resolve yt-dlp sidecar for experimental Links (metadata / future downloads).
+/// Resolve yt-dlp sidecar for Links downloads / inspect.
 pub fn resolve_ytdlp() -> Result<PathBuf, String> {
     if let Ok(path) = std::env::var("CONVERTER_YTDLP") {
         let path = PathBuf::from(path);
@@ -162,9 +162,25 @@ pub fn resolve_ytdlp() -> Result<PathBuf, String> {
     }
 
     Err(format!(
-        "yt-dlp was not found. Experimental Links needs the local yt-dlp sidecar. Place {} in src-tauri/binaries/ or set CONVERTER_YTDLP.",
+        "yt-dlp was not found. Links needs the local yt-dlp sidecar. Place {} in src-tauri/binaries/ or set CONVERTER_YTDLP.",
         YTDLP_NAME
     ))
+}
+
+/// In-app updates may only replace the bundled/app-local yt-dlp, never PATH / CONVERTER_YTDLP overrides.
+pub fn ytdlp_update_allowed(path: &Path) -> bool {
+    if std::env::var_os("CONVERTER_YTDLP").is_some() {
+        return false;
+    }
+    let Ok(canonical) = path.canonicalize() else {
+        return false;
+    };
+    candidate_binary_dirs().into_iter().any(|dir| {
+        let Ok(dir) = dir.canonicalize() else {
+            return false;
+        };
+        canonical.starts_with(dir)
+    })
 }
 
 fn candidate_binary_dirs() -> Vec<PathBuf> {

@@ -2,7 +2,9 @@
 
 Local-first converter for **audio**, **images**, and **public media links** — Windows primary, with macOS and Linux builds.
 
-Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; images use ImageMagick; Links uses yt-dlp. Everything runs on your machine.
+Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; images use ImageMagick; Links uses yt-dlp. Everything runs on your machine — **no app backend, no accounts, no cloud upload, no telemetry**.
+
+Outbound network is only for: signed app updates (GitHub Releases), optional yt-dlp self-update (checksum-verified), user-pasted media hosts via yt-dlp, and Settings links you click.
 
 ## Download
 

@@ -65,13 +65,31 @@ pub fn validate_media_url(input: &str) -> Result<SafeMediaUrl, AppError> {
     })?;
 
     let host_lower = host.to_ascii_lowercase();
-    if host_lower == "localhost" || host_lower.ends_with(".localhost") {
+    if host_lower == "localhost"
+        || host_lower.ends_with(".localhost")
+        || host_lower.ends_with(".local")
+        || host_lower == "localtest.me"
+        || host_lower.ends_with(".localtest.me")
+    {
         return Err(AppError::PermissionDenied {
             detail: "Localhost links are not allowed in Links.".to_string(),
         });
     }
 
-    if let Ok(ip) = host.parse::<IpAddr>() {
+    if let Some(url::Host::Ipv4(v4)) = parsed.host() {
+        if is_blocked_ip(IpAddr::V4(v4)) {
+            return Err(AppError::PermissionDenied {
+                detail: "Private or local network addresses are not allowed in Links.".to_string(),
+            });
+        }
+    } else if let Some(url::Host::Ipv6(v6)) = parsed.host() {
+        if is_blocked_ip(IpAddr::V6(v6)) {
+            return Err(AppError::PermissionDenied {
+                detail: "Private or local network addresses are not allowed in Links.".to_string(),
+            });
+        }
+    } else if let Ok(ip) = host.parse::<IpAddr>() {
+        // Hostname that happens to be an IP literal without Host::Ipv*
         if is_blocked_ip(ip) {
             return Err(AppError::PermissionDenied {
                 detail: "Private or local network addresses are not allowed in Links.".to_string(),
@@ -87,14 +105,20 @@ pub fn validate_media_url(input: &str) -> Result<SafeMediaUrl, AppError> {
 fn is_blocked_ip(ip: IpAddr) -> bool {
     match ip {
         IpAddr::V4(v4) => {
+            let octets = v4.octets();
             v4.is_loopback()
                 || v4.is_private()
                 || v4.is_link_local()
                 || v4.is_broadcast()
                 || v4.is_unspecified()
-                || v4.octets()[0] == 0
+                || octets[0] == 0
+                // Carrier-grade NAT 100.64.0.0/10
+                || (octets[0] == 100 && octets[1] >= 64 && octets[1] <= 127)
         }
         IpAddr::V6(v6) => {
+            if let Some(mapped) = v6.to_ipv4_mapped() {
+                return is_blocked_ip(IpAddr::V4(mapped));
+            }
             v6.is_loopback()
                 || v6.is_unique_local()
                 || v6.is_unicast_link_local()
@@ -171,12 +195,15 @@ mod tests {
     fn rejects_localhost() {
         assert!(validate_media_url("http://localhost:8080/a").is_err());
         assert!(validate_media_url("http://127.0.0.1/a").is_err());
+        assert!(validate_media_url("http://[::ffff:127.0.0.1]/a").is_err());
+        assert!(validate_media_url("http://foo.local/a").is_err());
     }
 
     #[test]
     fn rejects_private_lan() {
         assert!(validate_media_url("http://192.168.1.10/v").is_err());
         assert!(validate_media_url("http://10.0.0.5/v").is_err());
+        assert!(validate_media_url("http://100.64.1.2/v").is_err());
     }
 
     #[test]

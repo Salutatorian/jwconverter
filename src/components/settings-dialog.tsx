@@ -249,9 +249,10 @@ export function SettingsDialog({
                     {appInfo ? ` · v${appInfo.version}` : null}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-                    Local-first audio and image conversion. No accounts, no
-                    cloud upload, no telemetry. HEIC can be imported; HEIC
-                    export needs a future ImageMagick build with write support.
+                    Local-first audio, image, and link conversion. No accounts, no
+                    cloud upload, no telemetry, no app backend — everything runs on
+                    your machine. HEIC can be imported; HEIC export needs a future
+                    ImageMagick build with write support.
                   </p>
                 </div>
 
