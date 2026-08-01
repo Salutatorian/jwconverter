@@ -307,23 +307,27 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         <div className="action-row mt-3">
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-secondary"
             disabled={!urls.length || disabled}
             onClick={() => {
               void handleAnalyze();
             }}
           >
-            {busy === "analyze" ? "Analyzing…" : "Analyze first URL"}
+            {busy === "analyze" ? "Analyzing…" : "Analyze"}
           </button>
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-primary"
             disabled={!urls.length || !destination || disabled}
             onClick={() => {
               void handleEnqueue();
             }}
           >
-            {info?.isLive ? `Record ${liveMaxMinutes} min` : "Add URLs to queue"}
+            {busy === "enqueue"
+              ? "Starting…"
+              : info?.isLive
+                ? `Record ${liveMaxMinutes} min`
+                : "Download"}
           </button>
           <button
             type="button"
@@ -337,7 +341,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
           </button>
         </div>
         <p className="mt-2 text-xs text-[var(--text-muted)]">
-          One URL per line. Compatibility varies by service.
+          One URL per line. Analyze is optional — hit Download when ready.
         </p>
       </section>
 
@@ -372,7 +376,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         </div>
         <div className="action-row mt-3">
           <button type="button" className="btn btn-primary" disabled={!destination || !playlistUrls(info.entries).length || disabled}
-            onClick={() => void handleEnqueue(playlistUrls(info.entries))}>Enqueue selected</button>
+            onClick={() => void handleEnqueue(playlistUrls(info.entries))}>Download selected</button>
         </div>
       </section> : null}
 
