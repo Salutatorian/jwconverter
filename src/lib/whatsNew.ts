@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.3",
+    changes: [
+      "Security hardening: checksum-verified yt-dlp updates, tighter Links URL blocking, Settings link allowlist",
+      "Fully local UI fonts — no Google Fonts network call on launch",
+    ],
+    debugs: [
+      "In-app yt-dlp update only replaces the bundled copy (unset CONVERTER_YTDLP if update is blocked)",
+    ],
+  },
+  {
     version: "1.0.2",
     changes: [
       "Links no longer flashes a terminal or freezes when you open the tab (hidden yt-dlp version check)",

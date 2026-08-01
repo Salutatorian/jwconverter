@@ -55,8 +55,10 @@ $notes = @"
 
 From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
 
-### What's new in 1.0.2
-- **Links tab:** no more console flash / freeze when opening Links (yt-dlp version check runs hidden)
+### What's new in 1.0.3
+- **Security:** yt-dlp self-update is SHA-256 verified and GitHub-host only; Links URL blocking tightened; Settings opener allowlisted
+- **Privacy:** no Google Fonts network call — fully local UI fonts
+- Still **no app backend**, no accounts, no cloud upload, no telemetry
 
 ### Notes
 - Windows 10/11 x64 + WebView2
