@@ -7,6 +7,15 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.4",
+    changes: [
+      "Links downloads always embed the video thumbnail so artwork shows when you play audio or video",
+    ],
+    debugs: [
+      "Optional: also save the thumbnail as a separate image file next to the download",
+    ],
+  },
+  {
     version: "1.0.3",
     changes: [
       "Security hardening: checksum-verified yt-dlp updates, tighter Links URL blocking, Settings link allowlist",

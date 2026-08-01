@@ -55,10 +55,9 @@ $notes = @"
 
 From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
 
-### What's new in 1.0.3
-- **Security:** yt-dlp self-update is SHA-256 verified and GitHub-host only; Links URL blocking tightened; Settings opener allowlisted
-- **Privacy:** no Google Fonts network call — fully local UI fonts
-- Still **no app backend**, no accounts, no cloud upload, no telemetry
+### What's new in 1.0.4
+- **Links:** video thumbnails are always embedded in downloads so artwork shows when you play audio or video
+- Optional: also save the thumbnail as a separate image file
 
 ### Notes
 - Windows 10/11 x64 + WebView2

@@ -8,7 +8,7 @@ Outbound network is only for: signed app updates (GitHub Releases), optional yt-
 
 ## Download
 
-**[Download JW Converter (v1.0.3)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.3)**
+**[Download JW Converter (v1.0.4)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.4)**
 
 - **Windows:** signed `.exe` installer (recommended day-to-day build + in-app Update)
 - **macOS:** `.dmg` for Apple Silicon — **unsigned**; first launch: right-click the app → **Open** (Gatekeeper). Notarization comes later.
@@ -57,6 +57,7 @@ Windows installer with bundled FFmpeg + ImageMagick + yt-dlp.
 
 ## Status
 
+**v1.0.4** — Links embeds video thumbnails so artwork shows when you play.  
 **v1.0.3** — Security hardening (yt-dlp checksums, URL blocking, opener allowlist, no Google Fonts).  
 **v1.0.2** — Links tab no longer flashes a console / freezes on open.  
 **v1.0.1** — Multi Links downloads package into one .zip.  
