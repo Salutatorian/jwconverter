@@ -55,9 +55,8 @@ $notes = @"
 
 From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
 
-### What's new in 1.0.4
-- **Links:** video thumbnails are always embedded in downloads so artwork shows when you play audio or video
-- Optional: also save the thumbnail as a separate image file
+### What's new in 1.0.5
+- **Audio / Images / Links:** big sticky **Convert** / **Download** button at the bottom — always visible, never buried
 
 ### Notes
 - Windows 10/11 x64 + WebView2

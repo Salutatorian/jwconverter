@@ -398,6 +398,39 @@ button:focus-visible,
   filter: brightness(0.92);
 }
 
+.btn-primary-hero {
+  width: 100%;
+  min-height: 3rem;
+  border-radius: var(--radius);
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.primary-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  margin-top: 0.5rem;
+  margin-inline: -1.35rem;
+  margin-bottom: -2.75rem;
+  padding: 0.85rem 1.35rem 1.15rem;
+  border-top: 1px solid var(--border-strong);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.primary-action-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 .btn-secondary {
   border: 1px solid var(--border-strong);
   background: transparent;

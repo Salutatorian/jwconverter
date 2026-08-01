@@ -7,6 +7,13 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.5",
+    changes: [
+      "Big sticky Convert / Download bar on Audio, Images, and Links — the main action is always visible",
+    ],
+    debugs: [],
+  },
+  {
     version: "1.0.4",
     changes: [
       "Links downloads always embed the video thumbnail so artwork shows when you play audio or video",

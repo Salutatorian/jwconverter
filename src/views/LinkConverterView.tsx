@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BitDepthPicker } from "../components/BitDepthPicker";
 import { DestinationPicker } from "../components/DestinationPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
+import { PrimaryActionBar } from "../components/PrimaryActionBar";
 import { QualityPicker } from "../components/QualityPicker";
 import {
   analyzeLink,
@@ -317,20 +318,6 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
           </button>
           <button
             type="button"
-            className="btn btn-primary"
-            disabled={!urls.length || !destination || disabled}
-            onClick={() => {
-              void handleEnqueue();
-            }}
-          >
-            {busy === "enqueue"
-              ? "Starting…"
-              : info?.isLive
-                ? `Record ${liveMaxMinutes} min`
-                : "Download"}
-          </button>
-          <button
-            type="button"
             className="btn btn-secondary"
             disabled={busy === "update"}
             onClick={() => {
@@ -341,7 +328,7 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
           </button>
         </div>
         <p className="mt-2 text-xs text-[var(--text-muted)]">
-          One URL per line. Analyze is optional — hit Download when ready.
+          One URL per line. Use the Download button at the bottom when ready.
         </p>
       </section>
 
@@ -375,8 +362,10 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
           </label>)}
         </div>
         <div className="action-row mt-3">
-          <button type="button" className="btn btn-primary" disabled={!destination || !playlistUrls(info.entries).length || disabled}
-            onClick={() => void handleEnqueue(playlistUrls(info.entries))}>Download selected</button>
+          <button type="button" className="btn btn-secondary" disabled={!destination || !playlistUrls(info.entries).length || disabled}
+            onClick={() => void handleEnqueue(playlistUrls(info.entries))}>
+            Download selected ({selectedEntries.size})
+          </button>
         </div>
       </section> : null}
 
@@ -438,6 +427,43 @@ export function LinkConverterView({ appInfo }: LinkConverterViewProps) {
         <div className="flex items-center justify-between gap-3"><h2 className="panel-title">History</h2><button type="button" className="btn btn-secondary" disabled={!history.length} onClick={() => void clearLinkHistory().then(refreshHistory)}>Clear</button></div>
         {history.length ? <div className="mt-3 space-y-2">{history.map((item) => <div key={item.jobId} className="text-sm"><p>{item.title ?? item.url ?? "Untitled link"}</p><p className="text-xs text-[var(--text-muted)]">{item.status}{item.outputPath ? ` · ${item.outputPath}` : ""}</p></div>)}</div> : <p className="mt-2 text-sm text-[var(--text-muted)]">No download history yet.</p>}
       </section>
+
+      <PrimaryActionBar
+        label={
+          info?.isPlaylist && selectedEntries.size > 0
+            ? `Download selected (${selectedEntries.size})`
+            : info?.isLive
+              ? `Record ${liveMaxMinutes} min`
+              : urls.length > 1
+                ? `Download ${urls.length}`
+                : "Download"
+        }
+        busyLabel="Starting…"
+        busy={busy === "enqueue"}
+        disabled={
+          disabled ||
+          !destination ||
+          (info?.isPlaylist
+            ? playlistUrls(info.entries).length === 0
+            : urls.length === 0)
+        }
+        hint={
+          !destination
+            ? "Choose a destination folder first"
+            : urls.length === 0
+              ? "Paste a media URL above"
+              : info?.isPlaylist && selectedEntries.size === 0
+                ? "Select playlist items to download"
+                : null
+        }
+        onAction={() => {
+          if (info?.isPlaylist) {
+            void handleEnqueue(playlistUrls(info.entries));
+          } else {
+            void handleEnqueue();
+          }
+        }}
+      />
     </div>
   );
 }

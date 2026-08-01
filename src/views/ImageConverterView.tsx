@@ -8,6 +8,7 @@ import { ImageFileQueue } from "../components/ImageFileQueue";
 import { ImageMetadataPicker } from "../components/ImageMetadataPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import { PreflightModal } from "../components/PreflightModal";
+import { PrimaryActionBar } from "../components/PrimaryActionBar";
 import { useImageBatchConversion } from "../hooks/useImageBatchConversion";
 import { useImageFileQueue } from "../hooks/useImageFileQueue";
 import {
@@ -305,20 +306,6 @@ export function ImageConverterView({
             >
               Choose folder
             </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={!canConvert}
-              onClick={() => {
-                void handleConvert();
-              }}
-            >
-              {batch.isBusy
-                ? "Converting…"
-                : convertibleItems.length > 1
-                  ? `Convert ${convertibleItems.length}`
-                  : "Convert"}
-            </button>
           </div>
         }
       />
@@ -485,6 +472,27 @@ export function ImageConverterView({
           }
         />
       ) : null}
+
+      <PrimaryActionBar
+        label={
+          convertibleItems.length > 1
+            ? `Convert ${convertibleItems.length}`
+            : "Convert"
+        }
+        busyLabel="Converting…"
+        busy={batch.isBusy}
+        disabled={!canConvert}
+        hint={
+          !destination
+            ? "Choose a destination folder first"
+            : convertibleItems.length === 0
+              ? "Add images to convert"
+              : null
+        }
+        onAction={() => {
+          void handleConvert();
+        }}
+      />
     </div>
   );
 }

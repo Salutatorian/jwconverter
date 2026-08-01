@@ -10,6 +10,7 @@ import { FormatPicker } from "../components/FormatPicker";
 import { MetadataPicker } from "../components/MetadataPicker";
 import { OverwritePicker } from "../components/OverwritePicker";
 import { PreflightModal } from "../components/PreflightModal";
+import { PrimaryActionBar } from "../components/PrimaryActionBar";
 import { QualityPicker } from "../components/QualityPicker";
 import { useBatchConversion } from "../hooks/useBatchConversion";
 import { useFileQueue } from "../hooks/useFileQueue";
@@ -316,20 +317,6 @@ export function ConverterView({ appInfo, onBusyChange }: ConverterViewProps) {
             >
               Choose folder
             </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={!canConvert}
-              onClick={() => {
-                void handleConvert();
-              }}
-            >
-              {batch.isBusy
-                ? "Converting…"
-                : convertibleItems.length > 1
-                  ? `Convert ${convertibleItems.length}`
-                  : "Convert"}
-            </button>
           </div>
         }
       />
@@ -457,6 +444,27 @@ export function ConverterView({ appInfo, onBusyChange }: ConverterViewProps) {
           }
         />
       ) : null}
+
+      <PrimaryActionBar
+        label={
+          convertibleItems.length > 1
+            ? `Convert ${convertibleItems.length}`
+            : "Convert"
+        }
+        busyLabel="Converting…"
+        busy={batch.isBusy}
+        disabled={!canConvert}
+        hint={
+          !destination
+            ? "Choose a destination folder first"
+            : convertibleItems.length === 0
+              ? "Add audio files to convert"
+              : null
+        }
+        onAction={() => {
+          void handleConvert();
+        }}
+      />
     </div>
   );
 }
