@@ -15,6 +15,9 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
   } = updater;
 
   const isBusy = status === "checking" || status === "downloading";
+  const showProgress = status === "checking" || status === "downloading";
+  const percent = downloadPercent ?? 0;
+  const isIndeterminate = status === "checking" || downloadPercent == null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -50,6 +53,46 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
             ? "Checking for updates…"
             : "Checks on launch and every few hours."}
         </p>
+      ) : null}
+
+      {showProgress ? (
+        <div className="settings-update-progress">
+          <div
+            className={
+              isIndeterminate
+                ? "update-progress-track update-progress-track--compact update-progress-track--indeterminate"
+                : "update-progress-track update-progress-track--compact"
+            }
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={isIndeterminate ? undefined : percent}
+            aria-busy={isIndeterminate || undefined}
+            aria-label={
+              status === "checking"
+                ? "Checking for updates"
+                : "Update download progress"
+            }
+          >
+            <div
+              className={
+                isIndeterminate
+                  ? "update-progress-fill update-progress-fill--indeterminate"
+                  : "update-progress-fill"
+              }
+              style={
+                isIndeterminate
+                  ? undefined
+                  : { width: `${Math.min(100, Math.max(0, percent))}%` }
+              }
+            />
+          </div>
+          {status === "downloading" ? (
+            <p className="settings-update-progress-label">
+              {downloadPercent == null ? "Starting…" : `${percent}%`}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="flex flex-wrap gap-2">

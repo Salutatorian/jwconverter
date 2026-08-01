@@ -106,7 +106,8 @@ pub fn format_selector(job: &LinkDownloadJob) -> String {
             LinkVideoQuality::Best => "bv*+ba/b".to_string(),
             LinkVideoQuality::Height(height) => format!("bv*[height<={height}]+ba/b"),
         },
-        LinkMediaMode::Audio => "ba/b".to_string(),
+        // Prefer m4a/mp3 so cover art can be embedded; fall back to best audio.
+        LinkMediaMode::Audio => "ba[ext=m4a]/ba[ext=mp3]/ba/b".to_string(),
     }
 }
 
@@ -136,8 +137,9 @@ pub fn ytdlp_subtitle_args(job: &LinkDownloadJob) -> Vec<&'static str> {
 }
 
 pub fn ytdlp_thumbnail_args(job: &LinkDownloadJob) -> Vec<&'static str> {
-    // Always embed cover art when requested so players / File Explorer show artwork.
-    // Convert to JPEG first — many containers reject WebP thumbnails.
+    // Write a JPEG sidecar for embedding. yt-dlp --embed-thumbnail fails on
+    // webm/opus and would abort a successful download, so we only let yt-dlp
+    // embed for video (mp4). Audio cover is attached with FFmpeg after download.
     if !job.save_thumbnail && !job.embed_thumbnail {
         return Vec::new();
     }
@@ -146,7 +148,7 @@ pub fn ytdlp_thumbnail_args(job: &LinkDownloadJob) -> Vec<&'static str> {
         "--convert-thumbnails",
         "jpg",
     ];
-    if job.embed_thumbnail {
+    if job.embed_thumbnail && matches!(job.mode, LinkMediaMode::Video) {
         args.push("--embed-thumbnail");
     }
     args
@@ -214,7 +216,7 @@ mod tests {
     #[test]
     fn plans_audio_remux_without_ytdlp_extract() {
         let download = job(LinkMediaMode::Audio);
-        assert_eq!(format_selector(&download), "ba/b");
+        assert_eq!(format_selector(&download), "ba[ext=m4a]/ba[ext=mp3]/ba/b");
         assert_eq!(download.processing_mode(), LinkProcessingMode::Remux);
         assert!(ytdlp_mode_args(&download).is_empty());
         assert_eq!(download.audio_format.output_format(), None);
@@ -224,7 +226,7 @@ mod tests {
     fn plans_audio_transcode_without_ytdlp_extract() {
         let mut download = job(LinkMediaMode::Audio);
         download.audio_format = LinkAudioFormat::Opus;
-        assert_eq!(format_selector(&download), "ba/b");
+        assert_eq!(format_selector(&download), "ba[ext=m4a]/ba[ext=mp3]/ba/b");
         assert_eq!(download.processing_mode(), LinkProcessingMode::Transcode);
         assert!(ytdlp_mode_args(&download).is_empty());
         assert_eq!(
@@ -252,6 +254,12 @@ mod tests {
             ytdlp_subtitle_args(&download),
             vec!["--write-subs", "--write-auto-subs", "--sub-langs", "all"]
         );
+        // Audio: write JPEG only (FFmpeg embeds later). Video also gets --embed-thumbnail.
+        assert_eq!(
+            ytdlp_thumbnail_args(&download),
+            vec!["--write-thumbnail", "--convert-thumbnails", "jpg"]
+        );
+        download.mode = LinkMediaMode::Video;
         assert_eq!(
             ytdlp_thumbnail_args(&download),
             vec![

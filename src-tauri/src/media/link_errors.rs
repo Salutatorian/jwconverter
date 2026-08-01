@@ -157,13 +157,56 @@ pub fn map_ytdlp_message(stderr: &str, for_download: bool) -> (LinkErrorCategory
     }
 
     let action = if for_download { "download" } else { "inspect" };
+    let detail = redact_urls_in_text(&tail);
+    let detail = if detail.chars().count() > 220 {
+        let clipped: String = detail.chars().take(220).collect();
+        format!("{clipped}…")
+    } else {
+        detail
+    };
     (
         LinkErrorCategory::Other,
-        format!(
-            "Could not {action} this link. ({})",
-            redact_url_for_log(&tail)
-        ),
+        format!("Could not {action} this link. ({detail})"),
     )
+}
+
+/// Redact http(s) URLs embedded in free-form stderr (do not parse the whole line as a URL).
+fn redact_urls_in_text(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(rel) = find_url_offset(rest) {
+        let (before, from_url) = rest.split_at(rel);
+        out.push_str(before);
+        let end = url_end_index(from_url);
+        let (url, after) = from_url.split_at(end);
+        let redacted = redact_url_for_log(url);
+        if redacted == "[unparseable-url]" {
+            out.push_str("[url]");
+        } else {
+            out.push_str(&redacted);
+        }
+        rest = after;
+    }
+    out.push_str(rest);
+    out
+}
+
+fn find_url_offset(text: &str) -> Option<usize> {
+    let http = text.find("http://");
+    let https = text.find("https://");
+    match (http, https) {
+        (Some(a), Some(b)) => Some(a.min(b)),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    }
+}
+
+fn url_end_index(text: &str) -> usize {
+    text.char_indices()
+        .find(|(_, ch)| ch.is_whitespace() || matches!(ch, '<' | '>' | '"' | '\'' | ')' | ']' | ','))
+        .map(|(idx, _)| idx)
+        .unwrap_or(text.len())
 }
 
 pub fn classify_app_error_message(message: &str) -> LinkErrorCategory {
@@ -258,5 +301,17 @@ mod tests {
         );
         assert_eq!(cat, LinkErrorCategory::Other);
         assert!(!msg.contains("secret"));
+        assert!(msg.contains("redacted"));
+    }
+
+    #[test]
+    fn does_not_treat_full_stderr_as_url() {
+        let (cat, msg) = map_ytdlp_message(
+            "ERROR: Postprocessing: Supported filetypes for thumbnail embedding are: mp3, m4a",
+            true,
+        );
+        assert_eq!(cat, LinkErrorCategory::Other);
+        assert!(!msg.contains("[unparseable-url]"));
+        assert!(msg.contains("thumbnail embedding") || msg.contains("Supported filetypes"));
     }
 }

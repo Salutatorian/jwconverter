@@ -82,13 +82,19 @@ pub fn run_job(
         return Err(AppError::ConversionCancelled);
     }
     if !result.success {
-        cleanup_download_temps(&destination_dir, &temp_stem);
-        let (_category, mapped) = crate::media::link_errors::map_ytdlp_message(&result.stderr, true);
-        return Err(if mapped.contains("free space") {
-            AppError::DiskFull { detail: mapped }
-        } else {
-            AppError::DecodeFailure { detail: mapped }
-        });
+        // Thumbnail postprocess can fail (e.g. webm) after the media file is already saved.
+        let recovered = thumbnail_postprocess_failed(&result.stderr)
+            && find_download_output(&destination_dir, &temp_stem).is_ok();
+        if !recovered {
+            cleanup_download_temps(&destination_dir, &temp_stem);
+            let (_category, mapped) =
+                crate::media::link_errors::map_ytdlp_message(&result.stderr, true);
+            return Err(if mapped.contains("free space") {
+                AppError::DiskFull { detail: mapped }
+            } else {
+                AppError::DecodeFailure { detail: mapped }
+            });
+        }
     }
 
     let temp_path = find_download_output(&destination_dir, &temp_stem)?;
@@ -113,6 +119,12 @@ fn finalize_remux(
     (callbacks.on_status)(JobStatus::Verifying, "Verifying downloaded media");
     (callbacks.on_progress)(Some(95.0));
     verify_output(temp_path, job.mode)?;
+
+    if job.embed_thumbnail && matches!(job.mode, LinkMediaMode::Audio) {
+        if let Some(cover) = find_thumbnail(destination_dir, temp_stem) {
+            let _ = ffmpeg::embed_cover_image(temp_path, &cover);
+        }
+    }
 
     let extension = temp_path
         .extension()
@@ -214,12 +226,26 @@ fn transcode_acquired(
         status: JobStatus::Queued,
     };
 
+    let cover = if job.embed_thumbnail {
+        find_thumbnail(destination_dir, temp_stem)
+    } else {
+        None
+    };
+    if let Some(cover) = cover.as_ref() {
+        let _ = ffmpeg::embed_cover_image(temp_path, cover);
+    }
+
     let outcome = runner::run_job(
         &conversion,
         job.duration_seconds,
         active,
         &convert_callbacks,
     );
+    if let (Ok(result), Some(cover)) = (&outcome, cover.as_ref()) {
+        if matches!(result.status, JobStatus::Completed) {
+            let _ = ffmpeg::embed_cover_image(Path::new(&result.output_path), cover);
+        }
+    }
     cleanup_download_temps(destination_dir, temp_stem);
     let result = outcome?;
     Ok(LinkDownloadResult {
@@ -429,6 +455,23 @@ fn find_download_output(destination_dir: &Path, temp_stem: &str) -> Result<PathB
         })
 }
 
+fn thumbnail_postprocess_failed(stderr: &str) -> bool {
+    let lower = stderr.to_ascii_lowercase();
+    lower.contains("thumbnail embedding")
+        || lower.contains("supported filetypes for thumbnail")
+        || (lower.contains("postprocessing") && lower.contains("thumbnail"))
+}
+
+fn find_thumbnail(destination_dir: &Path, temp_stem: &str) -> Option<PathBuf> {
+    std::fs::read_dir(destination_dir).ok().and_then(|entries| {
+        entries.filter_map(Result::ok).map(|entry| entry.path()).find(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with(temp_stem) && is_thumbnail_extension(path))
+        })
+    })
+}
+
 fn is_thumbnail_extension(path: &Path) -> bool {
     matches!(
         path.extension().and_then(|extension| extension.to_str()),
@@ -452,16 +495,7 @@ fn move_thumbnail(
     if !save_thumbnail {
         return Ok(());
     }
-    let Some(thumbnail) = std::fs::read_dir(destination_dir)
-        .ok()
-        .and_then(|entries| {
-            entries.filter_map(Result::ok).map(|entry| entry.path()).find(|path| {
-                path.file_name()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.starts_with(temp_stem) && is_thumbnail_extension(path))
-            })
-        })
-    else {
+    let Some(thumbnail) = find_thumbnail(destination_dir, temp_stem) else {
         return Ok(());
     };
     let extension = thumbnail.extension().and_then(|value| value.to_str()).unwrap_or("jpg");
@@ -598,7 +632,7 @@ mod tests {
     fn original_audio_uses_remux_without_extract_flags() {
         let job = audio_job(LinkAudioFormat::Original);
         assert_eq!(job.processing_mode(), LinkProcessingMode::Remux);
-        assert_eq!(format_selector(&job), "ba/b");
+        assert_eq!(format_selector(&job), "ba[ext=m4a]/ba[ext=mp3]/ba/b");
         assert!(ytdlp_mode_args(&job).is_empty());
     }
 
@@ -606,7 +640,7 @@ mod tests {
     fn transcode_audio_acquires_without_ytdlp_audio_format() {
         let job = audio_job(LinkAudioFormat::Mp3);
         assert_eq!(job.processing_mode(), LinkProcessingMode::Transcode);
-        assert_eq!(format_selector(&job), "ba/b");
+        assert_eq!(format_selector(&job), "ba[ext=m4a]/ba[ext=mp3]/ba/b");
         assert!(ytdlp_mode_args(&job).is_empty());
     }
 }

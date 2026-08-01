@@ -97,6 +97,7 @@ export function useUpdater(): UseUpdaterResult {
       checkingRef.current = true;
       setStatus("checking");
       setError(null);
+      setDownloadPercent(null);
 
       try {
         const update = await check();

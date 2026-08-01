@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.6",
+    changes: [
+      "Links: YouTube audio downloads no longer fail when embedding cover art (webm / thumbnail bug)",
+      "Settings → Updates: progress bar while checking and downloading",
+    ],
+    debugs: [
+      "Clearer Links error messages instead of the misleading [unparseable-url] text",
+    ],
+  },
+  {
     version: "1.0.5",
     changes: [
       "Big sticky Convert / Download bar on Audio, Images, and Links — the main action is always visible",

@@ -230,3 +230,80 @@ pub fn kill_child(child: &Arc<Mutex<Option<Child>>>) {
         *guard = None;
     }
 }
+
+/// Embed a JPEG/PNG cover into an audio container that supports attached pictures.
+/// No-op when the media format cannot carry cover art.
+pub fn embed_cover_image(media: &Path, cover: &Path) -> Result<(), AppError> {
+    if !path_supports_embedded_cover(media) || !cover.is_file() || !media.is_file() {
+        return Ok(());
+    }
+    let ffmpeg = resolve_ffmpeg_required()?;
+    let extension = media
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("m4a");
+    let temp_out = media.with_extension(format!("jwcover.tmp.{extension}"));
+
+    let mut command = Command::new(&ffmpeg);
+    command
+        .arg("-hide_banner")
+        .arg("-nostdin")
+        .arg("-y")
+        .arg("-protocol_whitelist")
+        .arg("file,pipe,fd")
+        .arg("-i")
+        .arg(media)
+        .arg("-i")
+        .arg(cover)
+        .arg("-map")
+        .arg("0:a:0")
+        .arg("-map")
+        .arg("1:0")
+        .arg("-c")
+        .arg("copy")
+        .arg("-c:v")
+        .arg("mjpeg")
+        .arg("-disposition:v:0")
+        .arg("attached_pic")
+        .arg("-map_metadata")
+        .arg("0");
+
+    if extension.eq_ignore_ascii_case("mp3") {
+        command.arg("-id3v2_version").arg("3");
+    }
+
+    command.arg(&temp_out);
+    command.stdout(Stdio::null()).stderr(Stdio::piped());
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let output = command.output().map_err(|error| AppError::MediaToolMissing {
+        detail: format!("Failed to start FFmpeg for cover embed: {error}"),
+    })?;
+    if !output.status.success() {
+        let _ = std::fs::remove_file(&temp_out);
+        return Ok(());
+    }
+    std::fs::rename(&temp_out, media).map_err(|error| {
+        let _ = std::fs::remove_file(&temp_out);
+        AppError::DestinationUnavailable {
+            detail: format!("Could not write embedded cover art: {error}"),
+        }
+    })?;
+    Ok(())
+}
+
+fn path_supports_embedded_cover(path: &Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|value| value.to_str())
+            .map(|value| value.to_ascii_lowercase())
+            .as_deref(),
+        Some("mp3" | "m4a" | "flac" | "ogg" | "opus" | "alac")
+    )
+}
