@@ -8,7 +8,7 @@ Outbound network is only for: signed app updates (GitHub Releases), optional yt-
 
 ## Download
 
-**[Download JW Converter (v1.0.5)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.5)**
+**[Download JW Converter (v1.0.8)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.8)**
 
 - **Windows:** signed `.exe` installer (recommended day-to-day build + in-app Update)
 - **macOS:** `.dmg` for Apple Silicon — **unsigned**; first launch: right-click the app → **Open** (Gatekeeper). Notarization comes later.
@@ -16,7 +16,7 @@ Outbound network is only for: signed app updates (GitHub Releases), optional yt-
 
 Grab installers from the latest GitHub Release. On Windows, uninstall anytime from Apps & features or `Uninstall JW Converter.exe` in the install folder. Uninstall warns you and wipes JW Converter app data (settings/cache); your converted files are not deleted.
 
-From **v0.1.2** onward, the Windows app checks for updates on launch (and every few hours). Open **Settings** to update, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
+From **v0.1.2** onward, the app checks for updates on launch (and every few hours). **Windows** can install automatically; **Mac/Linux** get an in-app reminder with a download button. Open **Settings → Updates**, or jump to GitHub / Releases / Issues. After an update, a What's New popup lists changes and fixes.
 
 ## Sneak peek
 

@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.8",
+    changes: [
+      "Mac & Linux: in-app update reminder when a newer release exists (Download update opens the DMG / AppImage)",
+      "Settings → Updates works on every OS — Windows still auto-installs; Mac/Linux open the installer download",
+    ],
+    debugs: [
+      "Mac/Linux still install manually (unsigned builds); full one-click update comes later",
+    ],
+  },
+  {
     version: "1.0.7",
     changes: [
       "Links: fix Windows download crash on titles with special characters (cp1252 / Errno 22)",

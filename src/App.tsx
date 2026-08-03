@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppShell, type MediaMode } from "./components/AppShell";
+import { ManualUpdateBanner } from "./components/ManualUpdateBanner";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { UpdateOverlay } from "./components/UpdateOverlay";
 import { WhatsNewModal } from "./components/WhatsNewModal";
@@ -28,6 +29,11 @@ function App() {
   const updateAvailable =
     updater.status === "available" || updater.status === "downloading";
   const showUpdateOverlay = updater.blockingOverlay;
+  const showManualReminder =
+    updater.manualReminder &&
+    updater.installMode === "manual" &&
+    updater.status === "available" &&
+    !showUpdateOverlay;
   const showLinks = Boolean(appInfo?.linksExperimental);
 
   useEffect(() => {
@@ -69,6 +75,20 @@ function App() {
         <p className="px-6 pt-4 text-sm text-[var(--danger)]" role="alert">
           Could not reach the Rust backend: {ipcError}
         </p>
+      ) : null}
+
+      {showManualReminder && updater.availableVersion ? (
+        <ManualUpdateBanner
+          version={updater.availableVersion}
+          onDownload={() => {
+            void updater.installUpdate();
+          }}
+          onDismiss={updater.dismissManualReminder}
+          onOpenSettings={() => {
+            updater.dismissManualReminder();
+            setSettingsOpen(true);
+          }}
+        />
       ) : null}
 
       <AppShell

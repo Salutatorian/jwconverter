@@ -53,19 +53,19 @@ $notes = @"
 - **macOS:** `.dmg` for Apple Silicon (unsigned) — attached by CI; if missing, wait a few minutes for the Build workflow, then refresh. First open: right-click → **Open** (Gatekeeper)
 - **Linux:** AppImage when CI succeeds
 
-From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). You can still use **Settings → Updates** manually.
+From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). Mac/Linux show an in-app download reminder (Settings → Updates).
 
-### What's new in 1.0.7
-- **Links:** fix Windows crash on titles with special characters (`cp1252` / Errno 22)
-- **Links:** always embed the video thumbnail into audio and video downloads
-- Formats that cannot hold cover art also keep a `.jpg` beside the file
+### What's new in 1.0.8
+- **Mac & Linux:** in-app update reminder when a newer release exists
+- **Download update** opens the DMG / AppImage for your OS
+- Windows auto-install path unchanged
 
 ### Notes
 - Windows 10/11 x64 + WebView2
 - Sources are never modified
 - Bundled FFmpeg/FFprobe — see third_party/FFMPEG-LICENSING.md
 - Bundled yt-dlp — see third_party/THIRD_PARTY_YTDLP.txt
-- macOS not notarized yet
+- macOS not notarized yet (right-click → Open the first time)
 - Images on a clean Mac may still need system Magick if Magick dylib bundling is incomplete
 - Links: DRM / private videos need your own cookies.txt; live caps 5–60 min
 "@

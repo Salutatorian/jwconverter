@@ -760,6 +760,31 @@ button:focus-visible,
 }
 
 /* Full-screen auto-update on launch */
+.manual-update-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, #3b82f6 12%, var(--bg-elevated));
+}
+
+.manual-update-banner-text {
+  margin: 0;
+  flex: 1 1 16rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.manual-update-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 .update-overlay {
   position: fixed;
   inset: 0;

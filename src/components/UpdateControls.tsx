@@ -10,6 +10,7 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
     availableVersion,
     error,
     downloadPercent,
+    installMode,
     checkForUpdates,
     installUpdate,
   } = updater;
@@ -18,6 +19,7 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
   const showProgress = status === "checking" || status === "downloading";
   const percent = downloadPercent ?? 0;
   const isIndeterminate = status === "checking" || downloadPercent == null;
+  const isManual = installMode === "manual";
 
   return (
     <div className="flex flex-col gap-2">
@@ -27,7 +29,9 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
             ? `Downloading v${availableVersion ?? ""}${
                 downloadPercent != null ? ` · ${downloadPercent}%` : ""
               }. The app will restart when done.`
-            : `Update available: v${availableVersion}. It also installs automatically the next time you open the app.`}
+            : isManual
+              ? `Update available: v${availableVersion}. Download the installer for your OS, then replace this app (Mac/Linux are not auto-installed yet).`
+              : `Update available: v${availableVersion}. It also installs automatically the next time you open the app.`}
         </p>
       ) : null}
 
@@ -114,7 +118,11 @@ export function UpdateControls({ updater }: UpdateControlsProps) {
             void installUpdate();
           }}
         >
-          {status === "downloading" ? "Updating…" : "Update"}
+          {status === "downloading"
+            ? "Updating…"
+            : isManual
+              ? "Download update"
+              : "Update"}
         </button>
       </div>
     </div>
