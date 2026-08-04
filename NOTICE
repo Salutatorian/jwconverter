@@ -1,0 +1,8 @@
+JW Converter
+Copyright 2026 JW
+
+This product includes software developed by JW.
+
+Bundled third-party runtime tools (FFmpeg/FFprobe, ImageMagick, yt-dlp) are
+separate works with their own licenses. See the third_party/ directory and the
+THIRD_PARTY_*.txt files installed with the application.

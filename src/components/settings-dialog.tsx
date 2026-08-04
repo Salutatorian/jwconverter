@@ -10,6 +10,9 @@ import {
 import { useEffect, useId, useRef, useState } from "react";
 import type { UseUpdaterResult } from "../hooks/useUpdater";
 import {
+  DONATE_USD_1_URL,
+  DONATE_USD_3_URL,
+  DONATE_USD_5_URL,
   FFMPEG_LICENSING_URL,
   FFMPEG_SOURCE_URL,
   GITHUB_ISSUES_URL,
@@ -291,11 +294,52 @@ export function SettingsDialog({
                 </div>
 
                 <div>
+                  <p className="panel-title">Support this project</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
+                    Optional tips help keep development going. Opens Stripe
+                    Checkout in your browser — card details stay with Stripe,
+                    never this app.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      title="Opens Stripe donation checkout for US$1"
+                      onClick={() => {
+                        void openExternal(DONATE_USD_1_URL);
+                      }}
+                    >
+                      Donate $1
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      title="Opens Stripe donation checkout for US$3"
+                      onClick={() => {
+                        void openExternal(DONATE_USD_3_URL);
+                      }}
+                    >
+                      Donate $3
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      title="Opens Stripe donation checkout for US$5"
+                      onClick={() => {
+                        void openExternal(DONATE_USD_5_URL);
+                      }}
+                    >
+                      Donate $5
+                    </button>
+                  </div>
+                </div>
+
+                <div>
                   <p className="panel-title">Licensing</p>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-                    Uses FFmpeg / FFprobe (GPL builds) for audio and ImageMagick
-                    for images. See THIRD_PARTY_*.txt in the install folder for
-                    build identity and source offers.
+                    JW Converter source is Apache License 2.0. Bundled FFmpeg /
+                    FFprobe (GPL builds) and ImageMagick keep their own licenses —
+                    see THIRD_PARTY_*.txt in the install folder.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button

@@ -18,7 +18,12 @@
         { "url": "https://github.com/Salutatorian/jwconverter/*" },
         { "url": "https://ffmpeg.org/download.html*" },
         { "url": "https://www.gyan.dev/ffmpeg/builds/" },
-        { "url": "https://www.gyan.dev/ffmpeg/builds/*" }
+        { "url": "https://www.gyan.dev/ffmpeg/builds/*" },
+        { "url": "https://donate.stripe.com/*" },
+        { "url": "https://buy.stripe.com/*" },
+        { "url": "https://checkout.stripe.com/*" },
+        { "url": "https://stripe.com/*" },
+        { "url": "https://www.stripe.com/*" }
       ]
     }
   ]

@@ -7,6 +7,16 @@ export type WhatsNewEntry = {
 /** Shown once after updating to this version (first launch). */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "1.0.9",
+    changes: [
+      "Settings → About: optional tip buttons (Donate $1 / $3 / $5 via Stripe Checkout in your browser)",
+      "JW Converter source is now Apache License 2.0",
+    ],
+    debugs: [
+      "Card details stay with Stripe — the app never collects payment data",
+    ],
+  },
+  {
     version: "1.0.8",
     changes: [
       "Mac & Linux: in-app update reminder when a newer release exists (Download update opens the DMG / AppImage)",

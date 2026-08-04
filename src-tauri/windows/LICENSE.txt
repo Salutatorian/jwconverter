@@ -1,30 +1,31 @@
-JW CONVERTER — END-USER LICENSE AGREEMENT
+JW Converter is licensed under the Apache License, Version 2.0.
 
-Copyright (c) JW. All rights reserved.
+Copyright 2026 JW
 
-By installing or using JW Converter (“the Software”), you agree to the following terms.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-1. LICENSE
-You may install and use the Software on Windows computers for personal or internal use.
+    http://www.apache.org/licenses/LICENSE-2.0
 
-2. LOCAL PROCESSING
-The Software converts and analyzes audio and images on your computer. It does not
-require an account and does not upload your media as part of normal operation.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
-3. NO WARRANTY
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM,
-DAMAGES, OR OTHER LIABILITY ARISING FROM USE OF THE SOFTWARE.
+--------------------------------------------------------------------------------
 
-4. THIRD-PARTY COMPONENTS
-The Software may bundle unmodified third-party runtime tools. Those tools are separate
-software with their own licenses; their notices (THIRD_PARTY_FFMPEG.txt and
-THIRD_PARTY_IMAGEMAGICK.txt) are installed alongside the Software. Redistribution and
-use of those binaries is governed by their license terms, not solely by this EULA.
+THIRD-PARTY COMPONENTS
+
+The installer may bundle unmodified third-party runtime tools. Those tools are
+separate software with their own licenses; their notices (THIRD_PARTY_FFMPEG.txt,
+THIRD_PARTY_IMAGEMAGICK.txt, and THIRD_PARTY_YTDLP.txt) are installed alongside
+the Software. Redistribution and use of those binaries is governed by their
+license terms, not solely by the Apache License above.
+
 The corresponding notices and licensing documentation live in the third_party/
 directory of the source repository.
 
-5. ACCEPTANCE
-Clicking “I Agree” or installing the Software indicates that you accept this agreement.
+By clicking “I Agree” or installing the Software, you acknowledge these terms.
 If you do not agree, do not install or use the Software.

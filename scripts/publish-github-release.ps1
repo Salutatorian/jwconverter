@@ -55,10 +55,10 @@ $notes = @"
 
 From v0.5.2 onward, Windows installs auto-update on launch when a newer release exists (full-screen progress). Mac/Linux show an in-app download reminder (Settings → Updates).
 
-### What's new in 1.0.8
-- **Mac & Linux:** in-app update reminder when a newer release exists
-- **Download update** opens the DMG / AppImage for your OS
-- Windows auto-install path unchanged
+### What's new in 1.0.9
+- **Settings → About:** optional tips — Donate $1 / $3 / $5 (Stripe Checkout in your browser)
+- **License:** JW Converter source is Apache License 2.0
+- Card details stay with Stripe — never collected by the app
 
 ### Notes
 - Windows 10/11 x64 + WebView2

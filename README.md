@@ -6,9 +6,15 @@ Built with Tauri 2, React, TypeScript, and Rust. Audio uses FFmpeg/FFprobe; imag
 
 Outbound network is only for: signed app updates (GitHub Releases), optional yt-dlp self-update (checksum-verified), user-pasted media hosts via yt-dlp, and Settings links you click.
 
+## License
+
+JW Converter source code is licensed under the [Apache License 2.0](LICENSE).
+
+Bundled third-party tools (FFmpeg/FFprobe, ImageMagick, yt-dlp) remain under their own licenses — see [`third_party/`](third_party/).
+
 ## Download
 
-**[Download JW Converter (v1.0.8)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.8)**
+**[Download JW Converter (v1.0.9)](https://github.com/Salutatorian/jwconverter/releases/tag/v1.0.9)**
 
 - **Windows:** signed `.exe` installer (recommended day-to-day build + in-app Update)
 - **macOS:** `.dmg` for Apple Silicon — **unsigned**; first launch: right-click the app → **Open** (Gatekeeper). Notarization comes later.
@@ -130,7 +136,7 @@ Installer output (typical):
 
 The NSIS setup includes:
 
-- License agreement (I Agree)
+- Apache 2.0 license agreement (I Agree) plus third-party notices
 - Current user / all users install mode
 - Choose install folder
 - Finish options: Launch JW Converter + View README

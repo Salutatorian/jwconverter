@@ -1,8 +1,9 @@
 [package]
 name = "jwconverter"
-version = "1.0.8"
+version = "1.0.9"
 description = "JW Converter — local-first audio, image, and link conversion"
 authors = ["JW"]
+license = "Apache-2.0"
 edition = "2021"
 
 [lib]
